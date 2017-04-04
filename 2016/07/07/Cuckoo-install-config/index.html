@@ -1,0 +1,973 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="cuckoo,security,malwr,sandbox," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="0x00 简述沙盒(Sanbox) 是一种将未知、不可信的软件隔离执行的安全机制。恶意软件分析沙盒一般用来将不可信软件放在隔离环境中自动地动态执行，然后提取其运行过程中的进程行为、网络行为、文件行为等动态行为，安全研究员可以根据这些行为分析结果对恶意软件进行更深入地分析。
+Cuckoo 是一款用 Python 编写的开源的自动化恶意软件分析系统，它的主要功能有：
+
+跟踪记录恶意软件所有的调用状况；">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cuckoo 安装、配置详解">
+<meta property="og:url" content="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="0x00 简述沙盒(Sanbox) 是一种将未知、不可信的软件隔离执行的安全机制。恶意软件分析沙盒一般用来将不可信软件放在隔离环境中自动地动态执行，然后提取其运行过程中的进程行为、网络行为、文件行为等动态行为，安全研究员可以根据这些行为分析结果对恶意软件进行更深入地分析。
+Cuckoo 是一款用 Python 编写的开源的自动化恶意软件分析系统，它的主要功能有：
+
+跟踪记录恶意软件所有的调用状况；">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467691019551.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467772922722.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467773364943.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467773714198.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467798366595.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467798476312.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467798638548.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467799019861.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1467860877539.png">
+<meta property="og:updated_time" content="2017-04-04T11:57:31.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Cuckoo 安装、配置详解">
+<meta name="twitter:description" content="0x00 简述沙盒(Sanbox) 是一种将未知、不可信的软件隔离执行的安全机制。恶意软件分析沙盒一般用来将不可信软件放在隔离环境中自动地动态执行，然后提取其运行过程中的进程行为、网络行为、文件行为等动态行为，安全研究员可以根据这些行为分析结果对恶意软件进行更深入地分析。
+Cuckoo 是一款用 Python 编写的开源的自动化恶意软件分析系统，它的主要功能有：
+
+跟踪记录恶意软件所有的调用状况；">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1467691019551.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/"/>
+
+
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+  <title> Cuckoo 安装、配置详解 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Cuckoo 安装、配置详解
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-07-07T00:00:00+08:00">
+                2016-07-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/07/07/Cuckoo-install-config/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/07/07/Cuckoo-install-config/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="0x00-简述"><a href="#0x00-简述" class="headerlink" title="0x00 简述"></a>0x00 简述</h2><p><strong>沙盒</strong>(<strong>Sanbox</strong>) 是一种将未知、不可信的软件隔离执行的安全机制。恶意软件分析沙盒一般用来将不可信软件放在隔离环境中自动地动态执行，然后提取其运行过程中的进程行为、网络行为、文件行为等动态行为，安全研究员可以根据这些行为分析结果对恶意软件进行更深入地分析。</p>
+<p>Cuckoo 是一款用 <strong>Python</strong> 编写的开源的自动化恶意软件分析系统，它的主要功能有：</p>
+<ul>
+<li>跟踪记录恶意软件所有的调用状况；</li>
+<li>恶意软件文件行为：恶意软件执行过程中创建新文件、修改文件、删除文件、读取文件或下载文件的行为；</li>
+<li>获取恶意软件的内存镜像；</li>
+<li>以 PCAP 格式记录恶意软件的网络流量；</li>
+<li>获取恶意软件执行过程中的屏幕截图；</li>
+<li>获取执行恶意软件的客户机的完整内存镜像</li>
+</ul>
+<a id="more"></a>
+<p>Cuckoo 可以分析的文件类型包括但不限于：</p>
+<ul>
+<li>Windows 可执行文件</li>
+<li>DLL 文件</li>
+<li>PDF 文件</li>
+<li>MS Office 文件</li>
+<li>URL 和 HTML 文件</li>
+<li>PHP 脚本文件</li>
+<li>CPL 文件</li>
+<li>VB 脚本文件</li>
+<li>ZIP 压缩包</li>
+<li>JAR 文件</li>
+<li>Python 脚本文件</li>
+<li>APK 文件</li>
+<li>ELF 文件</li>
+</ul>
+<p>Cuckoo 的架构也比较简单，在 Host 机上运行 Cuckoo 主程序，多个 Guest 机通过虚拟网络与 Host 机相连，每个 Guest 机上有一个 <strong>Cuckoo Agent</strong> 程序，用来做 Cuckoo 的监控代理，结构图如下：<br><img src="/imgs/1467691019551.png" alt="Cuckoo 架构图"></p>
+<hr>
+<h2 id="0x01-Host-机环境准备"><a href="#0x01-Host-机环境准备" class="headerlink" title="0x01 Host 机环境准备"></a>0x01 Host 机环境准备</h2><p>Host 机操作系统： <strong>Ubuntu14.04.01_amd64_desktop</strong>（官方推荐用 Ubuntu 最新的 LTS 版本），Python 版本 <strong>2.7.6</strong>。</p>
+<p>先去 Cuckoo Sandbox 官网下载最新的发布版本（目前是 <strong><em>v2.0-RC1</em></strong>）： <a href="https://cuckoosandbox.org/" target="_blank" rel="external">https://cuckoosandbox.org/</a></p>
+<p>先安装基本的依赖：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get install python python-pip python-dev libffi-dev libssl-dev</div></pre></td></tr></table></figure></p>
+<p>如果要用 Cuckoo 自带的基于 Django 的 Web 管理系统，还要安装 MongoDB：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get install mongodb</div></pre></td></tr></table></figure></p>
+<p>接下来需要批量安装 Cuckoo 的 Python 依赖包，Cuckoo 主目录里有一个 <code>requirements.txt</code> 文件，内容如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">alembic==0.8.0</div><div class="line">beautifulsoup4==4.4.1</div><div class="line">cffi==1.2.1</div><div class="line">chardet==2.3.0</div><div class="line">cryptography==1.0</div><div class="line">Django==1.8.4</div><div class="line">dpkt==1.8.6.2</div><div class="line">ecdsa==0.13</div><div class="line">enum34==1.0.4</div><div class="line">Flask==0.10.1</div><div class="line">HTTPReplay==0.1.5</div><div class="line">idna==2.0</div><div class="line">ipaddress==1.0.14</div><div class="line">itsdangerous==0.24</div><div class="line">Jinja2==2.8</div><div class="line">jsbeautifier==1.5.10</div><div class="line">Mako==1.0.1</div><div class="line">MarkupSafe==0.23</div><div class="line">ndg-httpsclient==0.4.0</div><div class="line">http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz#egg=pefile</div><div class="line">pyasn1==0.1.8</div><div class="line">pycparser==2.14</div><div class="line">pymongo==3.0.3</div><div class="line">pyOpenSSL==0.15.1</div><div class="line">python-dateutil==2.4.2</div><div class="line">python-editor==0.3</div><div class="line">python-magic==0.4.6</div><div class="line">requests==2.7.0</div><div class="line">six==1.9.0</div><div class="line">SQLAlchemy==1.0.8</div><div class="line">tlslite-ng==0.6.0-alpha3</div><div class="line">wakeonlan==0.2.2</div><div class="line">Werkzeug==0.10.4</div></pre></td></tr></table></figure></p>
+<p>其中的 <code>pefile</code> 需要从 Google Code 上下载，由于大陆网络限制，需要自备梯子，登上梯子后执行以下批量安装命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">pip install -r requirements.txt</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>或者先在爬梯子的情况下手动安装 <code>pefile</code>，再把 <code>pefile</code> 这一项从 <code>requirements.txt</code>文件中剔除，然后在不翻墙的状态下批量安装其他不用翻墙的依赖包</p>
+</blockquote>
+<p>Host 机需要可以嗅探网络数据包，需要安装 <code>tcpdump</code> ，如果本机没有，则执行以下命令安装 <code>tcpdump</code>：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get install tcpdump</div></pre></td></tr></table></figure></p>
+<p>如果系统没启用 <code>root</code> 账户，由于 <code>tcpdump</code> 的执行需要 <code>root</code> 权限，则需要以下配置：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ sudo <span class="built_in">setcap</span> cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump</div></pre></td></tr></table></figure></p>
+<p>如果系统里没有<code>setcap</code>命令，则需要安装 <code>libpcap</code>包：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ sudo apt-get install libcap2-bin</div></pre></td></tr></table></figure></p>
+<p>如果需要启用内存镜像分析，需要安装 <code>volatility</code>：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get install volatility</div></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="0x02-Guest-客户机配置"><a href="#0x02-Guest-客户机配置" class="headerlink" title="0x02 Guest 客户机配置"></a>0x02 Guest 客户机配置</h2><p>根据前文的 Cuckoo 架构图，前面准备好了宿主机，下面就该准备 Guest 机器了。Guest 机是一个或多个虚拟机，官方推荐的虚拟机管理软件是 <strong><code>VirtualBox</code></strong> 。</p>
+<p>先去 VBox 官网下载最新的对应系统版本的 Deb 安装包： <a href="https://www.virtualbox.org/wiki/Linux_Downloads" target="_blank" rel="external">https://www.virtualbox.org/wiki/Linux_Downloads</a></p>
+<p>安装好 VBox 之后，创建新的虚拟机（推荐用 <code>Windows7</code>），需要对 Win7 客户机做一些基础配置。</p>
+<h3 id="0x02-1-安装-Cuckoo-Agent"><a href="#0x02-1-安装-Cuckoo-Agent" class="headerlink" title="0x02.1 安装 Cuckoo Agent"></a>0x02.1 安装 Cuckoo Agent</h3><p>Cuckoo Agent 是一个植入客户机的 Python 脚本，通过 XMLRPC Server 的方式来跟 Host 主机通信、交换数据。这个 Python 脚本是跨平台的，可以在 Windows/Linux/OS X 上运行。所以客户机上需要安装 Python 环境，如果需要截屏功能，还要安装 <strong><code>PIL</code></strong> （Python Image Library）库：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">pip instsall PIL</div></pre></td></tr></table></figure></p>
+<p>Cuckoo Agent 在 Window 系统上的安装方法很简单，只需要将 <code>cuckoo/agent/agent.py</code> 文件拷贝到 Win7 客户机里，并启动即可。</p>
+<p>但是这样的运行方式并不够完美，我们需要这个 <code>agent.py</code> 开机启动，并且不能有运行窗口，这就需要另做一些处理：</p>
+<ol>
+<li>把 <code>agent.py</code> 文件放到系统开机启动目录中，Win7 默认的路径是 <code>C:\Users\[USER]\AppData\Roaming\MicroSoft\Windows\Start Menu\Programs\Startup\</code>；</li>
+<li>把 <code>agent.py</code> 后缀改成 <code>agent.pyw</code>，这样程序启动就不会有 GUI 窗口了。</li>
+</ol>
+<h3 id="0x02-2-配置系统开机自动登录"><a href="#0x02-2-配置系统开机自动登录" class="headerlink" title="0x02.2 配置系统开机自动登录"></a>0x02.2 配置系统开机自动登录</h3><p>Win7 客户机如果开机自动登录，可以方便 Cuckoo 控制。可以用管理员权限打开 CMD 窗口，依次执行以下命令：<br><figure class="highlight powershell"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">reg add <span class="string">"hklm\software\Microsoft\Windows NT\CurrentVersion\WinLogon"</span> /v DefaultUserName /d &lt;USERNAME&gt; /t REG_SZ /f</div><div class="line">reg add <span class="string">"hklm\software\Microsoft\Windows NT\CurrentVersion\WinLogon"</span> /v DefaultPassword /d &lt;PASSWORD&gt; /t REG_SZ /f</div><div class="line">reg add <span class="string">"hklm\software\Microsoft\Windows NT\CurrentVersion\WinLogon"</span> /v AutoAdminLogon /d <span class="number">1</span> /t REG_SZ /f</div><div class="line">reg add <span class="string">"hklm\system\CurrentControlSet\Control\TerminalServer"</span> /v AllowRemoteRPC /d <span class="number">0</span>x01 /t REG_DWORD /f</div><div class="line">reg add <span class="string">"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"</span> /v LocalAccountTokenFilterPolicy /d <span class="number">0</span>x01 /t REG_DWORD /f</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>注意修改前两条命令里的 <code>&lt;USERNAME&gt;</code> 和 <code>&lt;PASSWORD&gt;</code> 为自己的账户和密码</p>
+</blockquote>
+<h3 id="0x02-3-其他处理"><a href="#0x02-3-其他处理" class="headerlink" title="0x02.3 其他处理"></a>0x02.3 其他处理</h3><p>为了方便恶意样本分析，最大程度保证恶意样本顺利执行，还需要关闭 Windows 系统的 <strong>Windows 防火墙</strong> 和 <strong>Windows 自动更新</strong>。</p>
+<p>为了方便分析多种类型的恶意软件，还应该尽量在操作系统上安装 MS-Office 套装、PDF 阅读器、常用浏览器、Java 执行环境等等。并且，为了让客户机看起来更像普通人用的正常机器而不是一台沙盒客户机，尽量给操作系统安装其他常用的办公、娱乐、聊天软件，并访问一些网站、留下一些 Cookie 或其他数据。</p>
+<h3 id="0x02-4-网络配置"><a href="#0x02-4-网络配置" class="headerlink" title="0x02.4 网络配置"></a>0x02.4 网络配置</h3><p>客户机的网络配置是重中之重，配置不好 Cuckoo 几乎无法有效运行。</p>
+<p>推荐的网络配置方法是通过 VirtualBox 的 <strong><code>Host-Only</code></strong> 模式，将一个或多个虚拟客户机部署在一个小的局域网中，与外界隔离开，通过 Host 机与外界交流。</p>
+<p>首先，需要在 VirtualBox 上添加一块给 <code>Host-Only</code> 部署用的虚拟网卡，默认是 <code>vboxnet0</code>，Host 机通过此虚拟网卡与同网段的虚拟客户机通信：<br><img src="/imgs/1467772922722.png" alt="添加 Host-only 虚拟网络"></p>
+<blockquote>
+<p>VBox 中默认可能没有此 <code>vboxnet0</code> 的 <code>Host-only</code> 网卡，可以通过上图右上角的 <strong>添加</strong> 按钮手动添加</p>
+</blockquote>
+<p>Cuckoo 默认的 <code>Result Server</code> IP 地址为 <code>192.168.56.1</code>(在配置文件 <code>cuckoo/conf/cuckoo.conf</code> 中)，此 IP 要与上面的 <code>vboxnet0</code> 网卡的 IP 地址相对应，所以，还要手动修改 <code>vboxnet0</code> 的配置（DHCP 服务可不启用，手动配置客户机 IP 地址即可）：<br><img src="/imgs/1467773364943.png" alt="配置 vboxnet0"></p>
+<p>接下来手动配置 Win7 客户机的网络：<br><img src="/imgs/1467773714198.png" alt="配置 Win7 客户机网络"></p>
+<p>至此，Host 机和 Win7 客户机就可以互相通信了，互相 Ping 一下可以 Ping 通。但这还无法满足正常的自动化恶意软件分析的要求，因为这种初级的 <code>Host-only</code> 模式里面虚拟机无法访问互联网，而很多恶意软件都需要访问网络才可以正常运行。所以我们还需要 <code>vboxnet0</code> 这块网卡具有代理上网的功能，使这个小局域网里的虚拟客户机可以通过这块虚拟网卡访问互联网。如果要满足这个需求，需要在 Ubuntu Host 机上做两个操作：开启流量转发、用 <code>iptables</code> 做地址转换（NAT）规则。</p>
+<p>开启 IP 转发，用下面两条命令之一皆可：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">sysctl -w net.ipv4.ip_forward=1</div><div class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</div></pre></td></tr></table></figure></p>
+<p>但是上面的命令只能 <strong>临时开启</strong> IP 转发功能，系统重启之后便失效。若想永久开启此功能，需要手动修改配置文件 <strong><code>/etc/sysctl.conf</code></strong> ，将里面 <code>net.ipv4.ip_forward=1</code> 前的注释取消，然后运行以下命令即可永久开启 IP 转发功能：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sysctl -p /etc/sysctl.conf</div></pre></td></tr></table></figure></p>
+<p>Ubuntu 系统中用 <code>iptables</code> 设置地址转换规则，Cuckoo 官方资料给出了参考命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">iptables -A FORWARD -o eth0 -i vboxnet0 <span class="_">-s</span> 192.168.56.0/24 -m conntrack --ctstate NEW -j ACCEPT</div><div class="line">iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT</div><div class="line">iptables -A POSTROUTING -t nat -j MASQUERADE</div></pre></td></tr></table></figure></p>
+<p>但是 Ubuntu 中的 <code>iptables</code> 这样设置也只是 <strong>临时</strong> 的，系统重启之后这些规则就会失效，如果想系统重启这些规则仍然可用，可以做以下处理：</p>
+<p>编辑 Ubuntu 的网络配置文件 <code>/etc/network/interfaces</code> ，在文件末尾添加以下两行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">pre-up iptables-restore &lt; /etc/iptables.rules <span class="comment">#开机时启用 iptables 规则</span></div><div class="line">post-down iptables-save &gt; /etc/iptables.rules <span class="comment">#关机前保存当前所有的 iptables 规则</span></div></pre></td></tr></table></figure></p>
+<p>这样一来，Ubuntu Host 主机每次关机前都会把已有的 <code>iptables</code> 规则备份到 <code>/etc/iptables.rules</code> 文件中、每次开机是都会从 <code>/etc/iptables.rules</code> 读取规则并启用。</p>
+<p>配置好之后，Guest 虚拟机就可以通过 <code>vboxnet0</code> 来访问互联网了。</p>
+<h3 id="0x02-5-保存客户机"><a href="#0x02-5-保存客户机" class="headerlink" title="0x02.5 保存客户机"></a>0x02.5 保存客户机</h3><p>上面算是把客户机相关的配置都配置好了，接下来需要对配置好的客户机建立一个快照。每次 Cuckoo 调用客户机分析完一个恶意样本之后，会把虚拟机恢复到这个快照的状态。</p>
+<p>保存系统快照的时候有一点需要注意：确保在系统正常运行、且 <code>agent.py</code> 无界面运行的时候，执行系统快照。</p>
+<hr>
+<h2 id="0x03-Cuckoo-配置"><a href="#0x03-Cuckoo-配置" class="headerlink" title="0x03 Cuckoo 配置"></a>0x03 Cuckoo 配置</h2><p>准备好 Host 机系统环境、配置好客户机之后， Cuckoo 还不能正常运行，还需要配置一下 Cuckoo 才能正常运行。 Cuckoo 有好多配置文件，都在 <code>cuckoo/conf/</code> 目录下，下面简要介绍几个主要配置文件的作用：</p>
+<blockquote>
+<ul>
+<li><strong><code>cuckoo.conf</code></strong>： 主要的配置文件，最主要的是 <code>machinery</code> 用于指定我们使用的虚拟机配置文件，默认是 <code>virtualbox</code>，该文件同样位于 <code>conf</code> 目录下，名字是 <code>virtualbox.conf</code>。另外一个比较重要的配置项是<code>[resultserver]</code> 的 <code>ip</code>和 <code>port</code>，用于指定接收分析结果的服务器。该地址必须能够让虚拟机访问到，一般设置为虚拟网卡的地址，比如前面说过的 <code>Host-only</code> 虚拟网卡 <code>vboxnet0</code> 的 IP 地址<code>192.168.56.1</code>（也可以自己改成其他的），端口默认即可；</li>
+<li><strong><code>auxiliary.conf</code></strong>： 辅助组件配置模块，可以配置 <code>tcpdump</code> /<code>mitm</code>/<code>sniffer</code>等；</li>
+<li><strong><code>memory.conf</code></strong>： 内存分析配置模块，主要用来配置 <code>Volatility</code> 的行为；</li>
+<li><strong><code>processing.conf</code></strong>： 核心处理组件配置文件，可以开启/关闭行为分析、缓冲区分析、内存分析、截屏、Snort、字符串提取、<code>VirusTotal</code>辅助分析等等功能；</li>
+<li><strong><code>&lt;machinery&gt;.conf</code></strong>： 虚拟化配置文件，包括 <code>virtualbox</code>/<code>vmware</code>/<code>kvm</code>/<code>qume</code>等。在实际的配置当中，根据自己试用的虚拟化环境，只需要配置其中一个即可，同时采用的这个配置文件也必须 在<code>cuckoo.conf</code> 的 <code>machinery</code> 字段指定。这里的配置选项都是针对特定虚拟化平台的，很多选项只适用于某些平台。前面我们用的是 <code>virtualbox.conf</code>，其中 <code>mode</code> 指定 <code>virtualbox</code> 的运行模式，<code>path</code> 指定 <code>VBoxManage</code> 的绝对路径，<code>machines</code>指定我们使用的虚拟机的名字（多个虚拟机需要用半角逗号隔开），<code>platform</code> 指定虚拟客户机的系统类型，<code>ip</code> 指定虚拟机的 <code>ip</code> 地址;</li>
+<li><strong><code>reporting.conf</code></strong>： 报告生成模块的配置文件，用来开启 <code>jsondump</code> 或者 <code>HTML Report</code>，还可以配置 <code>MongoDB</code> 存储分析结果（Web 控制台会用到）。</li>
+</ul>
+</blockquote>
+<p>这里，我们需要修改的配置文件，可以修改 <strong><code>processing.conf</code></strong> 启用/关闭 自己想要的模块（比如 VT 模块），还需要修改 <strong><code>virtualbox.conf</code></strong>。根绝前文所述，假设我的 Win7 客户机名称是 <strong><code>jiayu1</code></strong>，IP 地址是 <code>192.168.56.101</code>，<strong><code>virtualbox.conf</code></strong> 的内容示例如下（<code>mode = headless</code> 是指 VBox 的 <strong>无界面启动模式</strong>）：<br><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line">[virtualbox]</div><div class="line"><span class="comment"># Specify which VirtualBox mode you want to run your machines on.</span></div><div class="line"><span class="comment"># Can be "gui", "sdl" or "headless". Refer to VirtualBox's official</span></div><div class="line"><span class="comment"># documentation to understand the differences.</span></div><div class="line">mode = headless</div><div class="line"></div><div class="line"><span class="comment"># Path to the local installation of the VBoxManage utility.</span></div><div class="line">path = /usr/bin/vboxmanage</div><div class="line"></div><div class="line"><span class="comment"># Default network interface.</span></div><div class="line">interface = vboxnet0</div><div class="line"></div><div class="line"><span class="comment"># Specify a comma-separated list of available machines to be used. For each</span></div><div class="line"><span class="comment"># specified ID you have to define a dedicated section containing the details</span></div><div class="line"><span class="comment"># on the respective machine. (E.g. cuckoo1,cuckoo2,cuckoo3)</span></div><div class="line">machines = jiayu1</div><div class="line"></div><div class="line">[jiayu1]</div><div class="line"><span class="comment"># Specify the label name of the current machine as specified in your</span></div><div class="line"><span class="comment"># VirtualBox configuration.</span></div><div class="line">label = jiayu1</div><div class="line"></div><div class="line"><span class="comment"># Specify the operating system platform used by current machine</span></div><div class="line"><span class="comment"># [windows/darwin/linux].</span></div><div class="line">platform = windows</div><div class="line"></div><div class="line"><span class="comment"># Specify the IP address of the current virtual machine. Make sure that the</span></div><div class="line"><span class="comment"># IP address is valid and that the host machine is able to reach it. If not,</span></div><div class="line"><span class="comment"># the analysis will fail.</span></div><div class="line">ip = 192.168.56.101</div><div class="line"></div><div class="line">[honeyd]</div><div class="line"><span class="comment"># For more information on this VM please refer to the "services" section of</span></div><div class="line"><span class="comment"># the conf/auxiliary.conf configuration file. This machine is a bit special</span></div><div class="line"><span class="comment"># in the way that its used as an additional VM for an analysis.</span></div><div class="line"><span class="comment"># *NOTE* that if this functionality is used, the VM should be registered in</span></div><div class="line"><span class="comment"># the "machines" list in the beginning of this file.</span></div><div class="line">label = honeyd</div><div class="line">platform = linux</div><div class="line">ip = 192.168.56.102</div><div class="line">tags = service, honeyd</div><div class="line">options = nictrace noagent</div></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="0x04-启动-Cuckoo，上传样本执行自动化分析"><a href="#0x04-启动-Cuckoo，上传样本执行自动化分析" class="headerlink" title="0x04 启动 Cuckoo，上传样本执行自动化分析"></a>0x04 启动 Cuckoo，上传样本执行自动化分析</h2><p>至此，Cuckoo 自动化恶意软件分析环境的配置工作算是基本完成，接下来就是启动 Cuckoo 服务、上传样本进行自动化分析了。</p>
+<p>在启动 Cuckoo 服务之前，还需要开启 <code>MongoDB</code> 服务，并根据 <strong><code>reporting.conf</code></strong> 中的关于 <code>MongoDB</code> 的配置创建一个新的数据集。比如我的 <strong><code>reporting.conf</code></strong> 关于数据库的 配置如下所示，我就需要手动创建一个名为 <code>cuckoo</code> 的数据集：<br><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">[mongodb]</div><div class="line">enabled = yes </div><div class="line">host = 127.0.0.1</div><div class="line">port = 27017</div><div class="line">db = cuckoo</div><div class="line">store_memdump = yes </div><div class="line">paginate = 100</div></pre></td></tr></table></figure></p>
+<p>启动 Cuckoo 的服务只需一条命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">python cuckoo.py</div></pre></td></tr></table></figure></p>
+<p>但这样只能让该服务进程前台运行并且不能关闭中断，如果想让它后台运行，可以这样启动：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">nohup python cuckoo.py &amp;</div></pre></td></tr></table></figure></p>
+<p>启动 Cuckoo 服务进程之后，就可以提交样本进行分析了。提交样本可以用 <code>cuckoo/utils/submit.py</code> 来提交，具体方法见帮助：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">usage: submit.py [-h] [<span class="_">-d</span>] [--remote REMOTE] [--url] [--package PACKAGE]</div><div class="line">                 [--custom CUSTOM] [--owner OWNER] [--timeout TIMEOUT]</div><div class="line">                 [-o OPTIONS] [--priority PRIORITY] [--machine MACHINE]</div><div class="line">                 [--platform PLATFORM] [--memory] [--enforce-timeout]</div><div class="line">                 [--clock CLOCK] [--tags TAGS] [--baseline] [--max MAX]</div><div class="line">                 [--pattern PATTERN] [--shuffle] [--unique] [--quiet]</div><div class="line">                 [target]</div><div class="line"></div><div class="line">positional arguments:</div><div class="line">  target                URL, path to the file or folder to analyze</div><div class="line"></div><div class="line">optional arguments:</div><div class="line">  -h, --help            show this <span class="built_in">help</span> message and <span class="built_in">exit</span></div><div class="line">  <span class="_">-d</span>, --debug           Enable debug logging</div><div class="line">  --remote REMOTE       Specify IP:port to a Cuckoo API server to submit</div><div class="line">                        remotely</div><div class="line">  --url                 Specify whether the target is an URL</div><div class="line">  --package PACKAGE     Specify an analysis package</div><div class="line">  --custom CUSTOM       Specify any custom value</div><div class="line">  --owner OWNER         Specify the task owner</div><div class="line">  --timeout TIMEOUT     Specify an analysis timeout</div><div class="line">  -o OPTIONS, --options OPTIONS</div><div class="line">                        Specify options <span class="keyword">for</span> the analysis package (e.g.</div><div class="line">                        <span class="string">"name=value,name2=value2"</span>)</div><div class="line">  --priority PRIORITY   Specify a priority <span class="keyword">for</span> the analysis represented by an</div><div class="line">                        <span class="built_in">integer</span></div><div class="line">  --machine MACHINE     Specify the identifier of a machine you want to use</div><div class="line">  --platform PLATFORM   Specify the operating system platform you want to use</div><div class="line">                        (windows/darwin/linux)</div><div class="line">  --memory              Enable to take a memory dump of the analysis machine</div><div class="line">  --enforce-timeout     Enable to force the analysis to run <span class="keyword">for</span> the full</div><div class="line">                        timeout period</div><div class="line">  --clock CLOCK         Set virtual machine clock</div><div class="line">  --tags TAGS           Specify tags identifier of a machine you want to use</div><div class="line">  --baseline            Run a baseline analysis</div><div class="line">  --max MAX             Maximum samples to add <span class="keyword">in</span> a row</div><div class="line">  --pattern PATTERN     Pattern of files to submit</div><div class="line">  --shuffle             Shuffle samples before submitting them</div><div class="line">  --unique              Only submit new samples, ignore duplicates</div><div class="line">  --quiet               Only <span class="built_in">print</span> text on failure</div></pre></td></tr></table></figure></p>
+<p>但这种命令提交的方法体验不太好，Cuckoo 官方提供了一个基于 Django 的 Web 管理界面，在 <code>cuckoo/web/</code> 目录中，启动这个 Web 管理界面需要进入 <code>cucoo/web/</code> 目录，然后运行以下命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">python manage.py runserver</div></pre></td></tr></table></figure></p>
+<p>如果需要对外开放该 Web 界面，则需要指定监听的 IP 地址 和端口：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">python manage.py runserver 0.0.0.0:[PORT]</div></pre></td></tr></table></figure></p>
+<p>然后就可以通过浏览器访问 Ubuntu Host 机的 IP 地址和 Cuckoo Web 界面对应的端口了，界面如下所示：<br><img src="/imgs/1467798366595.png" alt="Web管理系统"></p>
+<p>点击导航栏上的 <code>Submit</code> 按钮，即可跳转到样本上传页面，上传时还可以选择一些高级的选项：<br><img src="/imgs/1467798476312.png" alt="上传样本"></p>
+<blockquote>
+<p>可以看到，Cuckoo 不仅可以直接分析上传的样本文件，还可以分析远程的 URL</p>
+</blockquote>
+<p>上传完成后，Cuckoo 就会自动分析，分析完成后，可以在 <code>Recent</code> 页面里查看最近分析的样本以及结果：<br><img src="/imgs/1467798638548.png" alt="Recent 列表"></p>
+<p>Cuckoo 分析完的样本，可以点击查看分析报告，也可以重新分析已经完成的分析任务：<br><img src="/imgs/1467799019861.png" alt="查看分析结果"></p>
+<hr>
+<h2 id="0x05-其他"><a href="#0x05-其他" class="headerlink" title="0x05 其他"></a>0x05 其他</h2><p><code>cuckoo/cukoo.py</code> 启动时有一个特殊的参数选项 <code>--clean</code>，官方的解释为 <code>Remove all tasks and samples and their associated data</code>。即一旦运行<code>python cuckoo.py --clean</code> ，那么所有的分析任务、样本和分析结果相关的数据都会被清除，相当于对 Cuckoo <strong>恢复出厂设置</strong>。</p>
+<p>Cuckoo 自带了一个基于 <strong><code>flask</code></strong> 的轻量级 REST API 服务程序，即 <code>cuckoo/utils/api.py</code>，默认启动此程序会绑定到 <strong>localhost:8090</strong>，也可以启动时指定监听地址和端口：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">python utils/api.py --host 0.0.0.0 --port 1337</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>也可以用此 API 程序，通过 <strong><code>uWSGI</code></strong> 和 <strong><code>Nginx</code></strong> 代理部署一个高性能的 REST API 服务。</p>
+</blockquote>
+<p>通过这个 REST API，可以实现灵活的任务管理（甚至比前文提到的 Cuckoo 自带的 Web 管理界面还灵活） ，也可以基于此开发一套自己的 Cuckoo 管理程序。具体用法参考 Cuckoo 官方文档。</p>
+<p>Cuckoo 还支持分布式部署，多 Host 机节点、多 Guest 机支持，部署方式详见 官方文档。</p>
+<p>Cuckoo 部署完成后，通过自带的 Web 管理界面，如果某个样本完成分析但查看分析报告的时候出现如下模板渲染错误：<br><img src="/imgs/1467860877539.png" alt="模板渲染错误"></p>
+<p>处理方式是修改 <code>web/analysis/urls.py</code> 文件：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-    <span class="string">"/(?P&lt;ip&gt;[\d\.]+)?/(?P&lt;host&gt;[a-zA-Z0-9-\.]+)?"</span></div><div class="line">+    <span class="string">"/(?P&lt;ip&gt;[\d\.]+)?/(?P&lt;host&gt;[a-zA-Z0-9-_\.]+)?"</span></div></pre></td></tr></table></figure></p>
+<p>最后，Cuckoo 官方虽然声称可以支持 Linux 样本的分析，但支持的并不好。在 Ubuntu 上安装 <code>Systemtap</code> 并用 <code>stap</code> 命令执行 <code>cuckoo/data/strace.stp</code> 脚本完美生成可用的 <code>stap_xxxx.ko</code>，还要搞定官方并没有提供的 <code>probelkm.ko</code>，会经历各种大坑小坑，足够另起一篇长文，此处不详述。</p>
+<hr>
+<h2 id="0x06-参考资料"><a href="#0x06-参考资料" class="headerlink" title="0x06 参考资料"></a>0x06 参考资料</h2><ol>
+<li><a href="http://docs.cuckoosandbox.org/en/latest/" target="_blank" rel="external">http://docs.cuckoosandbox.org/en/latest/</a></li>
+<li><a href="http://drops.wooyun.org/tips/11367" target="_blank" rel="external">http://drops.wooyun.org/tips/11367</a></li>
+<li><a href="http://easwy.com/blog/archives/enable-ip-forward-on-linux/" target="_blank" rel="external">http://easwy.com/blog/archives/enable-ip-forward-on-linux/</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+    <div><font color="green">看得爽的话，赞助个地铁通勤费？</font></div>
+    <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+      <span>赏</span>
+    </button>
+    <div id="QR" style="display: none;">
+      
+        <div id="wechat" style="display: inline-block">
+          <img id="wechat_qr" src="/imgs/wechat.png" alt="0xjiayu WeChat Pay"/>
+          <p>微信打赏</p>
+        </div>
+      
+      
+        <div id="alipay" style="display: inline-block">
+          <img id="alipay_qr" src="/imgs/alipay.png" alt="0xjiayu Alipay"/>
+          <p>支付宝打赏</p>
+        </div>
+      
+    </div>
+  </div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+  <p><p>
+  <div style="padding: 0 20px 0; margin: 20px 0; line-height: 6px; border-left: 300px solid #ddd; border-right: 300px solid #ddd; text-align: center;"><b>Copyright</b></div>
+  
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/" title="Cuckoo 安装、配置详解">http://jiayu0x.com/2016/07/07/Cuckoo-install-config/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/cuckoo/" rel="tag"># cuckoo</a>
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/malwr/" rel="tag"># malwr</a>
+          
+            <a href="/tags/sandbox/" rel="tag"># sandbox</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/03/22/DHCP-protocol-and-offensive-and-defensive/" rel="next" title="DHCP 协议原理与攻防简介">
+                <i class="fa fa-chevron-left"></i> DHCP 协议原理与攻防简介
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/11/21/hbase-notice/" rel="prev" title="HBase 一些需要注意的点">
+                HBase 一些需要注意的点 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About CeyberSecurity/Malwr/Vulnerablility/System/Coding/Learning…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">15</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-简述"><span class="nav-number">1.</span> <span class="nav-text">0x00 简述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-Host-机环境准备"><span class="nav-number">2.</span> <span class="nav-text">0x01 Host 机环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-Guest-客户机配置"><span class="nav-number">3.</span> <span class="nav-text">0x02 Guest 客户机配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-1-安装-Cuckoo-Agent"><span class="nav-number">3.1.</span> <span class="nav-text">0x02.1 安装 Cuckoo Agent</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-2-配置系统开机自动登录"><span class="nav-number">3.2.</span> <span class="nav-text">0x02.2 配置系统开机自动登录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-3-其他处理"><span class="nav-number">3.3.</span> <span class="nav-text">0x02.3 其他处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-4-网络配置"><span class="nav-number">3.4.</span> <span class="nav-text">0x02.4 网络配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-5-保存客户机"><span class="nav-number">3.5.</span> <span class="nav-text">0x02.5 保存客户机</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-Cuckoo-配置"><span class="nav-number">4.</span> <span class="nav-text">0x03 Cuckoo 配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-启动-Cuckoo，上传样本执行自动化分析"><span class="nav-number">5.</span> <span class="nav-text">0x04 启动 Cuckoo，上传样本执行自动化分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-其他"><span class="nav-number">6.</span> <span class="nav-text">0x05 其他</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-参考资料"><span class="nav-number">7.</span> <span class="nav-text">0x06 参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://Disqus.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2016/07/07/Cuckoo-install-config/';
+          this.page.identifier = '2016/07/07/Cuckoo-install-config/';
+          this.page.title = 'Cuckoo 安装、配置详解';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://Disqus.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

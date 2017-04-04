@@ -1,0 +1,1088 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="linux,log," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="Linux 系统中的日志大概可以分为以下几类：
+
+用户访问日志
+进程监控日志
+系统与服务日志
+
+本文将对这几种日志进行详细剖析。
+
+NOTE:本文中的例子，如非特殊说明，均在 CentOS7 上实施。
+
+1. 用户访问日志用户的登录时间日志一般由 /var/log/wtmp 和 /var/run/utmp 这两个文件记录，不过这两个文件无法直接 cat 命令查看，并且该文件由系统自动更新。这两个文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 日志剖析">
+<meta property="og:url" content="http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="Linux 系统中的日志大概可以分为以下几类：
+
+用户访问日志
+进程监控日志
+系统与服务日志
+
+本文将对这几种日志进行详细剖析。
+
+NOTE:本文中的例子，如非特殊说明，均在 CentOS7 上实施。
+
+1. 用户访问日志用户的登录时间日志一般由 /var/log/wtmp 和 /var/run/utmp 这两个文件记录，不过这两个文件无法直接 cat 命令查看，并且该文件由系统自动更新。这两个文">
+<meta property="og:image" content="http://img.blog.csdn.net/20130919161257234?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY2hhb2ZhbndlaQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center">
+<meta property="og:updated_time" content="2017-04-04T10:46:51.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux 日志剖析">
+<meta name="twitter:description" content="Linux 系统中的日志大概可以分为以下几类：
+
+用户访问日志
+进程监控日志
+系统与服务日志
+
+本文将对这几种日志进行详细剖析。
+
+NOTE:本文中的例子，如非特殊说明，均在 CentOS7 上实施。
+
+1. 用户访问日志用户的登录时间日志一般由 /var/log/wtmp 和 /var/run/utmp 这两个文件记录，不过这两个文件无法直接 cat 命令查看，并且该文件由系统自动更新。这两个文">
+<meta name="twitter:image" content="http://img.blog.csdn.net/20130919161257234?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY2hhb2ZhbndlaQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/"/>
+
+
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+  <title> Linux 日志剖析 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Linux 日志剖析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-01-02T00:00:00+08:00">
+                2015-01-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/system/" itemprop="url" rel="index">
+                    <span itemprop="name">system</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/01/02/Linux-log-and-analysis/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2015/01/02/Linux-log-and-analysis/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Linux 系统中的日志大概可以分为以下几类：</p>
+<ul>
+<li>用户访问日志</li>
+<li>进程监控日志</li>
+<li>系统与服务日志</li>
+</ul>
+<p>本文将对这几种日志进行详细剖析。</p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>本文中的例子，如非特殊说明，均在 <code>CentOS7</code> 上实施。</p>
+</blockquote>
+<h2 id="1-用户访问日志"><a href="#1-用户访问日志" class="headerlink" title="1. 用户访问日志"></a>1. 用户访问日志</h2><p>用户的登录时间日志一般由 <code>/var/log/wtmp</code> 和 <code>/var/run/utmp</code> 这两个文件记录，不过这两个文件无法直接 <code>cat</code> 命令查看，并且该文件由系统自动更新。这两个文件中的内容可以用 <code>w/who/finger/id/last/ac/uptime</code> 这几个命令来查看。 <code>/var/log/lastlog</code> 文件记录用户最后登录的信息，可用 <code>lastlog</code> 命令来查看。</p>
+<a id="more"></a>
+<p>日志文件是多数重用 UNIX 日志子系统的关键——保持用户登录进入和退出的纪录。有关当前登录用户的信息记录在文件 <code>/var/run/utmp</code> 中；登录进入和退出纪录在文件 <code>/var/log/wtmp</code> 中；最后一次登录文件可以用 <code>lastlog</code> 命令察看。数据交换、关机和重起也记录在 <code>/var/log/wtmp</code> 文件中。所有的纪录都包含时间戳。这些文件（ <code>/var/log/lastlog</code> 通常不大）在具有大量用户的系统中增长十分迅速。例如wtmp文件可以无限增长，除非定期截取。许多系统以一天或者一周为单位把 <code>/var/log/wtmp</code> 配置成循环使用。它通常由 <code>cron</code> 运行的脚本来修改。这些脚本重新命名并循环使用 <code>/var/log/wtmp</code> 文件。通常， <code>/var/log/wtmp</code> 在第一天结束后命名为 <code>wtmp.1</code> ；第二天后 <code>wtmp.1</code>变为 <code>wtmp.2</code> 等等，直到 <code>wtmp.7</code>。</p>
+<p>每次有一个用户登录时， <code>login</code> 程序在文件 <code>lastlog</code> 中察看用户的 <code>UID</code> 。如果找到了，则把用户上次登录、退出时间和主机名写到标准输出中，然后 <code>login</code> 程序在 <code>/var/log/lastlog</code>中纪录新的登录时间。在新的 <code>/var/log/lastlog</code> 纪录写入后， <code>/var/run/utmp</code> 文件打开并插入用户的 <code>utmp</code> 纪录。该纪录一直用到用户登录退出时删除。  <code>/var/run/utmp</code> 文件被各种命令文件使用，包括 <code>who</code> 、<code>w</code> 、<code>users</code> 和 <code>finger</code>。</p>
+<p>下一步，<code>login</code> 程序打开文件 <code>/var/log/wtmp</code> 附加用户的 <code>utmp</code> 纪录。当用户登录退出时，具有更新时间戳的同一 <code>utmp</code> 纪录附加到文件中。 <code>/var/log/wtmp</code> 文件被程序 <code>last</code> 和 <code>ac</code> 使用。</p>
+<hr>
+<h3 id="1-1-who-命令"><a href="#1-1-who-命令" class="headerlink" title="1.1 who 命令"></a>1.1 <code>who</code> 命令</h3><p>该命令查询  <code>/var/run/utmp</code> 文件并报告 <strong>当前登录</strong> 的每个用户。<code>who</code> 的缺省输出包括 <strong>用户名</strong>、<strong>终端类型</strong>、<strong>登录日期</strong> 及 <strong>远程主机</strong>。例如:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ who</div><div class="line">root     tty1         2014-12-29 16:34</div><div class="line">root     pts/0        2014-12-29 15:48 (ses-254-254.geology.ohio-state.edu)</div><div class="line">root     pts/1        2014-12-29 16:40 (ses-254-254.geology.ohio-state.edu)</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>关于 <code>tty/pts</code> 的概念，可参考： <a href="http://7056824.blog.51cto.com/69854/276610" target="_blank" rel="external">Linux中tty、pty、pts的概念区别</a></p>
+</blockquote>
+<p>如果指明了 <code>wtmp</code> 的文件名，则 <code>who</code> 命令查询所有以前的纪录。命令 <code>who /var/log/wtmp</code> 将报告 <strong>自从 <code>/var/log/wtmp</code> 文件创建或删改以来的每一次登录</strong>：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ who /var/log/wtmp</div><div class="line">root     tty1         2014-10-16 17:35</div><div class="line">root     tty1         2014-10-16 19:42</div><div class="line">root     tty1         2014-10-16 20:05</div><div class="line">root     pts/0        2014-10-17 10:56 (ses-254-254.geology.ohio-state.edu)</div><div class="line">root     pts/1        2014-10-17 13:55 (ses-254-254.geology.ohio-state.edu)</div><div class="line">root     pts/1        2014-10-17 14:00 (ses-254-254.geology.ohio-state.edu)</div><div class="line">root     pts/2        2014-10-17 14:59 (ses-254-254.geology.ohio-state.edu)</div><div class="line">root     tty1         2014-10-20 17:53</div><div class="line">......</div></pre></td></tr></table></figure></p>
+<h3 id="1-2-w-命令"><a href="#1-2-w-命令" class="headerlink" title="1.2 w 命令"></a>1.2 <code>w</code> 命令</h3><p>该命令查询 <code>/var/log/wtmp</code> 文件并显示 <strong>当前</strong> 系统中每个用户和它所运行的进程信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">➜ w</div><div class="line"> 17:00:52 up 3 days,  2:16,  3 users,  load average: 0.06, 0.03, 0.05</div><div class="line">USER     TTY        LOGIN@   IDLE   JCPU   PCPU WHAT</div><div class="line">root     tty1      16:34   26:12   0.11s  0.11s -zsh</div><div class="line">root     pts/0     15:48    4.00s  0.19s  0.02s w</div><div class="line">root     pts/1     16:57   20.00s  0.74s  0.08s zsh</div></pre></td></tr></table></figure></p>
+<h3 id="1-3-users-命令"><a href="#1-3-users-命令" class="headerlink" title="1.3 users 命令"></a>1.3 <code>users</code> 命令</h3><p>用单独的一行打印出当前登录的用户，每个显示的用户名对应一个登录会话。如果一个用户有不止一个登录会话，那他的用户名将显示相同的次数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ users</div><div class="line">root root root</div></pre></td></tr></table></figure></p>
+<h3 id="1-4-id-命令"><a href="#1-4-id-命令" class="headerlink" title="1.4 id 命令"></a>1.4 <code>id</code> 命令</h3><p>与上面 <code>users</code> 命令类似，但可以显示更多信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ id</div><div class="line">uid=0(root) gid=0(root) 组=0(root) 环境=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023</div><div class="line">➜ id root</div><div class="line">uid=0(root) gid=0(root) 组=0(root)</div></pre></td></tr></table></figure></p>
+<p><code>id</code> 命令可以显示用户组信息以及更为复杂的 <code>SELinux</code> 上下文信息（比如第一条命令，如果系统启用了 <code>SELinux</code> ，默认就会输出 <code>SELinux</code> 上下文信息）；第二条命令指定输出某个用户名的信息时，则会只输出用户和组信息。</p>
+<h3 id="1-5-last-命令"><a href="#1-5-last-命令" class="headerlink" title="1.5 last 命令"></a>1.5 <code>last</code> 命令</h3><p>该命令往回搜索 <code>/var/log/wtmp</code> 文件来显示自从该文件第一次创建以来所有登录过的用户：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">➜ last</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:57   still logged in</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:49 - 16:57  (00:08)</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:40 - 16:47  (00:06)</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:36 - 16:40  (00:04)</div><div class="line">root     tty1                          Mon Dec 29 16:34   still logged in</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:33 - 16:33  (00:00)</div><div class="line">root     pts/0        ses-254-254.geol Mon Dec 29 15:48   still logged in</div><div class="line">root     pts/0        ses-254-254.geol Fri Dec 26 14:48 - 18:04  (03:15)</div><div class="line">reboot   system boot  3.10.0-123.13.2. Fri Dec 26 14:44 - 17:12 (3+02:27)</div><div class="line">root     pts/0        ses-254-254.geol Fri Dec 26 10:23 - down   (00:07)</div><div class="line">root     tty1                          Wed Dec 24 10:00 - down  (2+00:30)</div><div class="line">reboot   system boot  3.10.0-123.13.2. Wed Dec 24 09:58 - 10:31 (2+00:32)</div><div class="line"></div><div class="line">......</div><div class="line"></div><div class="line">wtmp begins Thu Oct 16 17:33:46 2014</div></pre></td></tr></table></figure></p>
+<p><strong>如果指明了用户，则该命令只显示该用户的近期活动：</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">➜ last root</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:57   still logged in</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:49 - 16:57  (00:08)</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:40 - 16:47  (00:06)</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:36 - 16:40  (00:04)</div><div class="line">root     tty1                          Mon Dec 29 16:34   still logged in</div><div class="line">root     pts/1        ses-254-254.geol Mon Dec 29 16:33 - 16:33  (00:00)</div><div class="line">root     pts/0        ses-254-254.geol Mon Dec 29 15:48   still logged in</div><div class="line">root     pts/0        ses-254-254.geol Fri Dec 26 14:48 - 18:04  (03:15)</div><div class="line">root     pts/0        ses-254-254.geol Fri Dec 26 10:23 - down   (00:07)</div><div class="line">root     tty1                          Wed Dec 24 10:00 - down  (2+00:30)</div><div class="line"></div><div class="line">......</div><div class="line"></div><div class="line">wtmp begins Thu Oct 16 17:33:46 2014</div></pre></td></tr></table></figure></p>
+<h3 id="1-6-ac-命令"><a href="#1-6-ac-命令" class="headerlink" title="1.6 ac 命令"></a>1.6 <code>ac</code> 命令</h3><p>命令根据当前的 <code>/var/log/wtmp</code> 文件中的登录进入和退出来报告用户连结的时间（小时），如果不使用标志，则报告总的时间：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ac</div><div class="line">    total      231.40</div></pre></td></tr></table></figure></p>
+<p><strong><code>ac -p</code> 显示每个用户的总的连接时间：</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜ ac -p</div><div class="line">    root                               231.45</div><div class="line">    total      231.45</div></pre></td></tr></table></figure></p>
+<p><strong><code>ac -d</code> 显示每天总的连接时间：</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">➜ ac -d</div><div class="line">Oct 16  total        6.14</div><div class="line">Oct 17  total       40.45</div><div class="line">Oct 20  total        6.11</div><div class="line">Oct 21  total       24.01</div><div class="line">Oct 22  total       30.66</div><div class="line">Dec 10  total        7.08</div><div class="line">Dec 12  total        5.11</div><div class="line">Dec 15  total        7.79</div><div class="line">Dec 16  total       10.32</div><div class="line">Dec 17  total        5.17</div><div class="line">Dec 18  total        9.01</div><div class="line">Dec 19  total        7.75</div><div class="line">Dec 22  total       10.64</div><div class="line">Dec 23  total        6.19</div><div class="line">Dec 24  total       13.99</div><div class="line">Dec 26  total       37.92</div><div class="line">Today   total        3.11</div></pre></td></tr></table></figure></p>
+<h3 id="1-7-finger-命令"><a href="#1-7-finger-命令" class="headerlink" title="1.7 finger 命令"></a>1.7 <code>finger</code> 命令</h3><p>该命令输出用户的 <strong>注册名称</strong>、<strong>真实名称</strong>、<strong>终端名</strong>、<strong>写状态</strong>、<strong>停滞时间</strong>、<strong>登录时间</strong>、<strong>办公地点</strong>、<strong>办公电话</strong> 等信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ finger</div><div class="line">Login     Name       Tty      Idle  Login Time   Office     Office Phone   Host</div><div class="line">root      root       tty1     2:25  Dec 29 16:34</div><div class="line">root      root       pts/0          Dec 29 15:48                           (ses-254-254.geology.ohio-state.edu)</div><div class="line">root      root       pts/1      37  Dec 29 16:57                           (ses-254-254.geology.ohio-state.edu)</div></pre></td></tr></table></figure></p>
+<h3 id="1-8-uptime-命令"><a href="#1-8-uptime-命令" class="headerlink" title="1.8 uptime 命令"></a>1.8 <code>uptime</code> 命令</h3><p>该命令输出系统至今的运行时间（<code>-p</code> 选项以可读性较好的形式输出）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ uptime</div><div class="line"> 19:05:17 up 3 days,  4:21,  3 users,  load average: 0.00, 0.01, 0.05</div><div class="line">➜ uptime -p</div><div class="line">up 3 days, 4 hours, 21 minutes</div></pre></td></tr></table></figure></p>
+<h3 id="1-9-lastlog-命令"><a href="#1-9-lastlog-命令" class="headerlink" title="1.9 lastlog 命令"></a>1.9 <code>lastlog</code> 命令</h3><p><code>/var/log/lastlog</code> 文件在每次有用户登录时被查询。可以使用 <code>lastlog</code> 命令来检查某特定用户上次登录的时间，并格式化输出上次登录日志 <code>/var/log/lastlog</code> 的内容。它根据 <code>UID</code> 排序显示登录名、端口号（tty）和上次登录时间。如果一个用户从未登录过，lastlog显示 <code>Never logged(从未登录过)</code>。注意需要<strong>以 <code>root</code> 运行该命令</strong>：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">➜ lastlog</div><div class="line">用户名           端口     来自             最后登陆时间</div><div class="line">root            pts/1                    一 12月 29 17:00:01 +0800 2014</div><div class="line">bin                                      **从未登录过**</div><div class="line">daemon                                   **从未登录过**</div><div class="line">adm                                      **从未登录过**</div><div class="line">lp                                       **从未登录过**</div><div class="line">sync                                     **从未登录过**</div><div class="line">shutdown                                 **从未登录过**</div><div class="line">halt                                     **从未登录过**</div><div class="line">mail                                     **从未登录过**</div><div class="line">operator                                 **从未登录过**</div><div class="line">games                                    **从未登录过**</div><div class="line">ftp                                      **从未登录过**</div><div class="line">nobody                                   **从未登录过**</div><div class="line">dbus                                     **从未登录过**</div><div class="line">apache                                   **从未登录过**</div><div class="line">polkitd                                  **从未登录过**</div><div class="line">avahi                                    **从未登录过**</div><div class="line">avahi-autoipd                            **从未登录过**</div><div class="line">libstoragemgmt                           **从未登录过**</div><div class="line">abrt                                     **从未登录过**</div><div class="line">tomcat                                   **从未登录过**</div><div class="line">pcp                                      **从未登录过**</div><div class="line">postfix                                  **从未登录过**</div><div class="line">sshd                                     **从未登录过**</div><div class="line">ntp                                      **从未登录过**</div><div class="line">chrony                                   **从未登录过**</div><div class="line">oprofile                                 **从未登录过**</div><div class="line">tcpdump                                  **从未登录过**</div><div class="line">saslauth                                 **从未登录过**</div><div class="line">mysql                                    **从未登录过**</div><div class="line">usbmuxd                                  **从未登录过**</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>另外，可一加一些参数，例如:<br><code>last -u 102</code> 将报告 <code>UID</code> 为 <code>102</code> 的用户；<br><code>last -t 7</code> 表示限制上一周的报告。</p>
+</blockquote>
+<h3 id="1-10-var-log-secure-文件"><a href="#1-10-var-log-secure-文件" class="headerlink" title="1.10 /var/log/secure 文件"></a>1.10 <code>/var/log/secure</code> 文件</h3><p>记录登入系统存取数据的文件，例如 <code>pop3/ssh/telnet/ftp</code> 等都会被记录，我们可以利用此文件找出不安全的登录I该文件可以直接用编辑器打开查看，也可以用Linux中常见的文本处理工具如<code>cat/wc/more/head/tail/awk/sed</code> 等进行分析处理。下面是该文件的部分内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Dec 29 15:48:43 localhost sshd[13053]: Accepted password for root from 140.254.254.254 port 9891 ssh2</div><div class="line">Dec 29 15:48:44 localhost sshd[13053]: pam_unix(sshd:session): session opened for user root by (uid=0)</div><div class="line">Dec 29 16:30:41 localhost unix_chkpwd[15004]: password check failed for user (root)</div><div class="line">Dec 29 16:30:41 localhost login: pam_unix(login:auth): authentication failure; logname=LOGIN uid=0 euid=0 tty=tty1 ruser= rhost=  user=root</div><div class="line">Dec 29 16:30:41 localhost login: pam_succeed_if(login:auth): requirement &quot;uid &gt;= 1000&quot; not met by user &quot;root&quot;</div><div class="line">Dec 29 16:30:43 localhost login: FAILED LOGIN 1 FROM tty1 FOR root, Authentication failure</div><div class="line">Dec 29 16:30:51 localhost unix_chkpwd[15013]: password check failed for user (root)</div><div class="line">Dec 29 16:30:51 localhost login: pam_succeed_if(login:auth): requirement &quot;uid &gt;= 1000&quot; not met by user &quot;root&quot;</div></pre></td></tr></table></figure>
+<h3 id="1-11-安全-Tips"><a href="#1-11-安全-Tips" class="headerlink" title="1.11 安全 Tips"></a>1.11 安全 Tips</h3><p>这类日志无论在攻击和防守时都是至关重要的。从防护角度来说，假如系统遭到了黑客入侵，这类日志能辅助排查黑客登录系统相关的信息。从黑客攻击的角度来说，如果成功入侵了一个 Linux 系统的主机，在后渗透环节擦除相关日志时，一定要擦除上面这些日志中自己可能留下的痕迹。</p>
+<h2 id="2-进程监控日志"><a href="#2-进程监控日志" class="headerlink" title="2. 进程监控日志"></a>2. 进程监控日志</h2><h3 id="2-1-系统进程监控"><a href="#2-1-系统进程监控" class="headerlink" title="2.1 系统进程监控"></a>2.1 系统进程监控</h3><p>UNIX 可以跟踪每个用户运行的每条命令，如果想知道昨晚弄乱了哪些重要的文件，进程统计子系统可以告诉你。它还对跟踪一个侵入者有帮助。与连接时间日志不同，进程统计子系统缺省不激活，它必须手动启动。在 Linux 系统中启动进程统计使用 <code>accton</code> 命令，必须用 <code>root</code> 身份来运行。<code>accton</code> 命令的形式 <code>accton file</code>，<code>file</code> 必须先存在。先使用 <code>touch</code> 命令来创建 <code>pacct</code> 文件：<code>touch /var/log/pacct</code>，然后运行 <code>accton /var/log/pacct</code> 。一旦 <code>accton</code> 被激活，就可以使用 <code>lastcomm</code> 命令监测系统中任何时候执行的命令。若要关闭统计，可以使用不带任何参数的 <code>accton</code> 命令。</p>
+<p><code>lastcomm</code> 命令报告以前执行的文件。不带参数时，<code>lastcomm</code> 命令显示当前统计文件生命周期内纪录的所有命令的有关信息。包括 <strong>命令名</strong>、<strong>用户</strong>、<strong>tty</strong>、<strong>命令花费的CPU时间</strong>和<strong>一个时间戳</strong>。如果系统有许多用户，输入则可能很长：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">➜ accton /var/account/pacct //开启进程统计日志监控</div><div class="line">➜</div><div class="line">➜ lastcomm -f /var/log/pacct</div><div class="line">zsh               F    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">zsh               F    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">zsh               F    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">git                    root     pts/0      0.00 secs Tue Dec 30 10:36</div><div class="line">➜</div><div class="line">➜ accton off //关闭进程统计日志监控</div></pre></td></tr></table></figure>
+<h3 id="2-2-Shell-命令记录"><a href="#2-2-Shell-命令记录" class="headerlink" title="2.2 Shell 命令记录"></a>2.2 Shell 命令记录</h3><h4 id="2-2-1-命令记录文件"><a href="#2-2-1-命令记录文件" class="headerlink" title="2.2.1 命令记录文件"></a>2.2.1 命令记录文件</h4><hr>
+<p>现在大部分 Linux/Unix 系统甚至 Mac OSX ，默认 Shell 都是 <code>bash</code>，<code>bash</code> 会在每个用户主目录里生成一个 <code>.bash_history</code> 文件，其中记录着用户用 <code>bash</code> 执行过的 Shell 命令，下面是该文件的部分内容：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">startx</div><div class="line">ls</div><div class="line">php version</div><div class="line">php --help</div><div class="line">java -c</div><div class="line">java</div><div class="line">ifconfig</div><div class="line">vi /etc/sysconfig/network-scripts/</div><div class="line">vi /etc/sysconfig/network-scripts/ifcfg-ens160</div><div class="line">ls</div><div class="line">ifconfig</div><div class="line">vi /etc/sysconfig/network-scripts/ifcfg-ens160</div><div class="line">vi /etc/sysconfig/grub</div><div class="line">grub2-mkconfig --help</div><div class="line">grub2-mkconfig -o /boot/grub2/grub.cfg</div><div class="line">service network restart</div><div class="line">ifconfig</div><div class="line">vi /etc/sysconfig/network-scripts/ifcfg-ens160</div></pre></td></tr></table></figure></p>
+<p>如果系统默认 Shell 不是 <code>bash</code>，假如是 <code>ZSh</code> 呢？ <code>ZSh</code> 会在用户主目录下默认生成一个 <code>zsh</code> 自己的命令历史记录文件 <code>.zsh_history</code> ，这个文件记录着用户用 <code>zsh</code> 运行的 Shell 命令。不同的是， <code>zsh</code> 的命令历史记录文件中还记录了对应命令执行的时间戳，下面是该文件的部分内容：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">: 1418369144:0;wget -O .zshrc http://git.grml.org/f/grml-etc-core/etc/zsh/zshrc &amp;&amp; source ~/.zshrc</div><div class="line">: 1418369204:0;vim conf/httpd.conf</div><div class="line">: 1418369266:0;la /</div><div class="line">: 1418369314:0;wget http://sourceforge.net/projects/zsh/files/zsh/5.0.7/zsh-5.0.7.tar.bz2/download</div><div class="line">: 1418369735:0;rm -rf .oh-my-zsh</div><div class="line">: 1418369738:0;wget --no-check-certificate http://install.ohmyz.sh -O - | sh</div><div class="line">: 1418369765:0;zsh</div><div class="line">: 1418369788:0;vim .zshrc</div><div class="line">: 1418369931:0;cd /etc/</div><div class="line">......</div></pre></td></tr></table></figure></p>
+<h4 id="2-2-2-history-命令"><a href="#2-2-2-history-命令" class="headerlink" title="2.2.2 history 命令"></a>2.2.2 <code>history</code> 命令</h4><hr>
+<p>其实，Linux中有一个命令叫做 <code>history</code> ，它会列出 <strong>系统默认Shell</strong> 最近执行的1000条命令，并给日志文件中的每条命令进行编号。</p>
+<p>如果系统 <strong>默认 Shell</strong> 是 <code>bash</code> ，该命令会读取当前用户主目录下的 <code>.bash_history</code> 文件中的内容；虽然 <code>man history</code> 显示该命令其实是 <code>bash</code> 的一个内置命令模块，但如果系统 <strong>默认 Shell</strong> 是 <code>zsh</code> ，该命令则会读取 <code>.zsh_history</code> 文件，并且不会显示该文件中的时间戳信息。下面是该命令的部分输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">➜ history| more</div><div class="line">1  wget -O .zshrc http://git.grml.org/f/grml-etc-core/etc/zsh/zshrc &amp;&amp; source ~/.zshrc</div><div class="line">2  vim conf/httpd.conf</div><div class="line">3  la /</div><div class="line">4  wget http://sourceforge.net/projects/zsh/files/zsh/5.0.7/zsh-5.0.7.tar.bz2/download</div><div class="line">5  rm -rf .oh-my-zsh</div><div class="line">6  wget --no-check-certificate http://install.ohmyz.sh -O - | sh</div><div class="line">7  zsh</div><div class="line">8  vim .zshrc</div><div class="line">9  cd /etc/</div><div class="line">10  cd</div><div class="line">11  cd .oh-my-zsh</div><div class="line">12  vim themes/robbyrussell.zsh-theme</div><div class="line">13  cd themes</div><div class="line">14  cp robbyrussell.zsh-theme robbyrussell.zsh-theme_bak</div><div class="line">15  ls</div><div class="line">16  vim robbyrussell.zsh-theme</div><div class="line">17  scp --h</div><div class="line">18  scp root@.140.0.105.2:/root/.oh-my-zsh/themes/robbyrussell.zsh-theme ./robby.bak</div><div class="line">19  scp root@140.0.105.2:/root/.oh-my-zsh/themes/robbyrussell.zsh-theme ./robby.bak</div><div class="line">20  vim robby.bak</div><div class="line">21  vim robbyrussell.zsh-theme</div><div class="line">22  cd</div><div class="line">23  source .zshrc</div><div class="line">24  ls</div><div class="line">25  cd .oh-my-zsh</div><div class="line">26  cd themes</div><div class="line">27  rm robby.bak robbyrussell.zsh-theme_bak</div><div class="line">28  ps aux | grep firewall</div></pre></td></tr></table></figure></p>
+<p><code>history</code> 命令还有些 <em>小巧</em> 的用法。它对日志文件中的命令进行了编号，利用这些编号可以方便地执行某些命令，比如<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ !31   //执行第31条命令</div><div class="line">➜ !!    //执行上一条命令</div></pre></td></tr></table></figure></p>
+<h4 id="2-2-3-安全-Tips"><a href="#2-2-3-安全-Tips" class="headerlink" title="2.2.3 安全 Tips"></a>2.2.3 安全 Tips</h4><p>Shell 命令记录日志，包含了大量的敏感操作记录（看上面的示例就能发现）。从防护的角度来说，如果Linux系统主机被入侵，这些日志文件会记录下黑客登录主机后进行的操作（如果日志没被抹去的话）。从攻击的角度来说，一是这些日志能给黑客提供大量的敏感信息，方便黑客进行快速渗透；二是黑客所有的操作命令也会被记录到日志中，后渗透攻击阶段要记得抹除这些攻击日志。</p>
+<h2 id="3-系统日志（syslog-rsyslog）"><a href="#3-系统日志（syslog-rsyslog）" class="headerlink" title="3. 系统日志（syslog/rsyslog）"></a>3. 系统日志（syslog/rsyslog）</h2><p><code>syslog</code> 是一个历史悠久的日志系统，几乎所有的UNIX和Linux操作系统都是采用 <code>syslog</code> 进行系统日志的管理和配置。Linux 系统内核和许多程序会产生各种错误信息、警告信息和其他的提示信息。这些信息对管理员了解系统的运行状态是非常有用的，所以应该把它们写到日志文件中去。而执行这个过程的程序就是 <code>syslog</code> 。<code>syslog</code> 可以根据信息的来源以及信息的重要程度将信息保存到不同的日志文件中，例如，为了方便查阅，可以把内核信息与其他信息分开，单独保存到一个独立的日志文件中。在默认的 <code>syslog</code> 配置下，日志文件通常都保存在 <code>/var/log</code> 目录下。<code>syslog</code> 的守护进程为 <code>syslogd</code> ，系统启动时，默认会自动运行 <code>syslogd</code> 守护进程。</p>
+<p><code>syslog</code> 已被许多日志函数采纳，它用在许多保护措施中。任何程序都可以通过 <code>syslog</code> 记录事件。<code>syslog</code> 可以记录系统事件，可以写到一个文件或设备中，或给用户发送一个信息。它能记录本地事件或通过网络记录另一个主机上的事件。</p>
+<p><code>syslog</code> 设备依据两个重要的文件：<code>/etc/syslogd（守护进程）</code> 和 <code>/etc/syslog.conf</code> 配置文件。习惯上，多数 <code>syslog</code> 信息被写到 <code>/var/adm</code> 或 <code>/var/log</code> 目录下的信息文件中。一个典型的 <code>syslog</code> 记录包括生成程序的名字和一个文本信息。它还包括一个设备和一个优先级范围（但不在日志中出现）。</p>
+<p>Linux 系统日志配置机器存放位置大致如下图所示：<br><img src="http://img.blog.csdn.net/20130919161257234?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY2hhb2ZhbndlaQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt=""></p>
+<p>而现在，<code>syslog</code> 有了一个多线程升级版：<code>rsyslog</code>，它比 <code>syslog</code> 功能更强大也更高效，<code>CentOS7</code> 默认的系统日志服务就是<code>rsyslog</code>。它的基础功能与 <code>syslog</code> 一样，配置的方法与里面的概念也无二致，不同的是，其配置文件变成了 <code>/etc/rsyslog.conf</code>。<strong>本小节依然以 <code>syslog</code> 为例讲解</strong>。</p>
+<h3 id="3-1-syslog-配置"><a href="#3-1-syslog-配置" class="headerlink" title="3.1 syslog 配置"></a>3.1 syslog 配置</h3><p><code>/etc/syslog.conf</code> 根据如下的格式定义规则：<code>facility.level action</code> ，即<br><code>设备.优先级 动作</code> 。<code>facility.level</code> 字段也被称为 <code>seletor</code>（选择条件），<strong>选择条件</strong> 和 <strong>动作</strong> 之间用空格或 <code>tab</code> 分割开；<code>facility</code> 可以理解成日志对应的类型；<code>action</code> 可以理解为日志的处理方式。</p>
+<h4 id="3-1-1-facility"><a href="#3-1-1-facility" class="headerlink" title="3.1.1 facility"></a>3.1.1 facility</h4><p><code>facility</code> 定义日志消息的<strong>范围</strong> 或 <strong>种类</strong>，其可使用的 <code>key</code>有一下几种：</p>
+<blockquote>
+<ul>
+<li><strong>auth</strong> ——  由 <code>pam_pwdb</code> 报告的认证活动，记录认证系统 <code>login</code>、<code>su</code>、<code>getty</code> 等的活动信息；</li>
+<li><strong>authpriv</strong> —— 包括特权信息如用户名在内的认证活动，只登录到所选择的单个用户可读的文件中；</li>
+<li><strong>cron</strong> － 与 <code>cron</code> 和 <code>at</code> 有关的计划任务信息；</li>
+<li><strong>daemon</strong> －与 <code>inetd</code> 守护进程有关的后台进程信息；</li>
+<li><strong>kern</strong> － 内核信息，首先通过 <code>klogd</code> 传递；</li>
+<li><strong>lpr</strong> － 与打印服务有关的信息；</li>
+<li><strong>mail</strong> － 与电子邮件有关的信息；</li>
+<li><strong>mark</strong> － <code>syslog</code> 内部功能用于生成时间戳；</li>
+<li><strong>news</strong> － 来自新闻服务器的信息；</li>
+<li><strong>syslog</strong> － 由 <code>syslog</code> 生成的信息；</li>
+<li><strong>user</strong> － 由用户程序生成的信息；</li>
+<li><strong>uucp</strong> －由 <strong>uucp</strong> 生成的信息；</li>
+<li><strong>local0~local7</strong> －与自定义程序使用。</li>
+</ul>
+</blockquote>
+<p><code>*</code> 通配符代表除了 <code>mark</code> 以外的所有功能。除 <code>mark</code> 为内部使用外，还有 <code>security</code> 为一个旧的 <code>key</code> 定义，等同于 <code>auth</code> ，已经不再建议使用。</p>
+<h4 id="3-1-2-level"><a href="#3-1-2-level" class="headerlink" title="3.1.2 level"></a>3.1.2 level</h4><p><code>level</code> 定义消息的紧急程度，共有8个级别。按严重程度由高到低顺序排列为：</p>
+<blockquote>
+<ul>
+<li><strong>emerg</strong> － 该系统不可用，等同 <strong><code>panic</code></strong>；</li>
+<li><strong>alert</strong> － 需要立即被修改的条件；</li>
+<li><strong>crit</strong> － 阻止某些工具或子系统功能实现的错误条件；</li>
+<li><strong>err</strong> － 阻止工具或某些子系统部分功能实现的错误条件，等同 <strong>error</strong>；</li>
+<li><strong>warning</strong> － 预警信息，等同 <strong>warn</strong>；</li>
+<li><strong>notice</strong> － 具有重要性的普通条件；</li>
+<li><strong>info</strong> －提供信息的消息；</li>
+<li><strong>debug</strong> － 不包含函数条件或问题的其他信息；</li>
+<li><strong>none</strong> － 没有重要级，通常用于排错。</li>
+</ul>
+</blockquote>
+<p>通配符 <code>*</code> 表示所有级别，除了 <strong>none</strong> 。其中 <code>panic</code> 、 <code>error</code> 、 <code>warn</code> 均为旧的标识符，不再建议使用。</p>
+<p>在定义 <code>level</code> 级别的时候，需要注意两点： </p>
+<ol>
+<li>优先级是由应用程序在编程的时候已经决定的，除非修改源码再编译，否则不能改变消息的优先级；</li>
+<li>低的优先级包含高优先级，例如，为某个应用程序定义 <code>info</code> 的日志导向，则涵盖 <code>notice</code> 、 <code>warning</code> 、 <code>err</code> 、 <code>crit</code> 、 <code>alert</code> 、 <code>emerg</code> 等消息。（除非使用 <code>=</code> 号定义）</li>
+</ol>
+<h4 id="3-1-3-selector"><a href="#3-1-3-selector" class="headerlink" title="3.1.3 selector"></a>3.1.3 selector</h4><p>通过点号 <code>.</code> 把 <code>facility</code> 和 <code>level</code> 连接在一起则成为 <code>selector（选择条件）</code>。可以使用分号 <code>;</code> 同时定义多个选择条件。也支持三个修饰符：</p>
+<blockquote>
+<p><strong><code>*</code></strong> － 所有日志信息；<br><strong><code>=</code></strong> － 等于，即仅包含本优先级的日志信息；<br><strong><code>!</code></strong> － 不等于，本优先级日志信息除外；</p>
+</blockquote>
+<h4 id="3-1-4-action"><a href="#3-1-4-action" class="headerlink" title="3.1.4 action"></a>3.1.4 action</h4><p>由前面选择条件定义的日志信息，可执行下面的动作：</p>
+<blockquote>
+<p><strong>file</strong> － 指定日志文件的绝对路径；<br><strong>terminal</strong> 或 <strong>print</strong> － 发送到串行或并行设备标志符，例如 <code>/dev/ttyS2</code> ；<br><strong>@host</strong> － 远程的日志服务器；<br><strong>username</strong> － 发送信息到本机的指定用户信息窗口中，但该用户必须已经登录到系统中；<br><strong>named pipe</strong> － 发送到预先使用 <code>mkfifo</code> 命令来创建的 <code>FIFO</code> 文件的绝对路径※注意，不能通过 <code>|/var/xxx.sh</code> 方式导向日志到其他脚本中处理。</p>
+</blockquote>
+<h4 id="3-1-5-配置举例"><a href="#3-1-5-配置举例" class="headerlink" title="3.1.5 配置举例"></a>3.1.5 配置举例</h4><p>上面详细讲解了 <code>syslog</code> 配置文件 <code>/etc/syslog.conf</code> 里核心的配置方法，下面举几个例子说明一下配置项及其意义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">#把除 邮件、新闻、授权信息、计划任务信息等意外的所有 `info` 类消息都存入 /var/log/messages 文件</div><div class="line">*.info;mail.none;news.none;authpriv.none;cron.none /var/log/messages</div><div class="line"></div><div class="line">#把邮件、新闻组中仅 info 消息写入info文件，其他信息不写入</div><div class="line">mail,news.=info /var/adm/info</div><div class="line"></div><div class="line">#把邮件除 info 消息的所有消息存入 mail 文件</div><div class="line">mail.*;mail.!=info /var/adm/mail</div><div class="line"></div><div class="line">#仅把邮件的通知性消息发送到t ty12 终端设备</div><div class="line">mail.=info /dev/tty12</div><div class="line"></div><div class="line">#如果 root 和 jiayu 用户已经登录到系统，则把所有紧急信息通知他们</div><div class="line">*.alert root,joey</div><div class="line"></div><div class="line">#把所有信息都导向到 jiayu 主机（通过 /etc/hosts 或 dns 解析其IP地址）※注意：每条消息均会经过所有规则的，并不是唯一匹配的。</div><div class="line">*.* @jiayu</div></pre></td></tr></table></figure>
+<p>也就是说，假设 <code>mail.=info</code> 信息通过上面范例中定义的规则时，<code>/var/adm/info</code>、<code>/var/adm/mail</code>、<code>/dev/tty12</code>，甚至 <strong>jiayu</strong> 主机都会收到相同的信息。这样看上去比较烦琐，但可以带来的好处就是保证了信息的完整性，可供不同地方进行分析。</p>
+<h3 id="3-2-messages-日志"><a href="#3-2-messages-日志" class="headerlink" title="3.2 messages 日志"></a>3.2 messages 日志</h3><p><code>/var/log/messages</code>，是核心系统日志文件。它包含了系统启动时的引导信息，以及系统运行时的其他状态消息，比如 <code>mail</code> ， <code>cron</code> ， <code>daemon</code> <code>，kern</code> 和 <code>auth</code> ，甚至 <code>iptables</code> 和 <code>SELinux</code> 和 <code>DHCP</code> 服务日志，这也是它被称为杂货铺的原因。通常，该文件时在做故障诊断时首先要查看的文件，大家一般都喜欢用以下命令看最后十条日志：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">tail -n10 /var/log/messages</div></pre></td></tr></table></figure></p>
+<p>该文件以用户易懂的格式明文保存文件，可以用常见的 Linux 文件处理命令来分析处理其中的日志内容。</p>
+<h3 id="3-3-dmesg"><a href="#3-3-dmesg" class="headerlink" title="3.3 dmesg"></a>3.3 dmesg</h3><p><code>dmesg</code> 提供了一个简单的方法查看系统启动信息。当 Linux 启动的时候，内核的信息被存入内核 <code>ring</code> 缓存和日志文件 <code>/var/log/dmesg</code> 当中，<code>dmesg</code> 可以显示缓存中的内容。默认情况下，<code>dmesg</code> 打印内容到屏幕上面，当然你可以重定向输出到一个文件。如果硬件损坏的话，在 <code>dmesg</code> 日志里是有显示的，可用以下命令来查看 <code>dmesg | grep error</code> 。</p>
+<p>正常状态下，也可以用 <code>dmesg</code> 命令查看最后一次系统引导的日志，下面是部分输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">➜ dmesg| more</div><div class="line">[    0.000000] Initializing cgroup subsys cpuset</div><div class="line">[    0.000000] Initializing cgroup subsys cpu</div><div class="line">[    0.000000] Initializing cgroup subsys cpuacct</div><div class="line">[    0.000000] Linux version 3.10.0-123.13.2.el7.x86_64 (builder@kbuilder.dev.centos.org) (gcc version 4.8.2 20140120 (Red Hat 4.8.2-16) (GCC) ) #1 SMP Thu Dec 18 14:09:13 UTC 2014</div><div class="line">[    0.000000] Command line: BOOT_IMAGE=/vmlinuz-3.10.0-123.13.2.el7.x86_64 root=/dev/mapper/centos-root ro rd.lvm.lv=centos/swap vconsole.font=latarcyrheb-sun16 net.ifnames=0 biosdevname=0</div><div class="line"> rd.lvm.lv=centos/root crashkernel=auto vconsole.keymap=us rhgb quiet LANG=zh_CN.UTF-8</div><div class="line">[    0.000000] Disabled fast string operations</div><div class="line">[    0.000000] e820: BIOS-provided physical RAM map:</div><div class="line">[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009f7ff] usable</div><div class="line">[    0.000000] BIOS-e820: [mem 0x000000000009f800-0x000000000009ffff] reserved</div><div class="line">[    0.000000] BIOS-e820: [mem 0x00000000000ca000-0x00000000000cbfff] reserved</div><div class="line">[    0.000000] BIOS-e820: [mem 0x00000000000dc000-0x00000000000fffff] reserved</div><div class="line">[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000003feeffff] usable</div><div class="line">[    0.000000] BIOS-e820: [mem 0x000000003fef0000-0x000000003fefefff] ACPI data</div><div class="line">[    0.000000] BIOS-e820: [mem 0x000000003feff000-0x000000003fefffff] ACPI NVS</div><div class="line">[    0.000000] BIOS-e820: [mem 0x000000003ff00000-0x000000003fffffff] usable</div><div class="line">......</div></pre></td></tr></table></figure></p>
+<h3 id="3-4-日志转储"><a href="#3-4-日志转储" class="headerlink" title="3.4 日志转储"></a>3.4 日志转储</h3><h4 id="3-4-1-简介"><a href="#3-4-1-简介" class="headerlink" title="3.4.1 简介"></a>3.4.1 简介</h4><p>系统工作到了一定时间后，系统日志文件的内容随着时间和访问量的增加而越来越多，日志文件也越来越大。而且当日志文件超过系统控制范围时候，还会对系统性能造成影响。转储方式可以设为<strong>每年转储</strong>、<strong>每月转储</strong>、<strong>每周转储</strong>、达到一定大小转储。在 Linux 系统，经常使用 <code>logrotate</code> 工具进行日志转储，结合 <code>cron</code> 计划任务，可以轻松实现日志文件的转储。转储方式的设置由 <code>/etc/logrotate.conf</code> 配置文件控制。</p>
+<p><code>logrotate</code> 程序是一个日志文件管理工具。用来把旧的日志文件删除，并创建新的日志文件，我们把它叫做 <strong>转储</strong>。我们可以根据日志文件的大小，也可以根据其天数来转储，这个过程一般通过 <code>cron</code> 程序来执行（<code>/etc/cron.daily/logrotate</code>）。<code>logrotate</code> 程序还可以用于压缩日志文件，以及发送日志到指定的E-mail 。</p>
+<p>主流 Linux 发行版上都默认安装有 <code>logrotate</code> 包，如果出于某种原因， <code>logrotate</code> 没有出现在里头，你可以使用 <code>apt-get</code> 或 <code>yum</code> 命令来安装。</p>
+<p>在 Debian 或 Ubuntu上安装：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># apt-get install logrotate cron</div></pre></td></tr></table></figure></p>
+<p>在 RH 系发行版（RHEL/Fedora/CentOS等）上安装：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># yum install logrotate crontabs</div></pre></td></tr></table></figure></p>
+<h4 id="3-4-2-配置"><a href="#3-4-2-配置" class="headerlink" title="3.4.2 配置"></a>3.4.2 配置</h4><p><code>CentOS7</code> 系统中默认的 <code>/etc/logrotate.conf</code> 文件内容是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line"># see &quot;man logrotate&quot; for details</div><div class="line"># rotate log files weekly</div><div class="line">weekly</div><div class="line"></div><div class="line"># keep 4 weeks worth of backlogs</div><div class="line">rotate 4</div><div class="line"></div><div class="line"># create new (empty) log files after rotating old ones</div><div class="line">create</div><div class="line"></div><div class="line"># use date as a suffix of the rotated file</div><div class="line">dateext</div><div class="line"></div><div class="line"># uncomment this if you want your log files compressed</div><div class="line">#compress</div><div class="line"></div><div class="line"># RPM packages drop log rotation information into this directory</div><div class="line">include /etc/logrotate.d</div><div class="line"></div><div class="line"># no packages own wtmp and btmp -- we&apos;ll rotate them here</div><div class="line">/var/log/wtmp &#123;</div><div class="line">    monthly</div><div class="line">    create 0664 root utmp</div><div class="line">    size 1M</div><div class="line">    rotate 1</div><div class="line">&#125;</div><div class="line"></div><div class="line">/var/log/btmp &#123;</div><div class="line">    missingok</div><div class="line">    monthly</div><div class="line">    create 0600 root utmp</div><div class="line">    rotate 1</div><div class="line">&#125;</div><div class="line"></div><div class="line"># system-specific logs may be also be configured here.</div></pre></td></tr></table></figure></p>
+<p>以上内容中部分名词解释：</p>
+<blockquote>
+<p><strong>weekly</strong> —— 日志将按周转储，其他可用值为 <code>daily</code>/<code>monthly</code>/<code>yearly</code>；<br><strong>rotate 4</strong> —— 一次转储4个归档日志，对于第5个，时间最久，将被删除；<br><strong>create [mode owner group]</strong> —— 转储文件时若文件不存在则创建它，<code>mode</code>为文件权限，<code>owner</code>文件属主，<code>group</code> 为文件属组；<br><strong>compress</strong> —— 在转储任务完成后，已转储的归档将用 <code>gzip</code> 进行压缩；<br><strong>dateext</strong> —— 切换后的日志文件会附加上一个短横线和 <code>YYYYMMDD</code> 格式的日期，没有这个配置项会附加一个小数点加一个数字序号；<br><strong>include</strong> —— 引用其他日志转储配置文件；<br><strong>size</strong> —— 当日志文件到达指定的大小时才转储，<code>size</code> 可以指定 <code>bytes</code> (缺省)以及<code>KB</code> (sizek)或者 <code>MB</code> (sizem)；<br><strong>missingok</strong> —— 在日志轮循期间，任何错误将被忽略，例如 <strong>文件无法找到</strong> 之类的错误。</p>
+</blockquote>
+<p>其实可用配置项远不止这些，全部的配置项请参考：<a href="http://linux.die.net/man/8/logrotate" target="_blank" rel="external">http://linux.die.net/man/8/logrotate</a></p>
+<h2 id="4-日志统计与分析"><a href="#4-日志统计与分析" class="headerlink" title="4. 日志统计与分析"></a>4. 日志统计与分析</h2><p>Linux 系统中的日志统计与分析，主要借助于各式各样的日志辅助工具。这些工具按照面向的日志种类可分为 <strong>系统日志分析工具</strong> 和 <strong>Web日志分析工具</strong>；按照工具实现的形式可以分为 <strong>命令行工具</strong> 、 <strong>Web前端工具（以Web界面展示日志信息，类似 <code>phpMyAdmin</code>）</strong> 和 <strong>桌面工具（GUI）</strong>。下面将通过表格介绍几款常用的日志统计与分析工具：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">名称</th>
+<th style="text-align:left">形式</th>
+<th style="text-align:left">面向日志种类</th>
+<th style="text-align:left">特性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Xlogmaster</td>
+<td style="text-align:left">桌面/命令行</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">无</td>
+</tr>
+<tr>
+<td style="text-align:left">System Log Viewer</td>
+<td style="text-align:left">桌面</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">基于 Gnome 桌面环境</td>
+</tr>
+<tr>
+<td style="text-align:left">lwatch</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">C语言编写，性能好</td>
+</tr>
+<tr>
+<td style="text-align:left">Webalizer</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">Web</td>
+<td style="text-align:left">C语言编写，性能好；多平台；报表输出；国际化支持</td>
+</tr>
+<tr>
+<td style="text-align:left">GoAccess</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">Web</td>
+<td style="text-align:left">速度快，可即时生成报表；配置方便，支持常见 Web 服务器 Apache/Nginx/IIS</td>
+</tr>
+<tr>
+<td style="text-align:left">Graylog2</td>
+<td style="text-align:left">命令行/Web</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">将系统日志转存到 MongoDB 中，在 Web 前端显示</td>
+</tr>
+<tr>
+<td style="text-align:left">LogAnalyzer</td>
+<td style="text-align:left">Web</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">无</td>
+</tr>
+<tr>
+<td style="text-align:left">Swatch</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">无</td>
+</tr>
+<tr>
+<td style="text-align:left">logwatch</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">无</td>
+</tr>
+<tr>
+<td style="text-align:left">Analog</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">Web</td>
+<td style="text-align:left">无</td>
+</tr>
+<tr>
+<td style="text-align:left">logcheck</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">系统</td>
+<td style="text-align:left">自动地检查日志文件，定期检查日志文件以发现违反安全规则以及异常的活动</td>
+</tr>
+<tr>
+<td style="text-align:left">cronolog</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">Web日志切割工具</td>
+<td style="text-align:left"><strong>切割大日志文件</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">Awstats</td>
+<td style="text-align:left">命令行</td>
+<td style="text-align:left">Web</td>
+<td style="text-align:left">久负盛名，功能丰富而强大</td>
+</tr>
+</tbody>
+</table>
+<p>上面只是一部分常用的日志统计与分析工具，其他还有很多，有待发掘。</p>
+<p>随着 Web 应用程序越来越强大，应用越来越广，Web 日志分析技术渐渐成了独立于系统日志分析的一个庞杂分支。这其中主要得益于大数据相关技术的发展：分布式存储、并行计算、大规模实时处理系统、数据挖掘等等技术功不可没。在这种背景下，Web 日志统计与分析在 日志搜集、日志存储、日志数据挖掘和日志数据可视化方面都有了长足发展，出现了很多高性能的一体化日志分析框架，从功能和处理数据的规模来说，都不是上面单个简单的日志分析小工具所能相比的。而且不同的功能针对不同的应用场景：网站运营、服务器运维、安全分析等等。这部分内容不在此细说，想了解的可以查阅参考资料中的第 9、10、11 条连接，也可以自行查阅其他资料。</p>
+<p>##5. 参考资料</p>
+<ol>
+<li><a href="http://www.moon-soft.com/download/info/2628.htm" target="_blank" rel="external">Linux 日志管理详解</a></li>
+<li><a href="http://www.itokit.com/2012/0602/74289.html" target="_blank" rel="external">Linux 系统日志分析大全</a></li>
+<li><a href="http://os.51cto.com/art/201007/211455_all.htm" target="_blank" rel="external">明明白白你的Linux服务器——日志篇</a></li>
+<li><a href="http://os.51cto.com/art/200711/60313_all.htm" target="_blank" rel="external">Linux 系统常见的日志文件和常用命令</a></li>
+<li><a href="http://blog.csdn.net/chaofanwei/article/details/11831819" target="_blank" rel="external">Linux 日志文件系统总结</a></li>
+<li><a href="http://linux.cn/article-4126-1.html" target="_blank" rel="external">Linux 日志文件总管——logrotate</a></li>
+<li><a href="http://7056824.blog.51cto.com/69854/276610" target="_blank" rel="external">Linux 中 tty、pty、pts 的概念区别</a></li>
+<li><a href="http://os.51cto.com/art/201205/335040.htm" target="_blank" rel="external">Linux 中 history 历史命令使用方法详解</a></li>
+<li><a href="http://drops.wooyun.org/tips/4051" target="_blank" rel="external">Web 攻击日志分析的过去现在与未来</a></li>
+<li><a href="http://www.freebuf.com/articles/web/25613.html" target="_blank" rel="external">大数据安全分析：我们从日志中得到的（一）</a></li>
+<li><a href="http://www.freebuf.com/articles/web/26846.html" target="_blank" rel="external">大数据安全分析：我们从日志中得到的（二）</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+    <div><font color="green">看得爽的话，赞助个地铁通勤费？</font></div>
+    <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+      <span>赏</span>
+    </button>
+    <div id="QR" style="display: none;">
+      
+        <div id="wechat" style="display: inline-block">
+          <img id="wechat_qr" src="/imgs/wechat.png" alt="0xjiayu WeChat Pay"/>
+          <p>微信打赏</p>
+        </div>
+      
+      
+        <div id="alipay" style="display: inline-block">
+          <img id="alipay_qr" src="/imgs/alipay.png" alt="0xjiayu Alipay"/>
+          <p>支付宝打赏</p>
+        </div>
+      
+    </div>
+  </div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+  <p><p>
+  <div style="padding: 0 20px 0; margin: 20px 0; line-height: 6px; border-left: 300px solid #ddd; border-right: 300px solid #ddd; text-align: center;"><b>Copyright</b></div>
+  
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/" title="Linux 日志剖析">http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/linux/" rel="tag"># linux</a>
+          
+            <a href="/tags/log/" rel="tag"># log</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/12/24/Linux-authority-and-access-control-2/" rel="next" title="Linux 权限管理与访问控制详解(2)——MAC 和 SELinux">
+                <i class="fa fa-chevron-left"></i> Linux 权限管理与访问控制详解(2)——MAC 和 SELinux
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/03/22/DHCP-protocol-and-offensive-and-defensive/" rel="prev" title="DHCP 协议原理与攻防简介">
+                DHCP 协议原理与攻防简介 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About CeyberSecurity/Malwr/Vulnerablility/System/Coding/Learning…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">15</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-用户访问日志"><span class="nav-number">1.</span> <span class="nav-text">1. 用户访问日志</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-who-命令"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 who 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-w-命令"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 w 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-users-命令"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 users 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-id-命令"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 id 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-last-命令"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 last 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-ac-命令"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 ac 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-7-finger-命令"><span class="nav-number">1.7.</span> <span class="nav-text">1.7 finger 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-8-uptime-命令"><span class="nav-number">1.8.</span> <span class="nav-text">1.8 uptime 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-9-lastlog-命令"><span class="nav-number">1.9.</span> <span class="nav-text">1.9 lastlog 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-10-var-log-secure-文件"><span class="nav-number">1.10.</span> <span class="nav-text">1.10 /var/log/secure 文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-11-安全-Tips"><span class="nav-number">1.11.</span> <span class="nav-text">1.11 安全 Tips</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-进程监控日志"><span class="nav-number">2.</span> <span class="nav-text">2. 进程监控日志</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-系统进程监控"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 系统进程监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Shell-命令记录"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Shell 命令记录</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-命令记录文件"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.2.1 命令记录文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-history-命令"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2.2 history 命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-安全-Tips"><span class="nav-number">2.2.3.</span> <span class="nav-text">2.2.3 安全 Tips</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-系统日志（syslog-rsyslog）"><span class="nav-number">3.</span> <span class="nav-text">3. 系统日志（syslog/rsyslog）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-syslog-配置"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 syslog 配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-facility"><span class="nav-number">3.1.1.</span> <span class="nav-text">3.1.1 facility</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-level"><span class="nav-number">3.1.2.</span> <span class="nav-text">3.1.2 level</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-3-selector"><span class="nav-number">3.1.3.</span> <span class="nav-text">3.1.3 selector</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-4-action"><span class="nav-number">3.1.4.</span> <span class="nav-text">3.1.4 action</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-5-配置举例"><span class="nav-number">3.1.5.</span> <span class="nav-text">3.1.5 配置举例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-messages-日志"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 messages 日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-dmesg"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 dmesg</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-日志转储"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 日志转储</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-1-简介"><span class="nav-number">3.4.1.</span> <span class="nav-text">3.4.1 简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-2-配置"><span class="nav-number">3.4.2.</span> <span class="nav-text">3.4.2 配置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-日志统计与分析"><span class="nav-number">4.</span> <span class="nav-text">4. 日志统计与分析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://Disqus.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2015/01/02/Linux-log-and-analysis/';
+          this.page.identifier = '2015/01/02/Linux-log-and-analysis/';
+          this.page.title = 'Linux 日志剖析';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://Disqus.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
