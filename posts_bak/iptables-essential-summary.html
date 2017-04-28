@@ -1,0 +1,1018 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文尽量不涉及诸如iptables规则编写之类的技术细节，那些都是可以通过短暂的学习和实践掌握的。本文主要偏重在整体概念的介绍，和技术细节之外容易忽略却又很重要的点（比如过滤规则设计时需要遵从的一些“原则”），掌握不好这些点，编写一串过滤规则可能还是漏洞百出。
+
+1. 简述1.1 Netfilter/iptables 介绍
+防火墙系统根据其工作方式的不同，主要可以分为 包过滤防火墙(也称“网络层">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="iptables 要点总结">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/iptables-essential-summary.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本文尽量不涉及诸如iptables规则编写之类的技术细节，那些都是可以通过短暂的学习和实践掌握的。本文主要偏重在整体概念的介绍，和技术细节之外容易忽略却又很重要的点（比如过滤规则设计时需要遵从的一些“原则”），掌握不好这些点，编写一串过滤规则可能还是漏洞百出。
+
+1. 简述1.1 Netfilter/iptables 介绍
+防火墙系统根据其工作方式的不同，主要可以分为 包过滤防火墙(也称“网络层">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1417143113650.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1417415614723.png">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iptables 要点总结">
+<meta name="twitter:description" content="本文尽量不涉及诸如iptables规则编写之类的技术细节，那些都是可以通过短暂的学习和实践掌握的。本文主要偏重在整体概念的介绍，和技术细节之外容易忽略却又很重要的点（比如过滤规则设计时需要遵从的一些“原则”），掌握不好这些点，编写一串过滤规则可能还是漏洞百出。
+
+1. 简述1.1 Netfilter/iptables 介绍
+防火墙系统根据其工作方式的不同，主要可以分为 包过滤防火墙(也称“网络层">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1417143113650.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/iptables-essential-summary.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    iptables 要点总结 | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">iptables 要点总结</h1>
+
+
+
+</header>
+
+    
+    
+      <blockquote>
+<p>本文尽量不涉及诸如iptables规则编写之类的技术细节，那些都是可以通过短暂的学习和实践掌握的。本文主要偏重在整体概念的介绍，和技术细节之外容易忽略却又很重要的点（比如过滤规则设计时需要遵从的一些“原则”），掌握不好这些点，编写一串过滤规则可能还是漏洞百出。</p>
+</blockquote>
+<h2 id="1-简述"><a href="#1-简述" class="headerlink" title="1. 简述"></a>1. 简述</h2><h3 id="1-1-Netfilter-iptables-介绍"><a href="#1-1-Netfilter-iptables-介绍" class="headerlink" title="1.1 Netfilter/iptables 介绍"></a>1.1 Netfilter/iptables 介绍</h3><hr>
+<p>防火墙系统根据其工作方式的不同，主要可以分为 <strong>包过滤防火墙</strong>(也称“网络层防火墙”) 和 <strong>应用层防火墙</strong> ，<code>netfilter/iptables</code> 包过滤系统是包过滤防火墙的代表。</p>
+<p>网络流量由 IP 信息包（或，简称 <em>信息包</em>）— 以流的形式从源系统传输到目的地系统的一些小块数据 — 组成。 这些信息包有 <strong>头</strong> ，即在每个包前面所附带的一些数据位，它们包含有关信息包的源、目的地和协议类型的信息。 防火墙根据一组规则检查这些头，以确定接受哪个信息包以及拒绝哪个信息包。该过程即为<strong>信息包过滤</strong>。</p>
+<a id="more"></a> 
+<p>netfilter/iptables 信息包过滤系统是一种功能强大的工具， 可用于添加、编辑和除去规则，这些规则是在做信息包过滤决定时，防火墙所遵循和组成的规则。这些规则存储在专用的信息包过滤表中， 而这些表集成在 Linux 内核中。 在信息包过滤表中，规则被分组放在 链（chain）中。</p>
+<p>虽然 netfilter/iptables IP 信息包过滤系统被称为单个实体，但它实际上由两个组件 netfilter和 iptables 组成。</p>
+<blockquote>
+<p>netfilter 组件也称为 内核空间（kernelspace），是Linux内核中实现包过滤防火墙的内部结构由一些信息包过滤表组成，不以程序或文件的形式存在， 这些表包含内核用来控制信息包过滤处理的规则集，属于“内核态”（KernelSpace，又称内核空间）的防火墙功能体系。</p>
+<p>iptables 组件是一种工具，也称为 用户空间（userspace），指的是用来管理Linux防火墙的命令程序，通常位于/sbin/iptables，属于“用户态”（UserSpace，又称用户空间）的防火墙管理体系，它使插入、修改和除去信息包过滤表中的规则变得容易。</p>
+</blockquote>
+<p>简单来说，<strong>Netfilter/iptables 是一套工具，Netfilter是“后台”，在内核空间里执行着防火墙的核心功能；iptables 是“前端”，在用户空间里与用户交互，是用户对Netfilter的管理与配置的“接口”</strong>。</p>
+<h3 id="1-2-iptables-命令简介"><a href="#1-2-iptables-命令简介" class="headerlink" title="1.2 iptables 命令简介"></a>1.2 iptables 命令简介</h3><p>iptables 书写规则的命令格式是：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">iptables [-t table] <span class="built_in">command</span> [match] [target/jump]</div></pre></td></tr></table></figure></p>
+<p>关于上述命令格式中的 <code>command</code> 和 <code>match</code>，可以分别参考下面链接：</p>
+<ol>
+<li><a href="https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html#COMMANDS" target="_blank" rel="external">https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html#COMMANDS</a></li>
+<li><a href="https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html#MATCHES" target="_blank" rel="external">https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html#MATCHES</a></li>
+</ol>
+<h2 id="2-Netfilter-iptables-组成结构"><a href="#2-Netfilter-iptables-组成结构" class="headerlink" title="2. Netfilter/iptables 组成结构"></a>2. Netfilter/iptables 组成结构</h2><h3 id="2-1-概要"><a href="#2-1-概要" class="headerlink" title="2.1 概要"></a>2.1 概要</h3><hr>
+<p>Netfilter 由多个表(table)组成，每个表又由多个链(chain)组成(此处可以脑补二维数组的矩阵了)，链是存放过滤规则的“容器”，里面可以存放一个或多个iptables命令设置的过滤规则。目前的表有4个：<code>raw table</code>, <code>mangle table</code>, <code>nat table</code>, <code>filter table</code>。Netfilter 默认的链有：<code>INPUT</code>, <code>OUTPUT</code>, <code>FORWARD</code>, <code>PREROUTING</code>, <code>POSTROUTING</code>，根据<code>表</code>的不同功能需求，不同的表下面会有不同的链，链与表的关系可用下图直观表示：<br><img src="/imgs/1417143113650.png" alt="Alt text"></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>Netfilter各个表中的链，是可以由用户新建自定义的，命令 <code>iptables -t &lt;table&gt; -N &lt;new_chain&gt;</code> 即是在 <code>table</code> 表中新建一个用户自定义链<code>new_chain</code>。</p>
+</blockquote>
+<h3 id="2-2-RAW-表"><a href="#2-2-RAW-表" class="headerlink" title="2.2 RAW 表"></a>2.2 RAW 表</h3><hr>
+<p>RAW 表是 Netfilter/iptables 新增的模块，在没打相关补丁的2.4与2.6版本Linux内核的系统上无法使用。</p>
+<p>RAW表只用来实现一个功能：在数据包上做一个标记<code>NOTRACK</code>，该标记表明这个数据包不被后面启动的“连接状态跟踪机制”来跟踪这个数据包的状态。（后面会讲“连接状态”及其跟踪机制）。</p>
+<p>要做到告诉“链接状态跟踪机制”不追踪某数据包，只能在该机制起作用之前在数据包上做一个标记，而其他的三个表都是工作在“链接状态跟踪机制”之中的，不能脱离该机制控制范围之外，所以唯一容易的做法就是这样额外单拉出一个表，工作在“链接状态跟踪机制”之外。</p>
+<p><strong>RAW表只有<code>PREROUTING</code> 和 <code>OUTPUT</code> 两个链。</strong></p>
+<h3 id="2-3-Mangle-表"><a href="#2-3-Mangle-表" class="headerlink" title="2.3 Mangle 表"></a>2.3 Mangle 表</h3><hr>
+<p>Mangle 表主要用来mangle数据包，你可以使用mangle匹配来改变包的 TOS/TTL 等属性，具体有：</p>
+<ul>
+<li>TOS</li>
+<li>TTL</li>
+<li>MARK</li>
+<li>SECMARK</li>
+<li>CONNSECMARK</li>
+</ul>
+<p>关于这几个属性的详细资料，可以参考：<a href="https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#MANGLETABLE" target="_blank" rel="external">https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#MANGLETABLE</a></p>
+<p><strong>Mange表可以操作5个链中的任何一个。</strong></p>
+<h3 id="2-4-NAT-表"><a href="#2-4-NAT-表" class="headerlink" title="2.4 NAT 表"></a>2.4 NAT 表</h3><hr>
+<p>顾名思义，这个表的功能主要实现 <strong>NAT</strong>（Network Address Translation，<strong>网络地址转换</strong>）的功能，实现的具体操作有以下4个：</p>
+<ul>
+<li>DNAT</li>
+<li>SNAT</li>
+<li>MASQUERADE</li>
+<li>REDIRECT</li>
+</ul>
+<blockquote>
+<p><strong>NOTE</strong>:<br><strong>NAT</strong> 表处理数据包有一个特点：只处理一个数据流的第一个数据包，后续的数据包会被自动匹配并做相同处理。</p>
+</blockquote>
+<p><strong>DNAT</strong> 操作主要用在这样一种情况，你有一个合法的IP地址，要把对防火墙的访问 重定向到其他的机子上（比如DMZ）。也就是说，我们改变的是目的地址，以使包能重路由到某台主机。修改目的ip地址的原因一般就是为了改变包发送的目的地，让包走出去，而不是留下来，所以在iptables中，DNAT是在入口，也即 <code>PREROUTING</code> 链中发挥作用，以便让包进入 <code>FORWARD</code> 表。</p>
+<p><strong>SNAT</strong> 改变包的源地址，这在极大程度上可以隐藏你的本地网络或者DMZ等。一个 很好的例子是我们知道防火墙的外部地址，但必须用这个地址替换本地网络地址。有了这个操作，防火墙就 能自动地对包做SNAT和De-SNAT(就是反向的SNAT),以使LAN能连接到Internet。如果使用类似 192.168.0.0/24这样的地址，是不会从Internet得到任何回应的。因为IANA定义这些网络（还有其他的）为 私有的，只能用于LAN内部。修改源ip地址的目的一般都是为了让这个包能再回到自己这里，所以在iptables中，SNAT是在出口，也即 <code>POSTROUTING</code> 链发挥作用。</p>
+<p><strong>MASQUERADE</strong> 的作用和 <strong>SNAT</strong> 完全一样，只是计算机 的负荷稍微多一点。因为对每个匹配的包，MASQUERADE 都要查找可用的 IP 地址，而 不象 SNAT 用的 IP 地址是配置好的。当然，这也有好处，就是我们可以使用通过 PPP、 PPPOE、SLIP 等拨号得到的地址，这些地址可是由 ISP 的 DHCP 随机分配的。</p>
+<p><strong>NAT 表只包含 <code>PREROUTING</code> 、<code>POSTROUTING</code> 和 <code>OUTPUT</code> 3个链。</strong></p>
+<h3 id="2-5-Filter-表"><a href="#2-5-Filter-表" class="headerlink" title="2.5 Filter 表"></a>2.5 Filter 表</h3><hr>
+<p><code>Filter</code> 表用来过滤数据包，我们可以在任何时候匹配包并过滤它们，Netfilter/iptables 防火墙的<strong>包过滤</strong>功能主要由此实现。 我们就是在这里根据包的内容对包做DROP或ACCEPT的。当然，我们也可以预先在其他地方做些过滤，但是这 个表才是设计用来过滤的。几乎所有的target都可以在这儿使用。</p>
+<p><strong><code>Filter</code> 表包含 <code>INPUT</code>, <code>OUTPUT</code> 和 <code>FORWARD</code> 3个链。</strong></p>
+<h2 id="3-经过防火墙的数据流"><a href="#3-经过防火墙的数据流" class="headerlink" title="3. 经过防火墙的数据流"></a>3. 经过防火墙的数据流</h2><p>当数据包到达防火墙时，如果MAC地址符合，就会由内核里相应的驱动程序接收，然后会经过一系列操作，从而决定是发送给本地的程序，还是转发给其他机器，或者其他操作。然而，防火墙对于<strong>以本地地址为目标</strong>、<strong>以本地地址为源</strong>和<strong>被转发</strong>三种情况的数据包，具体操作有细微的差别，这些差别主要体现在不同的数据包会经过不同的Table，也会被不同Table中的不同的Chain来处理。详情如下：</p>
+<h3 id="3-1-以本地地址为目标的数据包"><a href="#3-1-以本地地址为目标的数据包" class="headerlink" title="3.1 以本地地址为目标的数据包"></a>3.1 以本地地址为目标的数据包</h3><hr>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Step(步骤)</th>
+<th style="text-align:left">Table(表)</th>
+<th style="text-align:left">Chain(链)</th>
+<th style="text-align:left">Comment(注释)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">1</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">在线路上传输(比如，Internet)</td>
+</tr>
+<tr>
+<td style="text-align:left">2</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">进入接口 (比如， eth0)</td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">raw</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">在链接追踪机制启动前，对当前链接设定不追踪状态的标记</td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">这个链用来mangle数据包，比如改变TOS等</td>
+</tr>
+<tr>
+<td style="text-align:left">4</td>
+<td style="text-align:left">nat</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">这个链主要用来做DNAT。不要在这个链做过虑操作，因为某些情况下包会溜过去</td>
+</tr>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">路由判断，比如，包是发往本地的，还是要转发的</td>
+</tr>
+<tr>
+<td style="text-align:left">6</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">INPUT</td>
+<td style="text-align:left">在路由之后，被送往本地程序之前，mangle数据包</td>
+</tr>
+<tr>
+<td style="text-align:left">7</td>
+<td style="text-align:left">filter</td>
+<td style="text-align:left">INPUT</td>
+<td style="text-align:left">所有以本地为目的的包都要经过这个链，不管它们从哪儿 来，对这些包的过滤条件就设在这里</td>
+</tr>
+<tr>
+<td style="text-align:left">8</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">到达本地程序了(比如，服务程序或客户程序)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-2-以本地地址为源的数据包"><a href="#3-2-以本地地址为源的数据包" class="headerlink" title="3.2 以本地地址为源的数据包"></a>3.2 以本地地址为源的数据包</h3><hr>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Step(步骤)</th>
+<th style="text-align:left">Table(表)</th>
+<th style="text-align:left">Chain(链)</th>
+<th style="text-align:left">Comment(注释)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">1</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">本地程序（比如，服务程序或客户程序）</td>
+</tr>
+<tr>
+<td style="text-align:left">2</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">路由判断，要使用源地址，外出接口，还有其他一些信息</td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">raw</td>
+<td style="text-align:left">OUTPUT</td>
+<td style="text-align:left">在链接追踪机制启动前，对当前链接设定不追踪状态的标记</td>
+</tr>
+<tr>
+<td style="text-align:left">4</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">OUTPUT</td>
+<td style="text-align:left">在这儿可以mangle包。建议不要在这儿做过滤，可能有副作用</td>
+</tr>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left">nat</td>
+<td style="text-align:left">OUTPUT</td>
+<td style="text-align:left">这个链对从防火墙本身发出的包进行DNAT操作</td>
+</tr>
+<tr>
+<td style="text-align:left">6</td>
+<td style="text-align:left">filter</td>
+<td style="text-align:left">OUTPUT</td>
+<td style="text-align:left">对本地发出的包过滤</td>
+</tr>
+<tr>
+<td style="text-align:left">7</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">POSTROUTING</td>
+<td style="text-align:left">这条链主要在包DNAT之后(译者注：作者把这一次DNAT称作实际的路由，虽然在前面有一次路由。对于本地的包，一旦它被生成，就必须经过路由代码的处理，但这个包具体到哪儿去，要由NAT处理之后才能确定。所以把这称作实际的路由)，离开本地之前，对包 mangle。有两种包会经过这里，防火墙所在机子本身产生的包，还有被转发的包</td>
+</tr>
+<tr>
+<td style="text-align:left">8</td>
+<td style="text-align:left">nat</td>
+<td style="text-align:left">POSTROUTING</td>
+<td style="text-align:left">在这里做SNAT。但不要在这里做过滤，因为有副作用，而且有些包是会溜过去的，即使你用了DROP策略</td>
+</tr>
+<tr>
+<td style="text-align:left">9</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">离开接口(比如： eth0)</td>
+</tr>
+<tr>
+<td style="text-align:left">10</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">在线路上传输(比如，Internet)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-3-被转发的数据包"><a href="#3-3-被转发的数据包" class="headerlink" title="3.3 被转发的数据包"></a>3.3 被转发的数据包</h3><hr>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Step(步骤)</th>
+<th style="text-align:left">Table(表)</th>
+<th style="text-align:left">Chain(链)</th>
+<th style="text-align:left">Comment(注释)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">1</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">在线路上传输(比如，Internet)</td>
+</tr>
+<tr>
+<td style="text-align:left">2</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">进入接口 (比如， eth0)</td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">raw</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">在链接追踪机制启动前，对当前链接设定不追踪状态的标记</td>
+</tr>
+<tr>
+<td style="text-align:left">4</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">mangle数据包，比如修改TOS</td>
+</tr>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left">nat</td>
+<td style="text-align:left">PREROUTING</td>
+<td style="text-align:left">这个链主要用来做DNAT。不要在这个链做过虑操作，因为某些情况下包会溜过去。稍后会做SNAT</td>
+</tr>
+<tr>
+<td style="text-align:left">6</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">路由判断，比如，包是发往本地的，还是要转发的</td>
+</tr>
+<tr>
+<td style="text-align:left">7</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">FORWARD</td>
+<td style="text-align:left">包继续被发送至mangle表的FORWARD链，这是非常特殊的情 况才会用到的。在这里，包被mangle。这次mangle发生在最初的路由判断之后， 在最后一次更改包的目的之前（译者注：就是下面的FORWARD链所做的，因其过滤功能，可能会改变一些包 的目的地，如丢弃包）</td>
+</tr>
+<tr>
+<td style="text-align:left">8</td>
+<td style="text-align:left">filter</td>
+<td style="text-align:left">FORWARD</td>
+<td style="text-align:left">包继续被发送至这条FORWARD链。只有需要转发的包才会走 到这里，并且针对这些包的所有过滤也在这里进行。注意，所有要转发的包都要经过这里，不管是外网到内网的还是内网到外网的。在书写规则时，要考虑到这一点</td>
+</tr>
+<tr>
+<td style="text-align:left">9</td>
+<td style="text-align:left">mangle</td>
+<td style="text-align:left">POSTROUTING</td>
+<td style="text-align:left">这个链也是针对一些特殊类型的包（译者注：参考第6步， 我们可以发现，在转发包时，mangle表的两个链都用在特殊的应用上）。这一步mangle是在所有更改包的目 的地址的操作完成之后做的，但这时包还在本地上</td>
+</tr>
+<tr>
+<td style="text-align:left">10</td>
+<td style="text-align:left">nat</td>
+<td style="text-align:left">POSTROUTING</td>
+<td style="text-align:left">这个链就是用来做SNAT的，当然也包括Masquerade（伪 装）。但不要在这儿做过滤，因为某些包即使不满足条件也会通过</td>
+</tr>
+<tr>
+<td style="text-align:left">10</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">离开接口(比如： eth0)</td>
+</tr>
+<tr>
+<td style="text-align:left">12</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">又在线路上传输了(比如，LAN)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-4-总结"><a href="#3-4-总结" class="headerlink" title="3.4 总结"></a>3.4 总结</h3><p>如上所示，一个数据包要经历很多步骤，而且它们可以被阻拦在任何一条链上，或者是任何有问题的地方。 我们的主要兴趣是 iptables 的概貌。注意，对不同的接口，是没有什么特殊的链和表的。所有要经防火墙/ 路由器转发的包都要经过 FORWARD 链。</p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>在上面的情况里，不要在 INPUT 链上做过滤。INPUT 专门用来操作那些以我们的机子为目的地址的数据包，它们不会被路由到其它地方。</p>
+</blockquote>
+<p>现在总结以上三种情况下，用到了哪些不同的链。图示如下：</p>
+<p><img src="/imgs/1417415614723.png" alt="Alt text"></p>
+<p>要弄清楚上面的图，可以这样考虑。在第一个路由判断处，不是发往本地的包，我们会发送它穿过 FORWARD链。若包的目的地是本地监听的IP地址，我们就会发送这个包穿过INPUT链，最后到达本地。</p>
+<p>值得注意的是，在做NAT的过程中，发往本机的包的目的地址可能会在PREROUTING链里被改变。这个操作发生在第一次路由之前，所以在地址被改变之后，才能对包进行路由。注意，所有的包都会经过上图中的某一条路径。如果你把一个包DNAT回它原来的网络，这个包会继续走完相应路径上剩下的链，直到它被发送回原来的网络。</p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>上面的流程介绍中，每一次经过 RAW 表中的一个链的处理，防火墙系统就对当前数据流开启了连接状态追踪机制，除非再 RAW 表中设定了不追踪标志。</p>
+</blockquote>
+<h2 id="4-链接状态"><a href="#4-链接状态" class="headerlink" title="4. 链接状态"></a>4. 链接状态</h2><h3 id="4-1-简述"><a href="#4-1-简述" class="headerlink" title="4.1 简述"></a>4.1 简述</h3><hr>
+<p>状态机制是iptables中特殊的一部分，其实它不应该叫状态机制，因为它只是一种连接跟踪机制。但 是，很多人都认可状态机制这个名字。连接跟踪可以让 Netfilter 知道某个特定连接的状态。运行连接跟踪的防火墙称作 <strong>带有状态机制的防火墙</strong>，以下简称为<strong>状态防火墙</strong>。状态防火墙比非状态防火墙要安全，因为它允许我们编写更严密的规则。</p>
+<p>在 iptables 里，包是和被跟踪连接的五种不同状态有关的。它们是 <code>NEW</code>，<code>ESTABLISHED</code>，<code>RELATED</code>， <code>INVALID</code> 和 <code>UNTRACKED</code>。 后面我们会深入地讨论每一个状态。使用 <code>--state</code> 匹配操作，我们能很容易地控制 “谁或什么能发起新的会话”。</p>
+<p>所有在内核中由 Netfilter 的特定框架做的连接跟踪称作 <code>conntrack</code>（即 <code>connection tracking</code> 的联合缩写）。<code>conntrack</code> 可以作为模块安装，也可以作为内核的一部分。大部分情况下，我们想要，也 需要更详细的连接跟踪，这是相比于缺省的 <code>conntrack</code> 而言。也因为此，<code>conntrack</code> 中有许多用来处理 <code>TCP</code>，<code>UDP</code> 或 <code>ICMP</code> 协议的部件。这些模块从数据包中提取详细的、唯一的信息，因此能保持对每一个数据流的跟踪。这些信息也告知 <code>conntrack</code> 流当前的状态。例如，<code>UDP</code> 流一般由他们的目的地址、源地址、目的端口和源端口唯一确定。</p>
+<p>在以前的内核里，我们可以打开或关闭重组功能。然而，自从 Netfilter/iptables ，尤其是连接跟踪被引入内核，这个选项就被取消了。因为没有包的重组，连接跟踪就不能正常工作。现在重组已经整合入 <code>conntrack</code> ，并且在 <code>conntrack</code> 启动时自动启动。不要关闭重组功能，除非你要关闭连接跟踪。</p>
+<p>除了本地产生的包由 OUTPUT 链处理外，所有连接跟踪都是在 PREROUTING 链里进行处理的，意思就是， iptables 会在 PREROUTING 链里从新计算所有的状态。如果我们发送一个流的初始化包，状态就会在 OUTPUT 链里被设置为 <code>NEW</code>，当我们收到回应的包时，状态就会在 PREROUTING 链里被设置为<code>ESTABLISHED</code> 。如果第一个包不是本地产生的，那就会在 PREROUTING 链里被设置为 <code>NEW</code> 状态。综上，所有状态的改变和计算都是在 nat 表中的 PREROUTING 链和 OUTPUT 链里完成的。</p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>在内和空间中，Netfilter 的 <code>conntrack</code> 机制对数据包的状态标记粒度较细，比较繁琐复杂，包的状态依据其包含的协议不同而不同。详见 《<a href="https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html#THECONNTRACKENTRIES" target="_blank" rel="external">iptables 指南 1.1.19——contrack记录</a>》</p>
+</blockquote>
+<h3 id="4-2-数据包在用户空间的状态"><a href="#4-2-数据包在用户空间的状态" class="headerlink" title="4.2 数据包在用户空间的状态"></a>4.2 数据包在用户空间的状态</h3><hr>
+<p>上面说过在内核空间中，防火墙核心对数据包的状态追踪比较繁杂，但在用户空间中（即 iptables 可控的状态），网络链接的状态只有5个： <code>NEW</code>，<code>ESTABLISHED</code>，<code>RELATED</code>， <code>INVALID</code> 和 <code>UNTRACKED</code>。 ，详情见下表：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">State(状态)</th>
+<th style="text-align:left">Explanation(说明)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>NEW</strong></td>
+<td style="text-align:left"><code>NEW</code> 说明这个包是我们看到的第一个 包。意思就是，这是 <code>conntrack</code> 模块看到的某个连接第一个包，它即将被匹配了。比如，我们看到一个 <code>SYN</code> 包，是我们所留意的连接的第一个包，就要匹配它。第一个包也可能不是 <code>SYN</code> 包，但它仍会被认为是 <code>NEW</code> 状态。这样做有时会导致一些问题，但对某些情况是有非常大的帮助的。例如，在我们想恢复某条从其他的防火墙丢失的连接时，或者某个连接已经超时，但实际上并未关闭时。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>ESTABLISHED</strong></td>
+<td style="text-align:left"><code>ESTABLISHED</code>已经注意到两个方向上 的数据传输，而且会继续匹配这个连接的包。处于<code>ESTABLISHED</code>状态的连接非常容易理解。只要发送并接到应答，连接就是<code>ESTABLISHED</code>的了。一个连接要从<code>NEW</code>变 为<code>ESTABLISHED</code>，只需要接到应答包即可，不管这个包是发往防火墙的，还是要由防火墙转发的。<code>ICMP</code>的错误和重定向等信息包也被看作是<code>ESTABLISHED</code>，只要它们是我 们所发出的信息的应答。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>RELATED</strong></td>
+<td style="text-align:left"><code>RELATED</code>是个比较麻烦的状态。当一个连接和某个已处于ESTABLISHED状态的连接有关系时，就被认为是<code>RELATED</code>的了。换句话说，一个连接要想是<code>RELATED</code>的，首先要有一个<code>ESTABLISHED</code>的连接。这个<code>ESTABLISHED</code>连接再产生一个主连接之外的连接，这个新的连接就是<code>RELATED</code>的了，当然前提是<code>conntrack</code>模块要能理解<code>RELATED</code>。<code>ftp</code>是个很好的例子，<code>FTP-data</code>连接就是和<code>FTP-control</code>有<code>RELATED</code>的。还有其他的例子，比如，通过IRC的DCC连接。有了这个状态，ICMP应 答、FTP传输、DCC等才能穿过防火墙正常工作。注意，大部分还有一些UDP协议都依赖这个机制。这些协议 是很复杂的，它们把连接信息放在数据包里，并且要求这些信息能被正确理解。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>INVALID</strong></td>
+<td style="text-align:left"><code>INVALID</code>说明数据包不能被识别属于 哪个连接或没有任何状态。有几个原因可以产生这种情况，比如，内存溢出，收到不知属于哪个连接的<code>ICMP</code>错误信息。一般地，我们<code>DROP</code>这个状态的任何东西。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>UNTRACKED</strong></td>
+<td style="text-align:left"><code>UNTRACKED</code>状态，简单来说就是该链接在经过<code>RAW</code>表时，被做了不追踪标记<code>NOTRACK</code>。同时也意味着与该链接所有相关的链接（具有<code>RELATED</code>标志）也不会被链接追踪机制追踪到，所以在对一个链接设置不追踪标记时，一定要谨慎。比如有的链接可能由于网络问题收到<code>ICMP</code>消息，但被标记为<code>NOTRACK</code>的链接就收不到相应的<code>ICMP</code>消息</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-target-jump"><a href="#5-target-jump" class="headerlink" title="5. target/jump"></a>5. target/jump</h2><p><code>target/jump</code> 决定符合条件的包到何处去，语法是 <code>--jump target</code> 或 <code>-j target</code>。（<code>target</code> 细分为两类，即 <code>target</code> 和 <code>jump</code> 。它们 唯一的区别是 <code>jump</code> 的目标是一个在同一个表内的链，而 <code>target</code> 的目标是具体的操作。），常用的几个 TARGET 如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">TARGET</th>
+<th style="text-align:left">Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>ACCEPT</strong></td>
+<td style="text-align:left">这个target没有任何选项和参数，使用也很简单，指定<code>-j ACCEPT</code>即可。一旦包满足了指定的匹配条件，就会被<code>ACCEPT</code>，并且<strong>不会再去匹配当前链中的其他规则或同一个表内的其他规则</strong>， 但<strong>它还要通过其他表中的链</strong>，而且在那儿可能会被<code>DROP</code>掉</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>DROP</strong></td>
+<td style="text-align:left">顾名思义，如果包符合条件，这个target就会把它丢掉，也就是说包的生命到此结束，不会再向前走一 步，效果就是包被阻塞了。在某些情况下，这个target会引起意外的结果，因为它不会向发送者返回任何信 息，也不会向路由器返回信息，这就可能会使连接的另一方的sockets因苦等回音而亡。解决这个问题的较好的办法是使用<code>REJECT</code> target，（因为它在丢弃包的同时还会向发送者返回一个错误信息，这样另一方就能正常结束），尤其是在阻止端口扫描工具获得更多的信息时，可以隐蔽被过滤掉的端口等等（因为扫描工具扫描一个端口时，如果没有返回信息，一般会认为端口未打开或被防火墙等设备过滤掉了）。还要注意<strong>如果包在子链中被DROP了，那么它在主链里也不会再继续前进，不管是在当前的表还是在其他表里</strong>。总之，包死翘翘了。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>REJECT</strong></td>
+<td style="text-align:left"><code>REJECT</code>和<code>DROP</code>基本一样，区别在于它除了阻塞包之外， 还向发送者返回错误信息。现在，此target还只能用在<code>INPUT</code>、<code>FORWARD</code>、<code>OUTPUT</code>和它们的子链里，而且<strong>包含 <code>REJECT</code>的链也只能被它们调用</strong>，否则不能发挥作用。它只有一个选项，用来控制返回的错误信息的种类</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>REDIRECT</strong></td>
+<td style="text-align:left">在防火墙所在的主机内部转发包或流到另一个端口。比如，我们可以把所有去往端口HTTP的包REDIRECT到HTTP proxy（例如squid），当然这都发生在我们自己的主机内部。本地生成的包都会被映射到127.0.0.1。换句 话说，这个target把要转发的包的目的地址改写为我们自己主机的IP。我们在做透明代理（LAN内的机子根 本不需要知道代理的存在就可以正常上网）时，这个target起了很大作用</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>RETURN</strong></td>
+<td style="text-align:left">它使包返回上一层，顺序是：<code>子链——&gt;父链——&gt;缺省</code>的策略。具体地说，就是若包在子链 中遇到了<code>RETURN</code>，则返回父链的下一条规则继续进行条件的比较，若是在父链（或称主链，比如<code>INPUT</code>）中 遇到了RETURN，就要被缺省的策略（一般是ACCEPT或DROP）操作了。（这很象C语言中函数返回值的情况）。举例说明：假设一个包进入了<code>INPUT</code>链，匹配了某条target为<code>--jump EXAMPLE_CHAIN</code>规则，然后进入了子链<code>EXAMPLE_CHAIN</code>。在子链中又匹配了某条 规则，恰巧target是<code>--jump RETURN</code>，那包就返回<code>INPUT链</code>了。如果在<code>INPUT</code>链里又遇 到了<code>--jump RETURN</code>，那这个包就要交由缺省的策略来处理了。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>SNAT</strong></td>
+<td style="text-align:left">这个target是用来做源网络地址转换的，就是重写包的<strong>源IP地址</strong>。当我们有几个机子共享一个Internet 连接时，就能用到它了。先在内核里打开ip转发功能，然后再写一个SNAT规则，就 可以把所有从本地网络出去的包的源地址改为Internet连接的地址了。如果我们不这样做而是直接转发本地网的包的话，Internet上的机子就不知道往哪儿发送应答了，因为在本地网里我们一般使用的是IANA组织专门指定的一段地址，它们是不能在Internet上使用的。SNAT target的作用就是让所有从本地网出发的包看起来都是从一台机子发出的，这台机子一般就是防火墙。SNAT只能用在<code>nat</code>表的<code>POSTROUTING</code>链里。<strong>只要连接的第一个符合条件的包被SNAT了，那么这个连接的其他所有的包都会自动地被SNAT,而且这个规则还会应用于这个连接所在流的所有数据包</strong></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>DNAT</strong></td>
+<td style="text-align:left">这个target是用来做目的网络地址转换的，就是重写包的<strong>目的IP地址</strong>。如果一个包被匹配了，那么和它属于同一个流的所有的包都会被自动转换，然后就可以被路由到正确的主机或网络。<code>DNAT</code> target是非常有 用的。比如，你的Web服务器在LAN内部，而且没有可在Internet上使用的真实IP地址，那就可以使用这个target让防火墙把所有到它自己HTTP端口的包转发给LAN内部真正的Web服务器。目的地址也可以是一个范 围，这样的话，<code>DNAT</code>会为每一个流随机分配一个地址。因此，我们可以用这个target做某种类型地负载平 衡。注意，<strong><code>DANT</code> target只能用在nat表的<code>PREROUTING</code>和<code>OUTPUT</code>链中，或者是被这两条链调用的链里</strong>。但还要 注意的是，<strong>包含DANT target的链不能被除此之外的其他链调用，如<code>POSTROUTING</code></strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>NOTE:</strong><br>每一个 TARGET 会有一些参数供防火墙在较细粒度下对数据包进行操作，详细信息参考：<br><a href="https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TARGETS" target="_blank" rel="external">https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TARGETS</a></p>
+</blockquote>
+<h2 id="6-参考资料"><a href="#6-参考资料" class="headerlink" title="6. 参考资料"></a>6. 参考资料</h2><ol>
+<li><a href="http://www.ibm.com/developerworks/cn/linux/network/s-netip/" target="_blank" rel="external">netfilter/iptables 简介</a></li>
+<li><a href="https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html" target="_blank" rel="external">Iptables Tutorial 1.2.2</a></li>
+<li><a href="https://www.frozentux.net/iptables-tutorial/cn/iptables-tutorial-cn-1.1.19.html" target="_blank" rel="external">iptables 指南 1.1.19</a></li>
+<li><a href="http://drops.wooyun.org/tips/1424" target="_blank" rel="external">iptables入门教程</a></li>
+<li><a href="http://wangcong.org/articles/learning-iptables.cn.html" target="_blank" rel="external">学习使用 iptables</a></li>
+<li><a href="http://segmentfault.com/q/1010000002389520" target="_blank" rel="external">SNAT和DNAT的区别</a></li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/iptables-essential-summary.html';
+          this.page.identifier = 'posts_bak/iptables-essential-summary.html';
+          this.page.title = 'iptables 要点总结';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

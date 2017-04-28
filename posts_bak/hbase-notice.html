@@ -1,0 +1,694 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="同时打开的文件和进程数量限制 (ulimit)
+参考:http://hbase.apache.org/book.html#basic.prerequisites
+
+Linux 系统默认的 ulimit -n 结果为 1024 ，这个数量对 HBase 来说有点低，如果 HBase 打开的文件句柄数量超过这个限制，会报以下形式的错误：122010-04-06 03:04:37,542 INFO or">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBase 一些需要注意的点">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/hbase-notice.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="同时打开的文件和进程数量限制 (ulimit)
+参考:http://hbase.apache.org/book.html#basic.prerequisites
+
+Linux 系统默认的 ulimit -n 结果为 1024 ，这个数量对 HBase 来说有点低，如果 HBase 打开的文件句柄数量超过这个限制，会报以下形式的错误：122010-04-06 03:04:37,542 INFO or">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase 一些需要注意的点">
+<meta name="twitter:description" content="同时打开的文件和进程数量限制 (ulimit)
+参考:http://hbase.apache.org/book.html#basic.prerequisites
+
+Linux 系统默认的 ulimit -n 结果为 1024 ，这个数量对 HBase 来说有点低，如果 HBase 打开的文件句柄数量超过这个限制，会报以下形式的错误：122010-04-06 03:04:37,542 INFO or">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/hbase-notice.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    HBase 一些需要注意的点 | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">HBase 一些需要注意的点</h1>
+
+
+
+</header>
+
+    
+    
+      <h3 id="同时打开的文件和进程数量限制-ulimit"><a href="#同时打开的文件和进程数量限制-ulimit" class="headerlink" title="同时打开的文件和进程数量限制 (ulimit)"></a>同时打开的文件和进程数量限制 (ulimit)</h3><blockquote>
+<p><strong>参考</strong>:<br><a href="http://hbase.apache.org/book.html#basic.prerequisites" target="_blank" rel="external">http://hbase.apache.org/book.html#basic.prerequisites</a></p>
+</blockquote>
+<p>Linux 系统默认的 <code>ulimit -n</code> 结果为 <code>1024</code> ，这个数量对 HBase 来说有点低，如果 HBase 打开的文件句柄数量超过这个限制，会报以下形式的错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">2010-04-06 03:04:37,542 INFO org.apache.hadoop.hdfs.DFSClient: Exception increateBlockOutputStream java.io.EOFException</div><div class="line">2010-04-06 03:04:37,542 INFO org.apache.hadoop.hdfs.DFSClient: Abandoning block blk_-6935524980745310745_1391901</div></pre></td></tr></table></figure></p>
+<p>官方建议这个数值最少 <code>10000</code>，不过最好是 2 幂或可以跟 2 的幂有简单的换算关系，比如 <code>10240</code>。</p>
+<a id="more"></a> 
+<p>HBase 打开的文件句柄数量，和 <code>StoreFile</code> 文件的数量直接相关，而 <code>StoreFile</code> 的数量受 <code>ColumnFamily</code> 的总数和 <code>Region</code> 的数量影响。每个 <code>ColumnFamily</code> 至少要用到一个 <code>StoreFile</code>，而一个被加载的 <code>Region</code> 可能要用到 <code>6</code> 个甚至更多 <code>StoreFile</code> 文件。一个 <code>RegionServer</code> 上会打开的文件句柄数量，有个大概的计算公式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">(StoreFiles per ColumnFamily) x (regions per RegionServer)</div></pre></td></tr></table></figure></p>
+<p><code>ulimit -u</code> 可以查看系统允许打开的进程数量，如果 HBase 启动进程过多，会抛出 <code>OutOfMemoryError</code> 异常。</p>
+<hr>
+<h3 id="升级"><a href="#升级" class="headerlink" title="升级"></a>升级</h3><p>升级过程不能跨大版本，必须从高到低依次升级。</p>
+<hr>
+<h3 id="索引数据"><a href="#索引数据" class="headerlink" title="索引数据"></a>索引数据</h3><p>HBase 的 <code>get</code> 功能，其实基于 <code>scan</code> 来实现，<code>scan</code> 也可以支持一些查询条件，比如下面的 Java 代码会索引出所有 <code>rowkey</code> 以 <code>0xjiayu</code> 开头的行：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">byte</span>[] CF = <span class="string">"cf"</span>.getBytes();</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">byte</span>[] ATTR = <span class="string">"attr"</span>.getBytes();</div><div class="line">...</div><div class="line"></div><div class="line">Table table = ...      <span class="comment">// instantiate a Table instance</span></div><div class="line"></div><div class="line">Scan scan = <span class="keyword">new</span> Scan();</div><div class="line">scan.addColumn(CF, ATTR);</div><div class="line">scan.setRowPrefixFilter(Bytes.toBytes(<span class="string">"0xjiayu"</span>));</div><div class="line">ResultScanner rs = table.getScanner(scan);</div><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">  <span class="keyword">for</span> (Result r = rs.next(); r != <span class="keyword">null</span>; r = rs.next()) &#123;</div><div class="line">    <span class="comment">// process result...</span></div><div class="line">  &#125;</div><div class="line">&#125; <span class="keyword">finally</span> &#123;</div><div class="line">  rs.close();  <span class="comment">// always close the ResultScanner!</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<hr>
+<h3 id="数据记录的-version"><a href="#数据记录的-version" class="headerlink" title="数据记录的 version"></a>数据记录的 <code>version</code></h3><blockquote>
+<p><strong>参考：</strong><br><a href="http://hbase.apache.org/book.html#versions" target="_blank" rel="external">http://hbase.apache.org/book.html#versions</a></p>
+</blockquote>
+<p>HBase 中，一个 <code>{row, column, version}</code> 的组合精准定义一条记录（<code>cell</code>），<code>row</code> 和 <code>column</code> 字段的值都是未解析的字节串，但 <code>version</code> 是长整型数字，一般是时间戳，由 <code>java.util.Date.getTime()</code> 或 <code>System.currentTimeMillis()</code> 生成。</p>
+<p><code>version</code> 字段存在的意义，是相同的 <code>{row, column}</code>，插入、修改的时间戳不同，其 <code>{row, column, version}</code>  组合也代表不同的数据记录，这些数据记录实际的数据相同，但版本不相同；把 <code>version</code> 字段用到 HBase 的数据表中，意思是让 HBase 为同一组 <code>{row, column}</code> 保留的版本数目。在 HBase 0.96 以前，一个新创建的数据表默认的 <code>version</code> 值是 <code>3</code>（即默认为同一组数据最多保存 3 个版本），自 HBase 0.96 开始，默认值改为 <code>1</code>。</p>
+<p><code>version</code> 字段可以在创建数据表的时候就设定好，也可以创建数据表之后用 <code>alter</code> 的方式更改，具体需查阅官方手册。</p>
+<p>HBase 中，<code>version</code> 按照降序存储，所以每次需要索引数据，最新版本的数据（时间戳表示的<code>version</code> 值最大）最先被索引。默认只索引最新版本的一条记录，如果需要索引所有版本或部分版本的数据记录，可以参考 <a href="http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/Get.html#setMaxVersions(" target="_blank" rel="external">http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/Get.html#setMaxVersions(</a>) 。</p>
+<p>同一条记录（<code>cell</code>）里的 <code>version</code> 容易疑惑的两个地方：</p>
+<ul>
+<li>如果 <code>cell</code> 被多次连续写、修改，那么只有最后一次的操作是可以索引的、有效的；</li>
+<li><code>version</code> 的值只需 <strong>非升序</strong> 即可。</li>
+</ul>
+<p>对数据记录的每一次 <code>put</code> 操作，都会产生一个新的 <code>version</code>，但 <code>put</code> 操作的时候，可以手动指定 <code>version</code> 的时间戳的数值（一般可以指定一个比较小的数值），即可以手动指定版本，使最新的操作不是最新的 <code>version</code>。</p>
+<p>HBase 中的删除，默认都是 <strong>软删除</strong>，即只做一个删除标记，然后不能索引，只有在随后的 <code>Major Compaction</code> 中，才会真正地删除。另外，删除操作中，除非指定删除一个版本，不然会把小于等于当前版本的所有记录都标记为删除。</p>
+<hr>
+<h3 id="HBase-数据表相关"><a href="#HBase-数据表相关" class="headerlink" title="HBase 数据表相关"></a>HBase 数据表相关</h3><p>不支持原生的 Join 操作。</p>
+<p>表设计的一些经验准则：</p>
+<ul>
+<li>一个 <code>region</code> 大小在 10~50GB 之间比较合适；</li>
+<li>HBase 中的单条记录（<code>cell</code>），不宜超过 10MB，如果启用 <code>mob</code> 模块，不宜超过 50MB，不然可以考虑把数据放到 HDFS 中，然后在 HBase 中只存一个指针或者表明数据再 HDFS 位置的字串；</li>
+<li>单个数据表的 <code>ColumnFamily</code> 数量不宜超过 3 个，设计 HBase 的数据表，尽量不要模仿关系数据库表的设计；</li>
+<li>包含 1 到 2 个 <code>ColumnFamily</code> 的数据表，对应的 <code>Regoin</code> 数量在 50~100 个比较适合；</li>
+<li><code>ColumnFamily</code> 的值越短越好，因为实际存储中，它会做每一个值的前缀，越短越节省存储空间；</li>
+<li>如果只有一个 <code>ColumnFamily</code> 有频繁的写操作，那么它占用内存最多。分配资源的时候注意这一个写操作模型。</li>
+</ul>
+<hr>
+<h3 id="RowKey-相关"><a href="#RowKey-相关" class="headerlink" title="RowKey 相关"></a>RowKey 相关</h3><blockquote>
+<p><strong>参考：</strong><br><a href="http://hbase.apache.org/book.html#rowkey.design" target="_blank" rel="external">http://hbase.apache.org/book.html#rowkey.design</a></p>
+</blockquote>
+<p>HBase 中存储数据，RowKey 是按字典序存储的，如果相似（名称、意义或功能相似）的 RowKey 设计的值有相同的字符前缀，那么它们会被会相邻存储在 HBase 中，此时RowKey 设计不当会导致 <strong>访问热区</strong> 问题。避免这个问题通常有三种策略：</p>
+<ol>
+<li>RowKey 加盐（ Salting ）—— 利于写入，不利于批量检索</li>
+<li>单路哈希 —— 利于批量检索</li>
+<li>翻转 RowKey</li>
+</ol>
+<p>RowKey、ColumnFamily 和 Column Qualifier 的值都要设的尽量简洁，以减少 HBase 的存储消耗（它们会在同一组数据中反复出现，比较占用存储空间）</p>
+<p>HBase 底层是 <strong>列式存储</strong>，所以在操作数据的时候，列优先、行次之，所以先看 ColumnFamily 再看 RowKey —— 相同的 RowKey 可以对应不同的 ColumnFamily，不同的 ColumnFamily 可以包含同一个 RowKey。</p>
+<p>对于同一个 ColumnFamily 来说，某一特定的 RowKey 是不可变的。改变 RowKey 的唯一方式是先删除再重新插入。</p>
+<hr>
+<h3 id="索引软删除的数据"><a href="#索引软删除的数据" class="headerlink" title="索引软删除的数据"></a>索引软删除的数据</h3><blockquote>
+<p><strong>参考：</strong><br><a href="http://hbase.apache.org/book.html#cf.keep.deleted" target="_blank" rel="external">http://hbase.apache.org/book.html#cf.keep.deleted</a></p>
+</blockquote>
+<p>上面说过，HBase 中的数据都是 <strong>软删除</strong>，<code>delete</code> 操作只是给特定的数据做一个删除标记，在后续的 <code>Major Compaction</code> 中才会被 <strong>硬删除</strong>。处于 <strong>软删除</strong> 状态的数据，在常规的索引方式下不会被索引到。但 HBase 提供了另外一种机制，可以通过 <strong><code>Raw Scan</code></strong> 的方式索引到 <strong>软删除</strong> 状态中的数据，并且 <code>Major Compaction</code> 也不会把相应的数据进行 <strong>硬删除</strong>（即经过<code>Major Compaction</code> 任务之后，<strong>软删除</strong> 状态的数据依然可以被索引到）。</p>
+<p>可以对 <strong>ColumnFamily</strong> 指定是否要启用这种数据保存机制，启用方式有两种，一种是 HBase 的 Shell 命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase&gt; alter ‘t1′, NAME =&gt; ‘f1′, KEEP_DELETED_CELLS =&gt; <span class="literal">true</span></div></pre></td></tr></table></figure></p>
+<p>HBase Java API 中的启用方式为：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">...</div><div class="line">HColumnDescriptor.setKeepDeletedCells(<span class="keyword">true</span>);</div><div class="line">...</div></pre></td></tr></table></figure></p>
+<p>通过实例演示 <code>KEEP_DELETED_CELLS</code>机制的效果，先看没启用这种机制时的操作：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line">create <span class="string">'test'</span>, &#123;NAME=&gt;<span class="string">'e'</span>, VERSIONS=&gt;2147483647&#125;</div><div class="line">put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 10</div><div class="line">put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 12</div><div class="line">put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 14</div><div class="line">delete <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>,  11</div><div class="line"></div><div class="line">hbase(main):017:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     COLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">r1      column=e:c1, timestamp=11, <span class="built_in">type</span>=DeleteColumn</div><div class="line">r1      column=e:c1, timestamp=10, value=value</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0120 seconds</div><div class="line"></div><div class="line">hbase(main):018:0&gt; flush <span class="string">'test'</span></div><div class="line">0 row(s) <span class="keyword">in</span> 0.0350 seconds</div><div class="line"></div><div class="line">hbase(main):019:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     COLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">r1      column=e:c1, timestamp=11, <span class="built_in">type</span>=DeleteColumn</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0120 seconds</div><div class="line"></div><div class="line">hbase(main):020:0&gt; major_compact <span class="string">'test'</span></div><div class="line">0 row(s) <span class="keyword">in</span> 0.0260 seconds</div><div class="line"></div><div class="line">hbase(main):021:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     COLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0120 seconds</div></pre></td></tr></table></figure></p>
+<p>启用 <code>KEEP_DELETED_CELLS</code> 机制后的演示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div></pre></td><td class="code"><pre><div class="line">hbase(main):005:0&gt; create <span class="string">'test'</span>, &#123;NAME=&gt;<span class="string">'e'</span>, VERSIONS=&gt;2147483647, KEEP_DELETED_CELLS =&gt; <span class="literal">true</span>&#125;</div><div class="line">0 row(s) <span class="keyword">in</span> 0.2160 seconds</div><div class="line"></div><div class="line">=&gt; Hbase::Table - <span class="built_in">test</span></div><div class="line">hbase(main):006:0&gt; put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 10</div><div class="line">0 row(s) <span class="keyword">in</span> 0.1070 seconds</div><div class="line"></div><div class="line">hbase(main):007:0&gt; put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 12</div><div class="line">0 row(s) <span class="keyword">in</span> 0.0140 seconds</div><div class="line"></div><div class="line">hbase(main):008:0&gt; put <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>, <span class="string">'value'</span>, 14</div><div class="line">0 row(s) <span class="keyword">in</span> 0.0160 seconds</div><div class="line"></div><div class="line">hbase(main):009:0&gt; delete <span class="string">'test'</span>, <span class="string">'r1'</span>, <span class="string">'e:c1'</span>,  11</div><div class="line">0 row(s) <span class="keyword">in</span> 0.0290 seconds</div><div class="line"></div><div class="line">hbase(main):010:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     COLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">r1      column=e:c1, timestamp=11, <span class="built_in">type</span>=DeleteColumn</div><div class="line">r1      column=e:c1, timestamp=10, value=value</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0550 seconds</div><div class="line"></div><div class="line">hbase(main):011:0&gt; flush <span class="string">'test'</span></div><div class="line">0 row(s) <span class="keyword">in</span> 0.2780 seconds</div><div class="line"></div><div class="line">hbase(main):012:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     OLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">r1      column=e:c1, timestamp=11, <span class="built_in">type</span>=DeleteColumn</div><div class="line">r1      column=e:c1, timestamp=10, value=value</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0620 seconds</div><div class="line"></div><div class="line">hbase(main):013:0&gt; major_compact <span class="string">'test'</span></div><div class="line">0 row(s) <span class="keyword">in</span> 0.0530 seconds</div><div class="line"></div><div class="line">hbase(main):014:0&gt; scan <span class="string">'test'</span>, &#123;RAW=&gt;<span class="literal">true</span>, VERSIONS=&gt;1000&#125;</div><div class="line">ROW     COLUMN+CELL</div><div class="line">r1      column=e:c1, timestamp=14, value=value</div><div class="line">r1      column=e:c1, timestamp=12, value=value</div><div class="line">r1      column=e:c1, timestamp=11, <span class="built_in">type</span>=DeleteColumn</div><div class="line">r1      column=e:c1, timestamp=10, value=value</div><div class="line">1 row(s) <span class="keyword">in</span> 0.0650 seconds</div></pre></td></tr></table></figure></p>
+<p>可以发现，启用 <code>KEEP_DELETED_CELLS</code> 机制后，即使数据被 <code>delete</code> 而且手动执行 <code>major Compaction</code>，数据仍然能够被索引到。</p>
+<p>那么问题就来了，启用 <code>KEEP_DELETED_CELLS</code> 机制后，被标记删除的数据，到底什么时候会被 <strong>硬删除</strong> ？按照官方说明，只有发生以下情况（之一）数据才会被 <strong>硬删除</strong>：</p>
+<ol>
+<li>数据生存期（TTL）到达，该 Row 的每个 Version 都会被彻底删除；</li>
+<li>该 Row 的 Version 数量超过 <strong>版本数量上限</strong> （maximum number of versions）</li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/hbase-notice.html';
+          this.page.identifier = 'posts_bak/hbase-notice.html';
+          this.page.title = 'HBase 一些需要注意的点';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

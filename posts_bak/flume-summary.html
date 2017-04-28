@@ -1,0 +1,690 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="1. 背景最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 Hadoop+HBase+Flume+Kafka这套大数据分析的工具。在数据分析环境架构中，Flume-1.7.0 主要用来收集各种来源、形式的数据，并把数据传给 Kafka 集群，由 Kafka 集群统一分发给 HBase 集群。
+用 Flume ，主要用到的 Source 是 spooldir so">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Flume 踩坑排雷记">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/flume-summary.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="1. 背景最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 Hadoop+HBase+Flume+Kafka这套大数据分析的工具。在数据分析环境架构中，Flume-1.7.0 主要用来收集各种来源、形式的数据，并把数据传给 Kafka 集群，由 Kafka 集群统一分发给 HBase 集群。
+用 Flume ，主要用到的 Source 是 spooldir so">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1482809681554.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1482235249267.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1482235307436.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1482235288060.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1482245906334.png">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flume 踩坑排雷记">
+<meta name="twitter:description" content="1. 背景最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 Hadoop+HBase+Flume+Kafka这套大数据分析的工具。在数据分析环境架构中，Flume-1.7.0 主要用来收集各种来源、形式的数据，并把数据传给 Kafka 集群，由 Kafka 集群统一分发给 HBase 集群。
+用 Flume ，主要用到的 Source 是 spooldir so">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1482809681554.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/flume-summary.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    Flume 踩坑排雷记 | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">Flume 踩坑排雷记</h1>
+
+
+
+</header>
+
+    
+    
+      <h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1. 背景"></a>1. 背景</h2><p>最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 <code>Hadoop+HBase+Flume+Kafka</code>这套大数据分析的工具。在数据分析环境架构中，<code>Flume-1.7.0</code> 主要用来收集各种来源、形式的数据，并把数据传给 <code>Kafka</code> 集群，由 <code>Kafka</code> 集群统一分发给 <code>HBase</code> 集群。</p>
+<p>用 <code>Flume</code> ，主要用到的 <strong><code>Source</code></strong> 是 <code>spooldir source</code> 和 <code>http-json source</code>，<strong><code>Sink</code></strong> 就主要是 <code>Kafka Sink</code>，配置非常灵活、功能也很强大。但在使用的过程中踩了不少坑，撰文记录一下比较重要的几个。</p>
+<blockquote>
+<p><strong>NOTE:</strong><br><code>Flume-ng</code> 的<code>Agent</code> 由三部分组成：<code>Source</code>/<code>Channel</code>/<code>Sink</code>，<code>Source</code> 相当于数据录入源，是 <strong>生产者</strong> 的角色； <code>Channel</code> 相当于数据传输通道；<code>Sink</code> 相当于数据接收端，是<strong>消费者</strong>的角色。在 <code>Flume-ng</code> 中，数据流向是 <code>Source--&gt;Channel--&gt;Sink</code>。</p>
+</blockquote>
+<h2 id="2-kafka-Sink-配置坑"><a href="#2-kafka-Sink-配置坑" class="headerlink" title="2. kafka Sink 配置坑"></a>2. <code>kafka</code> Sink 配置坑</h2><h3 id="2-1-LEADER-NOT-AVAILABLE-Error"><a href="#2-1-LEADER-NOT-AVAILABLE-Error" class="headerlink" title="2.1 LEADER_NOT_AVAILABLE Error"></a>2.1 <code>LEADER_NOT_AVAILABLE</code> Error</h3><a id="more"></a>
+<p><code>Kafka Sink</code> ，顾名思义，即把 <code>Kafka</code> （集群或单个服务器）当做 <code>Flume</code> 的数据接收端（消费者），其中有一个配置项是配置 <code>Kafka</code> 的服务器：<br><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">AGENT_NAME.sinks.malwrK.kafka.bootstrap.servers = serv1:PORT[,serv2:PORT,serv3:PORT...]</div></pre></td></tr></table></figure></p>
+<p>这项配置中，如果只指定单个的 <code>Kafka</code> 服务器地址，<code>Flume Agent</code> 会正常运行，但如果把 <code>Kafka</code> 集群里的多个服务器地址都写上，并且<code>Kafka</code>的默认配置不修改，则会报以下错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">WARN Error while fetching metadata with correlation id 39 : &#123;4-3-16-topic1=LEADER_NOT_AVAILABLE&#125;</div></pre></td></tr></table></figure></p>
+<p>并且数据无法正常发送到 <code>Kafka</code> 集群。该错误的意思是集群中的服务器，没有一个可用的 <strong>LEADER</strong>，导致数据无法正常 Fetch。那么解决方法也很简单，在 <code>Kafka</code> 集群的每个服务器 <code>server.properties</code> 配置文件中，开启（取消注释）以下配置，并把配置项的值改成统一指定的一台 <code>Kafka</code> 服务器做 <strong>LEADER</strong>：<br><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">advertised.listeners=PLAINTEXT://your.host.name:9092</div></pre></td></tr></table></figure></p>
+<h3 id="2-2-useFlumeEventFormat-导致的-Flume-Event-Headers-乱码"><a href="#2-2-useFlumeEventFormat-导致的-Flume-Event-Headers-乱码" class="headerlink" title="2.2 useFlumeEventFormat 导致的 Flume Event Headers 乱码"></a>2.2 <code>useFlumeEventFormat</code> 导致的 Flume Event Headers 乱码</h3><p><code>Kafka Sink</code> 中有这么一个配置项 <code>useFlumeEventFormat</code>，此配置默认关闭，官方解释如下；</p>
+<blockquote>
+<p>By default events are put as bytes onto the Kafka topic directly from the event body. Set to true to store events as the Flume Avro binary format. Used in conjunction with the same property on the KafkaSource or with the parseAsFlumeEvent property on the Kafka Channel this will preserve any Flume headers for the producing side.</p>
+</blockquote>
+<p>如果设置此项为 <code>true</code>，<code>Kafka Sink</code> 则会把数据按照标准的 Flume Event 格式（即<code>Headers</code>域和<code>body</code>域结合的数据结构）发送。Flume Event 中的 <code>Headers</code> 域通常是一些附加字段，可以是时间戳（比如时间戳拦截器指定的时间戳）、文件名（比如 <code>spooldir</code> Source 开启的 <code>fileHeader = true</code>）等信息。但是 <code>2.7.0</code> 版本的 Flume 一旦开启此配置，会导致 <code>Headers</code> 域里面的信息乱码，如下图所示：<br><img src="/imgs/1482809681554.png" alt="Alt text"></p>
+<p>这可能是这个版本 Flume 的一个 Bug，原因未明，查各种资料也没查到，就剩翻源码了……</p>
+<h2 id="3-spooldir-Source-的配置技巧"><a href="#3-spooldir-Source-的配置技巧" class="headerlink" title="3. spooldir Source 的配置技巧"></a>3. <code>spooldir</code> Source 的配置技巧</h2><p><code>spooldir</code> Source 的作用，是监控一个特定目录下的文件，一旦有新文件放入这个特定的目录，Flume 的 Agent 就会把整个文件的内容 <strong>逐行</strong> 读取，通过指定的 <code>Channel</code> 发送到指定的 <code>Sink</code>，并把已处理过的文件默认以<code>.COMPLETED</code> 后缀标记为已处理，或者直接删除。</p>
+<p>早期版本的 Flume 中， <code>spooldir</code> Source 监控指定目录时，是不能监控子目录的，但我们用的 <code>1.7.0</code> 版本，提供了一个配置项可以监控指定目录下的子目录：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">recursiveDirectorySearch = true</div></pre></td></tr></table></figure></p>
+<p><code>spooldir</code> Source 的默认配置，用来监控一个目录下的同类型文件足够了，但是我们的需求有点复杂：首先，我们这个监控目录下的文件不是同一类型（尽管文件的内容结构类似，比如都是 IP 库，每行一个 IP）；其次，我们的文件是一次性下载的，不是逐行写入的；最后，我们需要在逐行传输每个文件的时候，携带上文件所述的类型、文件生成的时间标记。</p>
+<p>这个需求有两种处理方法：</p>
+<ol>
+<li>每次下载一个文件，就用脚本自动化处理一下，把文件类型和时间戳加入文件的每一行中；</li>
+<li>寄希望与 Flume，看 Flume 传输数据的时候能不能对数据进行一些自定义的修改——不修改本地文件，只在 Flume 传输文件的过程中修改一下。</li>
+</ol>
+<p>无疑第一个工作量不小，而且比较耗费计算资源。去翻了下 Flume 的 用户手册 <code>spooldir</code> Source 部分，发现有一个配置项可以方便我们选第2中方法达成目标：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">fileHeader = true</div><div class="line"># 或者</div><div class="line">basenameHeader = true</div></pre></td></tr></table></figure></p>
+<p>开启 <code>fileHeader</code> 会在 Flume 传输数据的时候，把数据所属文件的绝对路径附在每一行数据之前；开启 <code>basenameHeader</code> 会在 Flume 传输数据的时候，把数据所属文件的文件名附在每一行数据之前。</p>
+<p>这样，我们把数据文件的文件名修改为 <code>type-timestamp-</code>的形式即可。比如我们生成一个名为 <code>bambenek_c2-1478553609-</code> 的文件，该文件里有数万行IP数据，那么 Flume 传输该数据的形式如下图所示：<br><img src="/imgs/1482235249267.png" alt="Alt text"></p>
+<p>这样就满足了我们的需求，后台接收到数据之后，只需用 <strong><code>-</code></strong> 字符把每行数据 Split 成 3 个部分（文件名、时间戳、数据内容）即可。</p>
+<blockquote>
+<p><strong>NOTE:</strong><br>其实，Flume 中还有功能更强大的 <code>Interceptors</code>（拦截器），可以对其处理的数据进行更细粒度、方式更灵活的修改。参考 <a href="https://flume.apache.org/FlumeUserGuide.html#flume-interceptors" target="_blank" rel="external">Flume Interceptors</a></p>
+</blockquote>
+<h2 id="4-http-Source-的坑"><a href="#4-http-Source-的坑" class="headerlink" title="4.http Source 的坑"></a>4.<code>http</code> Source 的坑</h2><p>这是最大的一个坑，不过踩的有点冤，如果把官方用户手册看仔细，并对 JSON 的数据格式有准确的理解，应该就不会掉坑了。</p>
+<p>Flume 的 <code>http</code> Source，默认数据源的形式是接收第三方用 HTTP POST 方法发送过来的 JSON 格式的数据（默认的 Source 处理类 <code>JSONHandler</code> ，也可以自定义实现其他的数据处理类）。比如我们的应用场景，从网上抓取的威胁情报信息，Python 写的爬虫程序处理好之后，不用存库，直接整理成 JSON 格式，然后 POST 给 Flume 的 Agent 即可。</p>
+<p>但是，Flume 的 <code>http</code> Source 对这种方式的 JSON 数据格式有严格的要求，如果 JSON 数据格式不符合要求，POST 过去数据就会发现服务端报错，如下图红框里的 JSON 数据，完全符合 JSON 数据格式规范，但 POST 请求发送之后就会收到 <code>Request has invalid JSON Syntax.</code> 的错误提示：<br><img src="/imgs/1482235307436.png" alt="Alt text"></p>
+<p>原因是什么？扒一下 Flume 的官方用户手册（<a href="https://flume.apache.org/FlumeUserGuide.html#jsonhandler" target="_blank" rel="external">http source–&gt; JSONHandler</a>）看一下：</p>
+<blockquote>
+<p>A handler is provided out of the box which can handle <strong>events represented in JSON format</strong>, and supports UTF-8, UTF-16 and UTF-32 character sets. The handler accepts an <strong>array of events</strong> (even if there is only one event, the event has to be sent in an array) and converts them to a Flume event based on the encoding specified in the request. If no encoding is specified, UTF-8 is assumed</p>
+</blockquote>
+<p>注意加粗部分，意思是该类（<code>JSONHandler</code>）处理的是 JSON 格式的 Flume Event<strong>s</strong>（可以一次传输多个 <code>Flume Events</code>，即多组数据记录），接收的 JSON 数据必须是 <strong>array of events</strong>，即使只发送一个 <code>Flume Event</code>，也得按照 JSON Array 的格式发送。</p>
+<p>什么意思？这里还要插播一下 JSON 数据格式规范。JSON 的数据格式里，基本元素是 <strong>值</strong> 或者 <strong>键值对</strong>，JSON 数据的值可以是以下几种：</p>
+<ul>
+<li>数字（<code>bunber</code>，整数或浮点数）</li>
+<li>字符串（<code>string</code>，在双引号中）</li>
+<li>逻辑值（<code>bool</code>，true 或 false）</li>
+<li>对象（<code>object</code>，在花括号中，比如<code>{&quot;k1&quot;:&quot;v1&quot;,&quot;k2&quot;:&quot;v2&quot;}</code>）</li>
+<li>数组（<code>array</code>，在方括号中，比如<code>[{&quot;k1&quot;:&quot;v1&quot;,},{&quot;k2&quot;:int_v2,&quot;k3&quot;:&quot;v3&quot;}]</code>）</li>
+<li>null</li>
+</ul>
+<p>并且官方给出了 JSON 示例：<br><figure class="highlight json"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">[&#123;</div><div class="line">    <span class="attr">"headers"</span> : &#123;</div><div class="line">        <span class="attr">"timestamp"</span> : <span class="string">"434324343"</span>,</div><div class="line">        <span class="attr">"host"</span> : <span class="string">"random_host.example.com"</span></div><div class="line">    &#125;,</div><div class="line">    <span class="attr">"body"</span> : <span class="string">"random_body"</span></div><div class="line"> &#125;,</div><div class="line"> &#123;</div><div class="line">    <span class="attr">"headers"</span> : &#123;</div><div class="line">        <span class="attr">"namenode"</span> : <span class="string">"namenode.example.com"</span>,</div><div class="line">        <span class="attr">"datanode"</span> : <span class="string">"random_datanode.example.com"</span></div><div class="line">    &#125;,</div><div class="line">    <span class="attr">"body"</span> : <span class="string">"really_random_body"</span></div><div class="line"> &#125;]</div></pre></td></tr></table></figure></p>
+<p>但 Flume 官方手册没说明的是，Flume 的 Event 只有两部分组成：<strong>headers</strong> 和 <strong>body</strong>，所以传输的 JSON Array 里的 Flume Event，每个 Event 也只可以包括 <strong>headers</strong> 和 <strong>body</strong> 两部分，而且 <strong><code>headers</code>的值是 <code>JSON 对象（object）</code>，而<code>body</code>的值只能是 <code>JSON 字符串（string）</code>，不能是其他 JSON 值类型</strong>，比如下图所示的 JSON 形式，对 Flume 来说算是合法的<br><img src="/imgs/1482235288060.png" alt="Alt text"></p>
+<p>另外，为了方便 Python 编程，附上 Python 中的 <code>json</code> 库里，Python 数据类型跟 JSON 值类型的对应关系表（参考： <a href="https://docs.python.org/2/library/json.html#json.JSONEncoder" target="_blank" rel="external">Python json.JSONEncoder()</a>）：<br><img src="/imgs/1482245906334.png" alt="Alt text"></p>
+<p>最后总结一下，传给 flume HTTP Source 的 JSON 数据：</p>
+<ol>
+<li>必须是 Array 形式（用方括号括起来），即使 Array 里只有 1 个元素（每个元素到了 Flume 那儿就代表一个 Event），在 Python 里就要用 <code>dict</code> 外面嵌套 <code>list</code> 或者 <code>tuple</code> 生成 JSON Array；</li>
+<li>JSON Array 里每个元素必须由 <code>headers</code> 和 <code>body</code> 两个 field 构成;</li>
+<li>JSON Array 中元素的 <code>headers</code> 的值是 <code>JSON Object</code>(具体可以自定义)，<code>body</code> 的值必须是字串（JSON String），而不能是其他形式（JSON <code>Object/JSON Array</code>等，对应 Python 中的 <code>dict/list/tuple</code> 等）。</li>
+</ol>
+<h2 id="5-参考资料："><a href="#5-参考资料：" class="headerlink" title="5. 参考资料："></a>5. 参考资料：</h2><ol>
+<li><a href="http://stackoverflow.com/questions/35788697/leader-not-available-kafka-in-console-producer" target="_blank" rel="external">http://stackoverflow.com/questions/35788697/leader-not-available-kafka-in-console-producer</a></li>
+<li><a href="https://flume.apache.org/FlumeUserGuide.html" target="_blank" rel="external">https://flume.apache.org/FlumeUserGuide.html</a></li>
+<li><a href="https://docs.python.org/2/library/json.html" target="_blank" rel="external">https://docs.python.org/2/library/json.html</a></li>
+<li><a href="https://docs.python.org/2/library/json.html#py-to-json-table" target="_blank" rel="external">https://docs.python.org/2/library/json.html#py-to-json-table</a></li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/flume-summary.html';
+          this.page.identifier = 'posts_bak/flume-summary.html';
+          this.page.title = 'Flume 踩坑排雷记';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

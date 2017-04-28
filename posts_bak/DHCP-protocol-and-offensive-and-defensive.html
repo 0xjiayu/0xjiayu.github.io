@@ -1,0 +1,823 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",,," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="1. 协议原理1.1 简介DHCP( Dynamic Host Configuration Protocol, 动态主机配置协议)，是一个局域网的网络协议，使用 UDP 协议工作， 主要有两个用途：给内部网络或网络服务供应商自动分配 IP 地址，给用户或者内部网络管理员作为对所有计算机作中央管理的手段，在 RFC 2131 中有详细的描述。DHCP 有3个端口，其中 UDP67 和 UDP68 为">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DHCP 协议原理与攻防简介">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="1. 协议原理1.1 简介DHCP( Dynamic Host Configuration Protocol, 动态主机配置协议)，是一个局域网的网络协议，使用 UDP 协议工作， 主要有两个用途：给内部网络或网络服务供应商自动分配 IP 地址，给用户或者内部网络管理员作为对所有计算机作中央管理的手段，在 RFC 2131 中有详细的描述。DHCP 有3个端口，其中 UDP67 和 UDP68 为">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1425885447242.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1425980484773.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1425980550504.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/mitmf_dhcp_hij.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/dhclient_victim.png">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DHCP 协议原理与攻防简介">
+<meta name="twitter:description" content="1. 协议原理1.1 简介DHCP( Dynamic Host Configuration Protocol, 动态主机配置协议)，是一个局域网的网络协议，使用 UDP 协议工作， 主要有两个用途：给内部网络或网络服务供应商自动分配 IP 地址，给用户或者内部网络管理员作为对所有计算机作中央管理的手段，在 RFC 2131 中有详细的描述。DHCP 有3个端口，其中 UDP67 和 UDP68 为">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1425885447242.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    DHCP 协议原理与攻防简介 | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">DHCP 协议原理与攻防简介</h1>
+
+
+
+</header>
+
+    
+    
+      <h2 id="1-协议原理"><a href="#1-协议原理" class="headerlink" title="1. 协议原理"></a>1. 协议原理</h2><h3 id="1-1-简介"><a href="#1-1-简介" class="headerlink" title="1.1 简介"></a>1.1 简介</h3><p>DHCP( Dynamic Host Configuration Protocol, 动态主机配置协议)，是一个局域网的网络协议，使用 UDP 协议工作， 主要有两个用途：给内部网络或网络服务供应商自动分配 IP 地址，给用户或者内部网络管理员作为对所有计算机作中央管理的手段，在 RFC 2131 中有详细的描述。DHCP 有3个端口，其中 UDP67 和 UDP68 为正常的 DHCP 服务端口，分别作为 DHCP Server 和 DHCP Client 的服务端口；546 号端口用于 DHCPv6 Client ，而不用于 DHCPv4，是为 DHCP Failover 服务，这是需要特别开启的服务，DHCP Failover 是用来做“双机热备”的。</p>
+<p>在 IP 网络中，每个连接 Internet 的设备都需要分配唯一的 IP 地址。DHCP 使网络管理员能从中心结点监控和分配 IP 地址。当某台计算机移到网络中的其它位置时，能自动收到新的 IP 地址，而不用在每台计算机上单独配置固定的 IP 地址。</p>
+<a id="more"></a>
+<p>DHCP 使用了 <strong>租约</strong> 的概念，或称为计算机 <strong>IP 地址的有效期</strong>。租用时间是不定的，主要取决于用户在某地联接 Internet 需要多久，这对于教育行业和其它用户频繁改变的环境是很实用的。通过较短的租期，DHCP 能够在一个计算机比可用 IP 地址多的环境中动态地重新配置网络。DHCP 支持为计算机分配静态地址，如需要永久性 IP 地址的 Web 服务器。</p>
+<p>DHCP 和另一个网络 IP 管理协议 <code>BOOTP</code> 类似(<code>BOOTP</code> 是 DHCP 的前身)。目前两种配置管理协议都得到了普遍使用，其中 DHCP 更为先进。某些操作系统，如 Windows NT/2000，都带有 DHCP 服务器。DHCP 或 BOOTP 客户端是装在计算机中的一个程序，这样就可以对其进行配置操作。</p>
+<h3 id="1-2-详解"><a href="#1-2-详解" class="headerlink" title="1.2 详解"></a>1.2 详解</h3><h4 id="1-2-1-报文格式"><a href="#1-2-1-报文格式" class="headerlink" title="1.2.1 报文格式"></a>1.2.1 报文格式</h4><p><img src="/imgs/1425885447242.png" alt="DHCP 报文格式"></p>
+<p>各字段解释如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">字段</th>
+<th style="text-align:left">长度(byte)</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">op</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">报文类型，<code>1</code>表示请求报文，<code>2</code>表示响应报文</td>
+</tr>
+<tr>
+<td style="text-align:left">htype</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">硬件地址类型，<code>1</code> 表示 10Mb/s 以太网 地址</td>
+</tr>
+<tr>
+<td style="text-align:left">hlen</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">硬件地址长度，以太网中该值为 `6</td>
+</tr>
+<tr>
+<td style="text-align:left">hops</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">跳数。客户端设置为 <code>0</code>，也能被一个 DHCP 代理服务器设置</td>
+</tr>
+<tr>
+<td style="text-align:left">xid</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">事务ID，由客户端选择的一个随机数，被服务器和客户端用来在它们之间交流请求和响应，客户端用它对请求和应答进行匹配。该ID由客户端设置并由服务器返回，为 32 位整数</td>
+</tr>
+<tr>
+<td style="text-align:left">secs</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">由客户端填充，表示从客户端开始获得 IP 地址或 IP 地址续借后所使用了的秒数</td>
+</tr>
+<tr>
+<td style="text-align:left">flags</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">标志字段。这个 16 比特的字段，目前只有最左边的一个比特有用，该位为 <code>0</code> ，表示单播，为 <code>1</code> 表示广播</td>
+</tr>
+<tr>
+<td style="text-align:left">ciaddr</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">客户端 IP，只有客户端处于 <code>Bound</code>、<code>Renew</code>、<code>Rebinding</code> 状态，并且能响应 ARP 请求时，才能被填充</td>
+</tr>
+<tr>
+<td style="text-align:left">yiaddr</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">“你自己的” 或客户端的 IP 地址</td>
+</tr>
+<tr>
+<td style="text-align:left">siaddr</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">DHCP 协议流程的下一个阶段要使用的服务器的IP地址，由服务端在 <code>DHCPOFFER</code> 和 <code>DHCPACK</code> 报文中返回</td>
+</tr>
+<tr>
+<td style="text-align:left">giaddr</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">DHCP 中继器的 IP 地址</td>
+</tr>
+<tr>
+<td style="text-align:left">chaddr</td>
+<td style="text-align:left">16</td>
+<td style="text-align:left">客户端硬件地址，客户端必须设置它的 <code>chaddr</code> 字段。UDP 数据包中的以太网帧首部也有该字段，但通常通过查看 UDP 数据包来确定以太网帧首部中的该字段获取该值比较困难或者说不可能，而在 UDP 协议承载的 DHCP 报文中设置该字段，用户进程就可以很容易地获取该值</td>
+</tr>
+<tr>
+<td style="text-align:left">sname</td>
+<td style="text-align:left">64</td>
+<td style="text-align:left">可选的服务器主机名，该字段是空结尾的字符串，由服务器填写</td>
+</tr>
+<tr>
+<td style="text-align:left">file</td>
+<td style="text-align:left">128</td>
+<td style="text-align:left">启动文件名，是一个空结尾的字符串。DHCP <code>Discover</code> 报文中是 <code>generic</code> 名字或空字符，DHCP <code>OFFER</code> 报文中提供有效的目录路径全名</td>
+</tr>
+<tr>
+<td style="text-align:left">options</td>
+<td style="text-align:left">可选</td>
+<td style="text-align:left">可选参数域，格式为 <code>代码+长度+数据</code></td>
+</tr>
+</tbody>
+</table>
+<p>关于 <code>options</code> 字段的具体说明，可以参考： <a href="http://tools.ietf.org/html/rfc2132" target="_blank" rel="external">http://tools.ietf.org/html/rfc2132</a></p>
+<h4 id="1-2-2-报文类型"><a href="#1-2-2-报文类型" class="headerlink" title="1.2.2 报文类型"></a>1.2.2 报文类型</h4><p>DHCP 报文共有 <strong><code>8</code></strong> 种，分别用于不同的功能，详解如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">报文类型</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">DHCPDISCOVER</td>
+<td style="text-align:left">DHCP 客户端请求地址时，并不知道 DHCP 服务器的位置，因此 DHCP 客户端会在本地网络内以广播方式发送请求报文，这个报文成为 Discover 报文，目的是发现网络中的 DHCP 服务器，所有收到 Discover 报文的 DHCP 服务器都会发送回应报文，DHCP 客户端据此可以知道网络中存在的 DHCP 服务器的位置。</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPOFFER</td>
+<td style="text-align:left">DHCP 服务器收到 Discover 报文后，就会在所配置的地址池中查找一个合适的 IP 地址，加上相应的租约期限和其他配置信息（如网关、DNS 服务器等），构造一个 Offer 报文，发送给用户，告知用户本服务器可以为其提供 IP 地址。（ 只是告诉 Client可以提供，是预分配，还需要 Client 通过 ARP 协议检测该 IP 是否重复）</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPREQUEST</td>
+<td style="text-align:left">客户端发给服务端，用来(1)从众多服务器的 <code>DHCPOFFER</code> 报文中选取一个最先接收到的，摒弃其他的 DHCP 服务器；(2)系统重启后确认之前分配的 IP 是否可用；(3)租期续约（在地址使用租期过去1/2时，会向DHCP服务器发送单播Request报文续延租期，如果没有收到DHCP ACK报文，在租期过去3/4时，发送广播Request报文续延租期。）</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPACK</td>
+<td style="text-align:left">服务端发给客户端，服务端根据收到的 Request 报文中携带的用户 MAC 地址来查找有没有相应的租约记录，如果有则发送     <code>DHCPACK</code>     报文作为回应，通知用户可以使用分配的 IP 地址</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPNAK</td>
+<td style="text-align:left">DHCP 服务器收到 <code>Request</code> 报文后，没有发现有相应的租约记录或者由于某些原因（租约到期、客户端移动到别的字网）法正常分配 IP 地址，则发送 <code>NAK</code> 报文作为回应，通知用户无法分配合适的 IP 地址</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPDECLINE</td>
+<td style="text-align:left">DHCP 客户端收到 DHCP 服务器回应的 <code>DHCPACK</code> 报文后，通过地址冲突检测发现服务器分配的地址冲突或者由于其他原因导致不能使用，则发送 <code>Decline</code> 报文，通知服务器所分配的 IP 地址不可用</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPRELEASE</td>
+<td style="text-align:left">当用户不再需要使用已分配的 IP 地址时，就会主动向 DHCP 服务器发送 <code>Release</code> 报文，告知服务器用户不再需要分配 IP 地址，DHCP 服务器会释放被绑定的租约</td>
+</tr>
+<tr>
+<td style="text-align:left">DHCPINFORM</td>
+<td style="text-align:left">DHCP 客户端如果需要从 DHCP 服务器端获取更为详细的配置信息，则发送 <code>Inform</code> 报文向服务器进行请求，服务器收到该报文后，将根据租约进行查找，找到相应的配置信息后，发送 <code>DHCPACK</code> 报文回应 DHCP 客户端</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-2-3-DHCP报文交换过程"><a href="#1-2-3-DHCP报文交换过程" class="headerlink" title="1.2.3 DHCP报文交换过程"></a>1.2.3 DHCP报文交换过程</h4><p>主要有两种流程：</p>
+<ol>
+<li>客户端请求新分配一个 IP 地址；</li>
+<li>客户端请求续租当前已有的 IP 地址。</li>
+</ol>
+<p>客户端请求分配一个新的 IP 地址：</p>
+<p><img src="/imgs/1425980484773.png" alt="Alt text"></p>
+<p>客户端请求续租当前已有的 IP 地址：</p>
+<p><img src="/imgs/1425980550504.png" alt="Alt text"></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>要看懂上面的数据包时序图，需要先理解前面表格中介绍过的 DHCP 8 种报文类型里的关键几种。<br>客户端在发送 <code>DHCPDISCOVER</code> 或 <code>DHCPREQUEST</code> 报文时，可以指定发给某个 DHCP 服务器，也可以不指定 DHCP 服务器而进行广播，这两种情况下客户端与服务端数据交互的细节不完全相同。<br>更多细节可参考 RFC2131。</p>
+</blockquote>
+<h2 id="2-协议缺陷"><a href="#2-协议缺陷" class="headerlink" title="2. 协议缺陷"></a>2. 协议缺陷</h2><p>上面两个时序图，是比较复杂的完整情况，而通常的 DHCP 交互过程可以简化成以下几个关键步骤（也是最容易出问题的几个步骤）：</p>
+<ol>
+<li>客户端发出一个 <code>DHCPDISCOVER</code> 报文（广播），表明想从一个 DHCP 服务器那里分配到一个 IP 地址；客户端可能会指定想租用一个以前被分配过的 IP 地址，此时会有遭受 “中间人攻击” 的危险（后文详解）；</li>
+<li>接收到客户端 <code>DHCPDISCOVER</code>报文的 DHCP 服务器，会发送一个 <code>DHCPOFEER</code> 报文，告诉客户端一个成功分配的 IP 地址，但这个地址不一定是客户端指定想要的那个 IP 地址，这取决于 DHCP 服务器的 IP 地址池中的已分配情况；如果服务端 IP 地址池中有客户端指定想要的 IP 地址，那么 DHCP 服务器就会把这个 IP 地址分配给客户端；如果 DHCP 服务器的 IP 地址池中没有客户端指定想要的 IP 地址，但有其他可用的 IP 地址，则会把其他的 IP 地址分配给客户端；如果 DHCP 服务器的 IP 地址池中已经没有可用的IP 地址，则会返回一个 <code>DHCPNAK</code> 报文；</li>
+<li>客户端接收到 DHCP 服务端发送的  <code>DHCPOFEER</code> 报文以后，会发送一个 <code>DHCPREQUEST</code> 报文给服务端，告知服务端即将租用这个分配来的 IP 地址；</li>
+<li>DHCP 服务端接收到 客户端的 <code>DHCPREQUEST</code> 报文后，会发送一个 <code>DHCPACK</code> 报文给客户端，告知客户端可以使用了，并在服务端将客户端的 MAC 地址 和 IP 地址绑定，在 IP 地址池中做标记该 IP 地址已分配出去。</li>
+</ol>
+<h3 id="2-1-拒绝服务"><a href="#2-1-拒绝服务" class="headerlink" title="2.1 拒绝服务"></a>2.1 拒绝服务</h3><p>伪造一批 DHCP 客户端（手动构造 MAC 地址），通过上面的 DHCP 客户端&lt;—-&gt;DHCP服务端之间的数据包交互流程，向当前网络中的 DHCP 服务器申请大量 IP 地址，耗尽 DHCP 服务器中的可用 IP 地址池。这样会造成以下 <strong>拒绝服务</strong> 的效果：</p>
+<ul>
+<li>DHCP 服务器中 IP 池已耗尽，所有的 IP 地址都分配给攻击发生<strong>之前已上线</strong> 的 <strong>正常主机</strong>、和攻击所伪造的<strong>虚假主机</strong>；</li>
+<li>由于 DHCP 服务器已经没能力再分配新的 IP 地址，所以该网络中的其他 <strong>刚上线</strong> 的<strong>正常主机</strong>无法获得可用 IP 地址；</li>
+<li>此攻击发生 <strong>之前已经上线</strong> 的 <strong>正常主机</strong> 无法觉察 到攻击已发生；</li>
+</ul>
+<p>这种方式实现的 <strong>拒绝服务攻击</strong> 有个小问题：某些 DHCP 服务器会通过 <strong>ARP 请求</strong> 数据包或 <strong>ICMP Ping</strong> 数据包探测那些已分配的 IP 地址存活情况，如果探测到某个 IP 地址无响应，则会自动回收该 IP（通常情况 DHCP 客户端那一方，如果机器不关机，不会自动释放当前的 IP 地址）。而我们也有应对方式：加大伪造 DHCP 客户端申请新的 IP 地址的频率，这个频率远高于 DHCP 服务器探测未存活 IP 并将其回收的频率，从而保证只要 DHCP 服务器可以分配 IP 地址，就通过伪造的DHCP 数据包交互将可用的 IP 地址占用。（已有 POC 能应对 DHCP 服务器 <strong>ARP 请求</strong> 形式的探测， <strong>ICMP Ping</strong> 方式未测试）。</p>
+<h3 id="2-2-伪造恶意的-DHCP-服务"><a href="#2-2-伪造恶意的-DHCP-服务" class="headerlink" title="2.2 伪造恶意的 DHCP 服务"></a>2.2 伪造恶意的 DHCP 服务</h3><p>黑客可以通过伪造一个 DHCP 服务器在当前网络下进行一些对 DHCP 客户端的欺骗攻击。DHCP 报文中的 <strong><code>options</code></strong> 字段可以由 DHCP Server 向 DHCP Client 指定可用的 <strong>网关</strong> 和 <strong>DNS 服务器地址</strong> ，这样一来，黑客伪造的 DHCP Server 就可以通过构造的 DHCP 数据包向客户端指定恶意的网关或 DNS 服务器地址，从而进一步实施<strong>中间人攻击</strong>。</p>
+<h3 id="2-3-中间人攻击"><a href="#2-3-中间人攻击" class="headerlink" title="2.3 中间人攻击"></a>2.3 中间人攻击</h3><h4 id="2-3-1-原理"><a href="#2-3-1-原理" class="headerlink" title="2.3.1 原理"></a>2.3.1 原理</h4><p>上面 <strong>伪造恶意的 DHCP 服务</strong> 是 <strong>中间人攻击</strong> 的关键步骤，<strong>中间人攻击</strong> 最常用的方式是伪造一个 <strong>恶意网关</strong>，将受害者的网络流量都劫持到恶意网关那里，然后可以对流量进行嗅探、修改，从而使操控受害者——当然，前提是伪造的恶意网关必须有数据包转发功能。</p>
+<p>按照 DHCP 协议规范，在 DHCP 客户端发出 <code>DHCPDISCOVER</code> 的广播数据包之后，如果本地网络存在多个 DHCP 服务器并且收到客户端的数据包之后各自都回应了 <code>DHCPOFFER</code> 数据包，DHCP 客户端会收到多个 <code>DHCPOFFER</code> 数据包，通常只会选择收到的第一个 <code>DHCPOFFER</code> 数据包。这样一来，其实多个 DHCP 服务器之间存在一个 <strong>竞争关系</strong>，哪一台DHCP服务器响应客户端的速度快、频率高，那么成功接管 DHCP 客户端的可能性就会越大。</p>
+<p>在 DHCP 中间人攻击的过程中，恶意的 DHCP 服务器可以专门针对一个 DHCP 客户端进行攻击，一旦收到一个 DHCP 客户端发来的 <code>DHCPDISCOVER</code> 广播包，恶意 DHCP 服务器和真实 DHCP 服务器都会同时响应一个 <code>DHCPOFFER</code>包，只要 恶意 DHCP 服务器的数据包先于真实 DHCP 服务器的数据包到达客户端，恶意 DHCP 服务器就会被客户端选用，中间人攻击的第一步就会成功，否则整个中间人攻击就会失败。</p>
+<h4 id="2-3-2-问题"><a href="#2-3-2-问题" class="headerlink" title="2.3.2 问题"></a>2.3.2 问题</h4><p>关于 <strong>DHCP 中间人攻击</strong> 一个明显的问题是，这种攻击在一个小型网络里面很难实施。</p>
+<ul>
+<li>如果客户端的网卡填充了以前曾用过但当前被回收了的IP，那么中间人攻击将很可能无法实施；</li>
+<li>如果客户端的网卡填充了指定想要的某个 IP 地址（上面的曾经用过的旧 IP），而真实的 DHCP 服务器恰好分配了这个指定的 IP 地址给客户端，那么客户端将采用这个指定想要的 IP 地址，而忽略恶意 DHCP 服务器的响应；</li>
+<li>唯一可能成功的，是客户端指定想要的这个 IP 地址，真实的 DHCP 服务器无法分配——可能已经分配跟网内的正常主机，也可能被恶意的 DHCP 服务主机用前面说过的 <strong>拒绝服务</strong> 攻击给恶意占用，而恶意 DHCP 服务器的 IP 池则是这些被自己恶意占用的 IP地址（恶意DHCP服务器不能随便伪造一个 IP 地址分配给受害 DHCP 客户端，那样可能造成网段内的 IP 地址冲突）——这时，恶意 DHCP 服务器才有机会成功接管受害主机的 DHCP 服务。</li>
+</ul>
+<p><strong>DHCP 中间人攻击</strong> 的另一个问题出在攻击的第二阶段——流量劫持。一旦第一阶段成功将受害主机的流量骗到恶意网关，下一步就是具体的流量劫持。流量劫持的完美实施，不仅需要欺骗受害主机、让受害主机把恶意网关误以为真实网关，还要欺骗真实网关、让真实网关把恶意网关误以为受害主机，这样才能完全接管受害主机出、入的双向流量。所以，一个完整的 DHCP 中间人攻击，还需要借助 <strong>ARP欺骗</strong>。</p>
+<h3 id="2-4-伪造-DNS-服务"><a href="#2-4-伪造-DNS-服务" class="headerlink" title="2.4 伪造 DNS 服务"></a>2.4 伪造 DNS 服务</h3><p>前面说过，DHCP 服务器可以通过数据包向 DHCP 客户端指定一个 DNS 服务器地址。如果上面的 DHCP 服务欺骗成功，则恶意 DHCP 服务器可以通过这种方式，来对 受害主机进行 <strong>钓鱼攻击</strong>：将某个或某些受害主机用户经常上的网站的域名解析到黑客自己的服务器 IP 上去，在那里用伪造的网站页面，骗取用户登录，便可轻松得到账号、密码、联系方式、身份信息等等。</p>
+<h2 id="3-攻击实践"><a href="#3-攻击实践" class="headerlink" title="3. 攻击实践"></a>3. 攻击实践</h2><p>前面一小节列出了 DHCP 协议相关的多种缺陷，即可能导致用户网络被攻击的一些点，本小节做一个简单的实践来演示一下。当然不会掩饰所有的攻击方式，只演示最基础的、简单的 DHCP 服务器欺骗攻击。原理是去年爆出的 <strong><code>Bash-Shellshock</code></strong> 漏洞在 DHCP 客户端中的利用。Linux 自带 DHCP 客户端的实现中，有通过系统调用执行 Shell 命令的代码，而除了标准字段，DHCP 还提供了可选字段（识别号码），在这种情况下，一些恶意的服务器通过可选字段 <code>114</code> 发送包含恶意指令的命令，DHCP 服务端响应的数据包中包含的恶意指令如果被客户端接收，且 Bash 版本存在漏洞，那么恶意指令就会被执行。</p>
+<p>这里用到的中间人攻击攻击，还是做 <strong>ARP 中间人攻击</strong> 实验时用到的中间人攻击平台 <strong><code>MITMF</code></strong>，只需在攻击机上开启 DHCP 服务欺骗的指令，等待一个 DHCP 客户端来申请 IP 地址即可：</p>
+<ol>
+<li>攻击机 Kali 上启动攻击平台<br><img src="/imgs/mitmf_dhcp_hij.png" alt="Alt text"></li>
+</ol>
+<ol>
+<li>受害主机（带有 <code>Shellshock</code> 漏洞的 Ubuntu1204）重启 DHCP 客户端，申请 IP 地址<br><img src="/imgs/dhclient_victim.png" alt="Alt text"></li>
+</ol>
+<p>即发现受害主机的 DHCP 客户端启动时，倒数第二行打出了 <strong><code>123</code></strong> 这一串异常字符，即是恶意 DHCP 服务器的 <code>echo 123</code> 指令得到了执行。</p>
+<h2 id="4-参考资料"><a href="#4-参考资料" class="headerlink" title="4. 参考资料"></a>4. 参考资料</h2><ol>
+<li><a href="http://zh.wikipedia.org/zh/%E5%8A%A8%E6%80%81%E4%B8%BB%E6%9C%BA%E8%AE%BE%E7%BD%AE%E5%8D%8F%E8%AE%AE" target="_blank" rel="external">http://zh.wikipedia.org/zh/%E5%8A%A8%E6%80%81%E4%B8%BB%E6%9C%BA%E8%AE%BE%E7%BD%AE%E5%8D%8F%E8%AE%AE</a></li>
+<li><a href="http://seclists.org/vuln-dev/2002/Sep/99" target="_blank" rel="external">http://seclists.org/vuln-dev/2002/Sep/99</a></li>
+<li><a href="http://tools.ietf.org/html/rfc2131" target="_blank" rel="external">http://tools.ietf.org/html/rfc2131</a></li>
+<li><a href="http://tools.ietf.org/html/rfc2132" target="_blank" rel="external">http://tools.ietf.org/html/rfc2132</a></li>
+<li><a href="http://tools.ietf.org/html/rfc951" target="_blank" rel="external">http://tools.ietf.org/html/rfc951</a></li>
+<li><a href="https://isc.sans.edu//forums/diary/Cyber+Security+Awareness+Month+Day+6+ports+6768+udp+bootp+and+dhcp/7279/" target="_blank" rel="external">https://isc.sans.edu//forums/diary/Cyber+Security+Awareness+Month+Day+6+ports+6768+udp+bootp+and+dhcp/7279/</a></li>
+<li><a href="http://howdoesinternetwork.com/2011/spoofing-attack" target="_blank" rel="external">http://howdoesinternetwork.com/2011/spoofing-attack</a></li>
+<li><a href="http://www.freebuf.com/tools/45796.html" target="_blank" rel="external">http://www.freebuf.com/tools/45796.html</a></li>
+<li><a href="http://sign0f4.blogspot.it/2014/07/introducing-mitmf-framework-for-man-in.html" target="_blank" rel="external">http://sign0f4.blogspot.it/2014/07/introducing-mitmf-framework-for-man-in.html</a></li>
+<li><a href="http://sign0f4.blogspot.it/2014/07/mitmf-update-spoof-plugin_23.html" target="_blank" rel="external">http://sign0f4.blogspot.it/2014/07/mitmf-update-spoof-plugin_23.html</a></li>
+<li><a href="http://sign0f4.blogspot.it/2014/10/mitmf-update-dhcp-pwnage.html" target="_blank" rel="external">http://sign0f4.blogspot.it/2014/10/mitmf-update-dhcp-pwnage.html</a></li>
+<li><a href="http://www.trustedsec.com/september-2014/shellshock-dhcp-rce-proof-concept/" target="_blank" rel="external">http://www.trustedsec.com/september-2014/shellshock-dhcp-rce-proof-concept/</a></li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html';
+          this.page.identifier = 'posts_bak/DHCP-protocol-and-offensive-and-defensive.html';
+          this.page.title = 'DHCP 协议原理与攻防简介';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

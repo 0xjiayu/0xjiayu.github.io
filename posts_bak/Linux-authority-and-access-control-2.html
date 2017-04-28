@@ -1,0 +1,990 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",,," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本系列 前一篇 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。
+1. 强制访问控制(SELinux)前半部分讲解了Linux系统中实现的DAC(Discretionary Access Control,自主访问控制)机制，主要包括传统的UGO+RWX机制和 ACL 机制；下半部分开始讲">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 权限管理与访问控制详解(2)——MAC 和 SELinux">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/Linux-authority-and-access-control-2.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本系列 前一篇 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。
+1. 强制访问控制(SELinux)前半部分讲解了Linux系统中实现的DAC(Discretionary Access Control,自主访问控制)机制，主要包括传统的UGO+RWX机制和 ACL 机制；下半部分开始讲">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1419231057119.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1419231491399.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1419236983990.png">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux 权限管理与访问控制详解(2)——MAC 和 SELinux">
+<meta name="twitter:description" content="本系列 前一篇 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。
+1. 强制访问控制(SELinux)前半部分讲解了Linux系统中实现的DAC(Discretionary Access Control,自主访问控制)机制，主要包括传统的UGO+RWX机制和 ACL 机制；下半部分开始讲">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1419231057119.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/Linux-authority-and-access-control-2.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    Linux 权限管理与访问控制详解(2)——MAC 和 SELinux | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">Linux 权限管理与访问控制详解(2)——MAC 和 SELinux</h1>
+
+
+
+</header>
+
+    
+    
+      <p>本系列 <a href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">前一篇</a> 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。</p>
+<h2 id="1-强制访问控制-SELinux"><a href="#1-强制访问控制-SELinux" class="headerlink" title="1. 强制访问控制(SELinux)"></a>1. 强制访问控制(SELinux)</h2><p>前半部分讲解了Linux系统中实现的<strong>DAC</strong>(Discretionary Access Control,自主访问控制)机制，主要包括传统的<strong><code>UGO+RWX</code></strong>机制和 ACL 机制；下半部分开始讲解<strong>MAC(Mandatory Access Control，强制访问控制)</strong>，该部分主要讲 SELinux，因为 Linux 系统中的MAC机制，主要由 SELinux 来实现。</p>
+<h2 id="2-SELinux简介"><a href="#2-SELinux简介" class="headerlink" title="2. SELinux简介"></a>2. SELinux简介</h2><hr>
+<h3 id="2-1-起源"><a href="#2-1-起源" class="headerlink" title="2.1 起源"></a>2.1 起源</h3><p>NSA(美国国家安全局)一直非常关注计算机操作系统的安全领域，他们发现大部分操作系统的安全机制，包括Window和大部分*nix系统，都是以DAC机制为安全认证基础的。由于DAC机制的设计很不利于系统安全，NSA便一直致力于开发一套更安全的MAC操作系统安全认证机制。</p>
+<a id="more"></a>
+<p>DAC与MAC两种安全机制的原理与区别，在前文已叙述过，DAC的控制方式够灵活，比较松，但不严格，有一定的安全隐患。在DAC的控制机制中，传统Linux由于 <code>root</code> 权限的“权力”过大而造成巨大的安全威胁：一旦黑客入侵Linux操作系统并获得<code>root</code>权限，整个操作系统将暴露于恶意攻击的威胁之下。</p>
+<p>SELinux 正是为解决这类为题而设计，它控制了无限的<code>root</code>权限，并不采用大众所知道的传统安全机制。在SELinux下，<code>root</code>账号采用强制访问控制机制，同时限制用户和程序（主体）使用最低权限做足以完成任务的工作。因此，即使系统不幸遭受黑客攻击，由此引起的危害也随之降到最低限度，所以极大地提升了Linux系统的安全性。</p>
+<h3 id="2-2-SELinux-工作机制概述"><a href="#2-2-SELinux-工作机制概述" class="headerlink" title="2.2 SELinux 工作机制概述"></a>2.2 SELinux 工作机制概述</h3><p>在SELinux中，每个对象（程序、文件和进程等，包括前文所述的“主体”与“客体”）都有一个 <strong>安全上下文</strong>(Security Context)，它依附于每个对象身上，记载着该对象具有的权限（SELinux定义的权限）。管理员可以通过定制 <strong>安全策略</strong>(Security Policy)来定义这些安全上下文，从而定义哪种对象具有什么权限。当一个对象需要执行某个操作时，系统会按照该对象以及该对象要操作的对象的安全上下文所定制的安全策略来检查相对应的权限，去过全部权限都符合，系统就会允许该操作，否则将阻断这个操作。这些过程不会影响到其他正常运行的对象，系统会保证它们的安全系统结构以及稳定运行。</p>
+<p><strong>SELinux 从Linux Kernel 2.6开始，就已经是内核的一部分了；传统的 <code>UGO+RWX</code> 机制也是运行在内核中；ACL 是一个POSIX标准。</strong></p>
+<p>在启用了SELinux的Linux操作系统中，某个对象需要执行某个操作时，<strong>系统权限管理不仅根据安全上下文所规定的内容来检查，同时还要根据传统DAC机制来检测，并且是先通过DAC机制的检测，再由SELinux定制的安全策略来检测</strong>。只有通过DAC和SELinux的双重检测之后，才能执行操作。</p>
+<p>SELinux 的另一个重要概念是 <strong>TE</strong>(Type Enforcement，类型强制)，其原理是<strong>将权限与程序的访问结合在一起，而不是结合用户</strong>。本文讨论的所有SELinux策略特性，都是处理<strong>主体</strong>(运行中的进程)对<strong>客体</strong>(文件、目录或套接字等)的访问权的，主要集中于程序访问控制决策，这也是SELinux的主要功能。它允许SELinux安全策略编写者基于程序的功能和安全属性，加上用户要完成任务所需的访问权作出访问决策，可以将程序限制到功能合适、权限最小化的程度。因此，即使它出现了故障或被攻击，但整个系统的安全并不会受到威胁。例如，一个Web服务器的策略阻止修改它显示的文件，那么即使Web服务器被攻破，TE策略也能阻止被攻破的服务器修改那些文件。这样就消除了通过Web服务器的漏洞攻击造成对整个服务器的威胁，而只有被攻破的应用程序受到影响，并且它会被我们的安全策略限制访问权限。</p>
+<p>具体的系统运行中，在 SELinux 系统启动时，会加载一个叫做<code>policy.*</code>的安全策略配置文件，这个文件中就定义了SELinux设定的各种权限。如果用户在文件中设定了SELinux不能在开机后转回 <code>permissive</code>模式的话，那么系统的<code>root</code>用户则可能无法修改当前的设定，也就是说<code>root</code>用户在SELinux中已经不具有默认的所有权限。因此，即便黑客盗取了<code>root</code>用户密码并成功入侵到用户的计算机，也只能在他入侵的这个自治域内进行破坏，并不会像以前那样扩散到整个Linux系统。因此，在启用了SELinux的Linux操作系统中，<code>root</code>用户也被限制进行某些操作。</p>
+<h3 id="2-3-SELinux-的优势"><a href="#2-3-SELinux-的优势" class="headerlink" title="2.3 SELinux 的优势"></a>2.3 SELinux 的优势</h3><p>总的来说，SELinux有以下几点优势：</p>
+<ul>
+<li>所有的进程与文件都用一个<strong>类型(Type)</strong>来标记。一个<strong>类型</strong>定义了一个进程的<strong>域(Domain)</strong>和一个文件的域。不同的进程只在自己所属的域内运行，SELinux的策略则定义了不同进程与文件、进程与进程间通信的方式。只有SELinux的策略允许，一个访问操作才可能被执行；</li>
+<li>细粒度访问控制。优于传统的基于用户和组的Linux自主访问控制机制，SELinux基于一切可用信息，比如SELinux定义的<strong>用户</strong>、<strong>角色</strong>、<strong>类型</strong>和一个可选的<strong>安全等级</strong>；</li>
+<li>SELinux策略是以管理方式定义的、全系统范围内有效的，不是用户自主可控的；</li>
+<li>降低提权攻击的风险（上面所讲述的SELinux的主要贡献就是这个）；</li>
+<li>SELinux 可以保证数据的机密性和完整性，并能防止部分外部恶意数据输入。</li>
+</ul>
+<p>但是，需要注意以下几点：</p>
+<ul>
+<li>SELinux 不是防病毒软件，也不能替代防病毒软件；</li>
+<li>SELinux 不能替代基础密码、防火墙或者IDS/IPS或者其他安全防护系统；</li>
+<li>SELinux 不是一体化的防护系统。</li>
+</ul>
+<h2 id="3-SELinux-基本工作原理"><a href="#3-SELinux-基本工作原理" class="headerlink" title="3. SELinux 基本工作原理"></a>3. SELinux 基本工作原理</h2><hr>
+<h3 id="3-1-SELinux-中的上下文-Context"><a href="#3-1-SELinux-中的上下文-Context" class="headerlink" title="3.1 SELinux 中的上下文(Context)"></a>3.1 SELinux 中的上下文(Context)</h3><p>SELinux 系统中的<strong>进程</strong>和<strong>文件</strong>都标记了 SELinux 的<strong>上下文</strong>，这个上下文包含了许多有用的信息，包括<strong>SELinux用户</strong>(不同于Linux系统的用户)、<strong>角色</strong>(Role)、<strong>类型</strong>(Type)和<strong>级别</strong>(Security Level)等等。在运行 SELinux 的时候，这些上下文信息被用来辅助进行访问控制，它们可以看做是 SELinux 策略的“维度”。最新的 SELinux 综合提供了 <strong>RBAC</strong>、<strong>TE</strong>(类型增强)和 <strong>MLS</strong>(Multi-Security Level，多级别安全)三种访问控制机制。</p>
+<p>下面是一个 SELinux 上下文的例子。SELinux 上下文广泛使用在 <strong>进程</strong>、<strong>Linux用户</strong>、<strong>文件</strong>中，使用 <code>ls -Z [file|dir]</code> 命令可以查看<strong>文件</strong>或<strong>目录</strong>的 SELinux 上下文：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 test.txt</div></pre></td></tr></table></figure></p>
+<p>SELinux 上下文的组成为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">SELinux user:role:type:level</div></pre></td></tr></table></figure></p>
+<hr>
+<p><strong>SELinux user</strong></p>
+<p><code>SELinux user</code> 标志一群被授权的角色或者一个特定的 MLS 范围。每一个 Linux 系统用户都通过 SELinux 机制被映射为一个 <code>SELinux user</code>，这使得Linux用户可以继承 SELinux 用户的访问权限。这个标志主要用于限制 Linux 用户可以进入的角色和级别范围，相当于 SELinux 对 Linux 的用户结构进行了一层封装。</p>
+<p>Linux 下用 <code>root</code> 用户权限运行 <code>semanage login -l</code> 命令可以查看 SELinux 用户与 Linux 用户之间的映射关系：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">➜ semanage login <span class="_">-l</span></div><div class="line"></div><div class="line">登录名                SELinux 用户          MLS/MCS 范围          服务</div><div class="line"></div><div class="line">__default__          unconfined_u         s0<span class="_">-s</span>0:c0.c1023        *</div><div class="line">root                 unconfined_u         s0<span class="_">-s</span>0:c0.c1023        *</div><div class="line">system_u             system_u             s0<span class="_">-s</span>0:c0.c1023        *</div></pre></td></tr></table></figure></p>
+<ul>
+<li>例子中第一列为 <strong>Linux 系统用户</strong>；</li>
+<li>第二列的 <strong>SELinux 用户</strong>列出了第一列系统用户对应的 SELinux 用户。对于进程来说，这些 SELinux 用户直接限制了什么角色和级别可以为该用户访问；</li>
+<li>第三列的 <strong>MLS/MCS 范围</strong> 则给出了 <strong>MLS</strong> 和 <strong>MCS</strong>(Multi-Category Security，多种类安全)机制所采用的 <strong>安全级别</strong>(Level)。关于 <strong>MCS</strong> 和 <strong>Level</strong>，下文详解；</li>
+<li>最后一列的<strong>服务</strong>，定义了对应的<strong>Linux系统用户</strong>登录后对应的 SELinux 上下文，默认值 <code>*</code>代表任意服务。</li>
+</ul>
+<hr>
+<p><strong>角色</strong>(Role)</p>
+<p>SELinux 中有一部分采用前文介绍的<strong>基于角色的访问控制(RBAC)</strong>机制。而 <code>role</code> 是 RBAC 机制中的一个属性，也是 RBAC 机制在 SELinux 中的运用。在 SELinux 的设计中，Linux 系统用户被映射为 SELinux 用户，而 SELinux用户被授权为<strong>角色(Role)</strong>,继而<strong>角色</strong>被授权为对应的可访问的<strong>域</strong>(Domain)。所以，<strong>角色作为域和 SELinux 用户之间联系的媒介。通过角色可以决定 SELinux 用户可以访问哪些域，而最终决定了SELinux 用户可以访问哪些对象类型</strong>。通过这种机制可以降低权限提升的风险。</p>
+<hr>
+<p><strong>类型</strong>(Type)</p>
+<p>类型是<strong>类型强制</strong>(Type Enforcement)机制的一个属性，也是 TE 机制在 SELinux 中的实现。<strong>类型</strong>为<strong>进程</strong>定义了<strong>域</strong>，为<strong>文件</strong>定义了<strong>类型</strong>。SELinux 机制策略明确定义了<strong>类型间相互访问</strong>、<strong>域访问类型</strong>和<strong>域间相互访问</strong>的规则和许可。只有存在某条 SELinux 机制规则允许的情况下，才允许上述的访问发生。</p>
+<hr>
+<p><strong>级别</strong>(Level)</p>
+<p><strong>级别</strong>是上述 MLS 和 MCS 机制的另一个重要属性。一个 MLS 范围是一个 <strong>级别对</strong>，采用<strong>区间</strong>标志，比如 <code>(最低级别, 最高级别)</code> 或者 <code>(S0, s5)</code> 。每个级别都是一个<strong>种类</strong>(Category) 敏感的数对，然而种类是可选的。如果存在<strong>种类</strong>，则可以表示为 <code>sensitivity: category-set</code> 的形式，如果没有种类，则只用 <code>sesitivity</code> 表示即可。</p>
+<p>如果<strong>种类集</strong>(category-set)是连续的，则在表示时可以简写，比如 <code>c0.c2</code> 与 <code>c0,c1,c2</code> 表示同样的含义。举例说明：在最新的 <code>CentOS7</code> 操作系统中，<strong>目标机制</strong>(Targeted Policy)对MCS进行了增强，因此它只有一个敏感级别 <code>s0</code> 。MCS 支持 1024 个不同的种类，从 <code>c0</code> 一直到 <code>c1023</code> ，所以，<code>s0-s0:c0.c1023</code> 所有的种类都被授权。</p>
+<p>另外，与<strong>级别</strong>相关的 <code>/etc/selinux/targeted/setrans.conf</code> 配置文件非常重要，切记用  Vi(m)/Gedit/Nano/Emacs 等编辑器对其直接进行编辑，可以使用 <code>semanage</code> 命令进行修改，这样才能保证修改的正确性。</p>
+<hr>
+<p><strong>类型强制</strong>(Type Enforcement)</p>
+<p>SELinux 策略大部分都是一套声明和规则一起定义的<strong>类型强制</strong>(TE)策略，一个定义良好、严格的 TE 策略可能包括上千条 TE 规则，TE 规则数量的巨大是正常现象，因为它们表达了由内核暴露出的允许对资源的访问权，这就意味着每个进程对每个资源的访问尝试都必须至少要得到一条 TE 规则的允许，考虑一下现代Linux操作系统中进程和资源的数量，就会明白为什么有这么多 TE 规则了。<br>TE 规则数量众多，但规则本身并不复杂，分类也较少，所有的规则基本上都属于两类范畴：<strong>访问向量</strong>(AV,Access Vector)和<strong>类型规则</strong>。AV规则允许或审核两个类型之间的访问权，而某些情况下使用类型规则控制默认的标记。</p>
+<p>由于 TE 规则数量较多，全部加载比较耗费资源，每次检索也会比较费性能，所以，在 SELinux 运行的过程中，系统实现了一个 <strong>访问向量缓存</strong>(Access Vector Cache)，用来存放已经查询过的规则，提高性能。</p>
+<p>正如<strong>类型强制</strong>的名字所示，TE 规则通过安全上下文与所有资源结合起来对<strong>类型</strong>起作用，策略语言包括了另外的允许我们定义类型及其策略组件的语句。SELinux 不会管Linux系统用户，可以给同一个程序指定多个域类型（因此有不同的特权集），这样就允许引入<strong>角色</strong>的概念。因此，<strong>访问控制的标准仍然是基于程序的域类型而不是基于用户的域类型。</strong></p>
+<h3 id="3-2-域转换-Domain-Transitions"><a href="#3-2-域转换-Domain-Transitions" class="headerlink" title="3.2 域转换(Domain Transitions)"></a>3.2 域转换(Domain Transitions)</h3><p>前文介绍过，SELinux 一大特点就是将进程和用户的执行权限限定在一个<strong>域</strong>(Domain)内。因此，即使 <code>root</code> 用户也不可能具有太大权限，从而保证了系统整体的安全性。<strong>SELinux 中定义的 <code>域</code> 会限定进程的执行权限或范围，但进程执行的时候是可以从一个域转换到另外一个域的，以获得另外一个域内限定的权限。</strong>进程从一个域转换到另一个域需要执行一个具有新域的<strong>入口点</strong>(Entrypoint)权限的应用程序来实现。这个“入口点”许可在 SELinux 机制中使用，它用来控制某些应用程序可以用来进入一个<strong>域</strong>。为了清楚说明这个问题，下面举实例说明。</p>
+<p>一个用户想要修改自己的密码。为了修改密码，应该运行 <code>passwd</code> 程序，<code>/usr/bin/passwd</code> 可执行命令的标记 <code>passwd_exec_t</code> 类型，如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z /usr/bin/passwd </div><div class="line">-rwsr-xr-x. root root system_u:object_r:passwd_exec_t:s0 /usr/bin/passwd</div></pre></td></tr></table></figure></p>
+<p>在实际执行过程中，该命令访问了 <code>/etc/shadow</code> 文件，该文件的类型为 <code>shodow_t</code>，如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z /etc/shadow</div><div class="line">----------. root root system_u:object_r:shadow_t:s0    /etc/shadow</div></pre></td></tr></table></figure></p>
+<p>SELinux 机制的相关规则规定：运行在 <code>passwd_t</code> <strong>域</strong>(<strong>域</strong>，是 TE 机制为<strong>进程</strong>定义的权限范围；<code>passwd_t</code>域，即是<code>/usr/bin/passwd</code>程序运行时的进程所处的<strong>域</strong>)的进程对标记为 <code>shadow_t</code> <strong>类型</strong>（<strong>类型</strong>，是 TE 机制为<strong>文件</strong>定义的权限范围）的文件具有读和写的权限。并且， <code>shadow_t</code> 类型仅仅只赋予和密码修改相关的那些文件，这些文件包括 <code>/etc/gshadow</code> 、<code>/etc/shadow</code> 以及它们的备份文件。根据这个规则，用户可以知道：<code>passwd_t</code> 域的进程具有 <code>passwd_exec_t</code> 类型的 <code>入口点</code> 权限。因此，当用户运行 <code>/usr/bin/passwd</code> 程序修改密码时，该程序启动的进程运行在 <code>passwd_t</code> 域；由于 <code>passwd_t</code> 域的进程可以对 <code>shadow_t</code> 类型的文件进行读写操作，所以 <code>passwd</code> 命令的进程可以操作 <code>/etc/shadow</code> 文件。</p>
+<p>当然，在 SELinux 机制中，如果默认情况下（没有相应规则），该进程是无法访问相应文件的。可以进一步解释这个例子：未使用 SELinux 的 Linux 操作系统中，<code>/usr/binpasswd</code> 程序是可信的，因而可以修改经过加密的密码文件 <code>/etc/shadow</code>。所以，<code>passwd</code> 程序执行它自己内部的安全策略，允许普通用户修改自己的密码，同时也允许 <code>root</code> 修改所有的密码。为了执行这个密码修改操作，<code>passwd</code>程序需要有移动和重新创建<code>shadow</code>文件的能力。在标准 Linux 系统中，它具有这个特权，因为 <code>/usr/bin/passwd</code> 在执行时被加上了 <code>setuid</code> 位，它作为 <code>root</code> 用户被允许对密码进行修改操作。然而，许多程序都可以作为 <code>root</code> 允许（实际上，所有程序都有可能作为 <code>root</code> 允许）。这就意味着任何程序（当以 <code>root</code> 身份运行时）都有可能修改 <code>/etc/shadow</code> 文件。因此，类型强制使用户能做的事情是确保只有 <code>/usr/bin/passwd</code> 程序（或类似受信程序）可以操作 <code>/etc/shadow</code> 文件，而不论运行程序的用户是谁。</p>
+<p>在上述例子中，除 SELinux 的相关规则约定外，TE 机制在很大程度上保证下面几条前提条件：</p>
+<ul>
+<li>只有标记为 <code>passwd_exec_t</code> 类型的应用程序执行才能进入 <code>passwd_t</code> 域，其他的命令执行时都不允许进入该域；</li>
+<li>只有一些授权的域，比如 <code>passwd_t</code> 才能对 <code>shadow_t</code> 类型的文件具有读写权限。及时其他的进程具有超级用户的权限，也不允许对 <code>shadow_t</code> 类型的文件具有写权限，因为它们并不运行在 <code>passwd_t</code> 域中；</li>
+<li>只有一些授权的域才能转换到 <code>passwd_t</code> 域，比如 <code>sendmail</code> 进程运行在 <code>sendmail_t</code> 域中，在该域中它们没有合理的理由和权限执行 <code>passwd</code> 命令，因此就不授予转换到 <code>passwd_t</code> 域的<strong>入口点</strong>；</li>
+<li>运行在 <code>passwd_t</code> 域中的进程只对授权的类型具有读写权限，例如标记为 <code>shadow_t</code> 和 <code>etc_t</code> 类型的文件。这就有效阻止了 <code>passwd</code> 命令对其他文件的任意读写权限，从而保证了最小权限运行，最终保证了系统安全。</li>
+</ul>
+<h3 id="3-3-SELinux-中进程上下文"><a href="#3-3-SELinux-中进程上下文" class="headerlink" title="3.3 SELinux 中进程上下文"></a>3.3 SELinux 中进程上下文</h3><p>前文所述的<strong>上下文</strong>是以<strong>文件上下文</strong>来说的，其实，SELinux机制的实现中，还有<strong>进程上下文</strong>和<strong>用户上下文</strong>，下面分别介绍一下。</p>
+<p>前文讲过用命令 <code>ls -Z [file|dir]</code>可以查看<strong>文件上下文</strong>，类似地，用命令 <code>ps -eZ</code> 就可以查看<strong>进程上下文</strong>：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">➜ ps <span class="_">-e</span>Z | more</div><div class="line">LABEL                             PID TTY          TIME CMD</div><div class="line">system_u:system_r:init_t:s0         1 ?        00:00:22 systemd</div><div class="line">system_u:system_r:kernel_t:s0       2 ?        00:00:00 kthreadd</div><div class="line">system_u:system_r:kernel_t:s0       3 ?        00:00:00 ksoftirqd/0</div><div class="line">system_u:system_r:kernel_t:s0       5 ?        00:00:00 kworker/0:0H</div><div class="line">system_u:system_r:kernel_t:s0       7 ?        00:00:00 migration/0</div><div class="line">system_u:system_r:kernel_t:s0       8 ?        00:00:00 rcu_bh</div><div class="line">system_u:system_r:kernel_t:s0       9 ?        00:00:00 rcuob/0</div><div class="line">system_u:system_r:kernel_t:s0      10 ?        00:00:02 rcu_sched</div><div class="line">system_u:system_r:kernel_t:s0      11 ?        00:00:05 rcuos/0</div><div class="line">system_u:system_r:kernel_t:s0      12 ?        00:00:01 watchdog/0</div><div class="line">system_u:system_r:kernel_t:s0      13 ?        00:00:00 khelper</div><div class="line">system_u:system_r:kernel_t:s0      14 ?        00:00:00 kdevtmpfs</div><div class="line">system_u:system_r:kernel_t:s0      15 ?        00:00:00 netns</div><div class="line">system_u:system_r:kernel_t:s0      16 ?        00:00:00 writeback</div><div class="line">system_u:system_r:kernel_t:s0      17 ?        00:00:00 kintegrityd</div><div class="line">system_u:system_r:kernel_t:s0      18 ?        00:00:00 bioset</div><div class="line">system_u:system_r:kernel_t:s0      19 ?        00:00:00 kblockd</div><div class="line">system_u:system_r:kernel_t:s0      20 ?        00:00:00 khubd</div><div class="line">--More--</div></pre></td></tr></table></figure></p>
+<h3 id="3-4-SELinux-中用户上下文"><a href="#3-4-SELinux-中用户上下文" class="headerlink" title="3.4 SELinux 中用户上下文"></a>3.4 SELinux 中用户上下文</h3><p>类似地，<code>id -Z</code> 命令可以查看Linux系统用户相关的SELinux上下文信息：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ id -Z</div><div class="line">unconfined_u:unconfined_r:unconfined_t:s0<span class="_">-s</span>0:c0.c1023</div></pre></td></tr></table></figure></p>
+<h3 id="4-使用-SELinux-前的准备工作"><a href="#4-使用-SELinux-前的准备工作" class="headerlink" title="4. 使用 SELinux 前的准备工作"></a>4. 使用 SELinux 前的准备工作</h3><hr>
+<h3 id="4-1-SELinux-相关的工具"><a href="#4-1-SELinux-相关的工具" class="headerlink" title="4.1 SELinux 相关的工具"></a>4.1 SELinux 相关的工具</h3><p>前文已经使用了 <code>semanage</code> 命令来查看 Linux 系统用户与 SELinux User 之间的映射关系，其实，与 SELinux 相关的工具包与命令工具有好多。安装系统时默认也安装了一些基础的命令工具，但CentOS7 系统如果以最小化的文字模式安装，<code>policycoreutils-python</code> 包和 <code>policycoreutils-gui</code> 包是不会被安装的，里面附带的一些工具也不可用，或者下面列表中其他默认不被安装的工具包，都需要用 <code>yum install [package_name]</code> 来手动安装。下面是常用的工具包及其里面的工具简介：</p>
+<ul>
+<li><strong>policycoreutils</strong>：提供与 SELinux 相关的命令，比如 <code>restorecon</code>, <code>secon</code>, <code>setfiles</code>, <code>semodule</code> , <code>load_policy</code> 和 <code>setsebool</code> 来操作和管理 SELinux。</li>
+<li><strong>policycoreutils-gui</strong>：提供图形化软件 <code>system-config-selinux</code> 来管理 SELinux。</li>
+<li><strong>policycoreutils-python</strong>：提供命令比如 <code>semanage</code>, <code>audit2allow</code>, <code>audit2why</code>, 和<br><code>chcat</code> 来管理和操作 SELinux。</li>
+<li><strong>selinux-policy</strong>：提供 SELinux 引用策略，该引用策略包括了所有的 SELinux 策略，并被用作其他策略（如 <strong>Targeted Policy</strong>）的基础使用。</li>
+<li><strong>selinux-policy-targeted</strong>：提供 SELinux 的 <code>targeted</code> 策略。</li>
+<li><strong>selinux-policy-mls</strong>：提供 SELinux 的 <code>MLS</code> 策略。</li>
+<li><strong>setroubleshoot-server</strong>：翻译 SELinux 的拒绝操作体质信息，为 <code>sealert</code> 工具提供可以查看的、可读性好的信息。</li>
+<li><strong>setools</strong>/<strong>setools-console</strong>/<strong>setools-gui</strong>：这些安装包提供了与 SELinux 相关的策略分析、检索、日志审计与监控、文件上下文管理管理的相关工具。<strong>setools</strong>是<strong>元工具</strong>，<strong>setools-gui</strong>提供了 <code>apol</code>, <code>seaudit</code> 工具；<strong>setool-console</strong> 则提供了 <code>sechecker</code>,<br><code>sediff</code>, <code>seinfo</code>, <code>sesearch</code>, 和 <code>findcon</code> 等命令行工具。</li>
+<li><strong>mcstrans</strong>：提供对 SELinux 上文中的<strong>级别</strong>（比如 <code>s0-s0:c0.c1023</code>）翻译的工具。</li>
+<li><strong>libselinux</strong>：为 SELinux 的应用提供 API 支持。</li>
+<li><strong>libselinux-python</strong>：为 SELinux 应用提供 Python 绑定接口。</li>
+<li><strong>libselinux-utils</strong>：提供 <code>avcstat</code>, <code>getenforce</code>, <code>getsebool</code>, <code>matchpathcon</code>,<br><code>selinuxconlist</code>, <code>selinuxdefcon</code>, <code>selinuxenabled</code>, 和 <code>setenforce</code> 工具。</li>
+</ul>
+<p>上述工具的使用请自行查阅相关资料。</p>
+<h3 id="4-2-SELinux-日志"><a href="#4-2-SELinux-日志" class="headerlink" title="4.2 SELinux 日志"></a>4.2 SELinux 日志</h3><p>SELinux 有不止一种日志文件可记录在运行过程中对操作的拒绝日志，以便管理员后续审计与分析。默认情况下，CentOS7 安装了 <code>dbus</code> 和 <code>audit</code> 服务，另外一个有用的 SELinux 日志相关的工具包 <code>setroubleshoot-server</code> 可用命令 <code>yum install setroubleshoot</code> 来安装。</p>
+<p>如果 <code>audit</code> 守护进程在运行，SELinux 的拒绝操作日志便会记录在 <code>/var/log/audit/audiut.log</code> 中，内容如下所示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">type=AVC msg=audit(1419246735.232:99): avc:  denied  &#123; getattr &#125; for  pid=3524 comm=&quot;httpd&quot; path=&quot;/var/www/html/info.php&quot; dev=&quot;dm-1&quot; ino=429843 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:samba_share_t:s0 tclass=file</div><div class="line">type=AVC msg=audit(1419246735.232:100): avc:  denied  &#123; getattr &#125; for  pid=3524 comm=&quot;httpd&quot; path=&quot;/var/www/html/info.php&quot; dev=&quot;dm-1&quot; ino=429843 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:samba_share_t:s0 tclass=file</div><div class="line">type=AVC msg=audit(1419246736.440:101): avc:  denied  &#123; unlink &#125; for  pid=11537 comm=&quot;setroubleshootd&quot; name=&quot;setroubleshoot_server&quot; dev=&quot;tmpfs&quot; ino=30142 scontext=system_u:system_r:setroubleshootd_t:s0-s0:c0.c1023 tcontext=unconfined_u:object_r:var_run_t:s0 tclass=sock_file</div></pre></td></tr></table></figure></p>
+<p>如果 <code>setroubleshooted</code> 进程在运行的话，上面的记录将会被翻译成可读性好的形式保存到 <code>/var/log/messages</code> 中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">May 7 18: 55: 56 localhost setroubleshoot: SELinux is preventing httpd (httpd_t) &quot;getattr&quot; to /var/www/html/file1 (samba_share_t) . For complete SELinux messages. run sealert -l de7e30d6-5488-466d-a606-92c9f40d316d</div></pre></td></tr></table></figure></p>
+<p>当然，不同形式的拒绝操作信息被保存到不同的文件中，是根据不同的守护进程耳钉的，下表列出了对应不同的守护进程的日志文件路径：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">守护进程</th>
+<th style="text-align:left">日志文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>audit</code> [on]</td>
+<td style="text-align:left"><strong>/var/log/audit/audit.log</strong></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>audit</code> [off]/<code>rsyslogd</code> [on]</td>
+<td style="text-align:left"><strong>/var/log/messages</strong></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>setroubleshooted</code>/<code>rsyslogd</code>/<code>audit</code> [on]</td>
+<td style="text-align:left"><strong>/var/log/audit/audit.log</strong> 翻译后存入 <strong>/var/log/messages</strong></td>
+</tr>
+</tbody>
+</table>
+<p>至于上述 3 个进程的启动、随系统启动自动启动的设置，请查看 <code>systemd</code> 相关的 <code>systemctl</code> 命令用法。</p>
+<h2 id="5-SELinux-目标策略"><a href="#5-SELinux-目标策略" class="headerlink" title="5. SELinux 目标策略"></a>5. SELinux 目标策略</h2><hr>
+<p>前文讲了 SELinux 基本的工作原理，主要是对 Linux 系统用户、文件以及进程“标记”上 SELinux 定义的<strong>上下文</strong>，然后根据 SELinux 策略对不同的<strong>上下文元素</strong>进行分域、分等级、分角色和分类控制。</p>
+<p>接下来的内容是 SELinux 的第二部分核心内容：<strong>策略</strong> 。SELinux 的策略以配置文件形式存在，并且有不同的策略用于不同的功能。这一部分就以最常用的<strong>目标策略(Targeted Policy)</strong>为例开始讲解 SELinux 中关于 <strong>策略</strong> 的方方面面。</p>
+<h3 id="5-1-Targeted-Policy-原理"><a href="#5-1-Targeted-Policy-原理" class="headerlink" title="5.1 Targeted Policy 原理"></a>5.1 Targeted Policy 原理</h3><p>Targeted Policy 是从 <strong>strict</strong> 示例策略衍生而来的，它们结构与组织几乎相同。不同的是 <strong>strict</strong> 策略更趋向于最大化使用 SELinux 所有特性，为大部分程序提供强大的安全保护；而 Targeted Policy 的目标是隔离高风险程序。Targeted Policy 的好处是，一方面可以向 Linux 系统添加大量的安全保护，同时又尽量少影响现有的用户程序。Targeted Policy 的策略主要集中于面向网络的服务（即那些暴露在外容易遭受黑客攻击的组件与服务），Targeted Policy 是 RHEL/Fedora/CentOS 系统上的标准策略，它在增强安全性和减少对现有应用程序影响之间达到了一个很好地平衡。</p>
+<p>CentOS7 系统中，Targeted Policy 源文件可以在 <code>/etc/selinux/targeted/src/policy/</code> 目录下找到。</p>
+<p>Targeted Policy 中使用了无限制的域类型 <code>unconfined_t</code>，并移除了 <strong>strict</strong> 策略中的 <code>sysadmin_t</code> 和 <code>user_t</code> 域类型，<strong>这也意味着基本的角色结构被移除，所有的用户都以角色 <code>system_r</code> 来运行，几乎所有用户运行的程序都以 <code>unconfined_t</code> 域类型执行</strong>。不过，无限制域和限制域都需要接受可执行和可写的内存检查。默认情况下，运行在无限制域下的<strong>主体</strong>不能分配可写和可执行的内存，这个机制降低了系统遭受缓冲区溢出攻击的风险。这些内存检查可以通过设置SELinux Boolean 变量来关掉，下文详述。</p>
+<h3 id="5-2-限制进程"><a href="#5-2-限制进程" class="headerlink" title="5.2 限制进程"></a>5.2 限制进程</h3><p>几乎所有的网络服务进程都在限制下运行；多数以 <code>root</code> 身份运行的系统进程（比如 <code>passwd</code> 进程）都是受限的。当进程受限时，它只能在自己被限制的<strong>域</strong>内运行，只能操作该<strong>域</strong>内的<strong>资源</strong>（文件、服务等），对其他<strong>域</strong>的资源则无权操作。比如 Web 服务进程 <code>httpd</code> 只能运行在 <code>httpd_t</code> 域内。如果一个受限制的进程被黑客攻击并控制，根据 SELinux 策略的配置，该黑客仅仅能访问这个受限制的域，因此攻击所带来的危害也比传统的 Linux 小很多。</p>
+<p>以下通过一个具体的例子来演示 SELinux 如何将进程限制在自己的域内运行，本例以Apache服务器的进程 <code>httpd</code> 为例，介绍 SELinux 如何阻止 <code>httpd</code> 进程去访问由其他域管理的文件类型的。</p>
+<ol>
+<li><p>运行 <code>sestatus</code> 命令来确认 CentOS7 中 SELinux 试运行的，它运行在 <code>enforcing</code> 模式下（SELinux 有3种运行模式，下文详述），且采用了 Targeted Policy：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ sestatus</div><div class="line">SELinux status:                 enabled</div><div class="line">SELinuxfs mount:                /sys/fs/selinux</div><div class="line">SELinux root directory:         /etc/selinux</div><div class="line">Loaded policy name:             targeted</div><div class="line">Current mode:                   enforcing</div><div class="line">Mode from config file:          enforcing</div><div class="line">Policy MLS status:              enabled</div><div class="line">Policy deny_unknown status:     allowed</div><div class="line">Max kernel policy version:      28</div></pre></td></tr></table></figure>
+</li>
+<li><p>用 <code>root</code> 权限在 <code>httpd</code> 的工作目录下创建一个新的文件 <code>info.php</code>（显示 PHPINFO 的内容）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ cat /var/www/html/info.php </div><div class="line">&lt;?php</div><div class="line"><span class="built_in">echo</span> phpinfo();</div><div class="line">?&gt;</div></pre></td></tr></table></figure>
+</li>
+<li><p>查看该文件的 SELinux 上下文信息：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z /var/www/html/info.php </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/info.php</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p><strong>NOTE</strong>:<br>至此，可以看出，默认情况下，Linux用户是非限制的，因此刚创建的 <code>info.php</code> 文件的 SELinux 上下文中的<strong>用户</strong>标记为 <code>unconfined_u</code> 。然而<strong>RBAC访问控制机制是作用于进程的，不是用于文件，并且，角色对文件来说也没什么太大意义，因此上述结果中的<code>object_u</code>的角色也仅仅是一个用与文件的通用角色</strong>。在 <code>/proc/</code> 目录下，与进程相关的文件可以采用 <code>system_r</code> <strong>角色</strong>。另外，结果中的 <code>httpd_sys_context_t</code> <strong>类型</strong>允许运行在 <code>httpd_t</code> <strong>域</strong> 中的 <code>httpd</code> 进程访问该文件。</p>
+</blockquote>
+<ol>
+<li>访问 <code>info.php</code> 文件，如下图所示：<br><img src="/imgs/1419231057119.png" alt="Alt text"></li>
+</ol>
+<p>可知该文件默认是可以被访问到的。</p>
+<ol>
+<li>使用 <code>chcon</code> 命令对该文件的<strong>类型</strong>重新标识。下面，以 <code>root</code> 用户身份运行如下命令将上述 <code>info.php</code> 文件的<strong>类型</strong>改为可由运行在 <code>samba_share_t</code> <strong>域</strong>内的 Samba 进程访问的文件：<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜ chcon -t samba_share_t info.php</div><div class="line">➜ ls -Z info.php</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:samba_share_t:s0 info.php</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>可以看到该文件的<strong>类型</strong>已被改为 <code>samba_share_t</code>，需要注意的是，这种方法的修改是<strong>临时</strong>的，若要永久修改文件的<strong>类型</strong>，需要用 <code>semanage</code> 命令，下文详述。</p>
+<ol>
+<li>再次访问该 <code>info.php</code> 文件，就会发现被禁止访问了：<br><img src="/imgs/1419231491399.png" alt="Alt text"></li>
+</ol>
+<p>通过上述几个步骤的演示可知，虽然 Linux 系统基本的 <strong>DAC</strong> 机制允许 <code>httpd</code> 进程访问 <code>info.php</code> 文件，然而 SELinux 实现的 <strong>MAC</strong>机制却进制该访问操作。同时， SELinux 还对这些操作详情记录到日志中，以方便系统管理员事后审计与分析。SELinux 审计日志可查看 <code>/var/log/audit/audit.log</code> 文件：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜ cat /var/<span class="built_in">log</span>/audit/audit.log | grep info.php</div><div class="line"><span class="built_in">type</span>=AVC msg=audit(1419231479.505:13570): avc:  denied  &#123; getattr &#125; <span class="keyword">for</span>  pid=18874 comm=<span class="string">"httpd"</span> path=<span class="string">"/var/www/html/info.php"</span> dev=<span class="string">"dm-1"</span> ino=429843 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:samba_share_t:s0 tclass=file</div><div class="line"><span class="built_in">type</span>=AVC msg=audit(1419231479.505:13571): avc:  denied  &#123; getattr &#125; <span class="keyword">for</span>  pid=18874 comm=<span class="string">"httpd"</span> path=<span class="string">"/var/www/html/info.php"</span> dev=<span class="string">"dm-1"</span> ino=429843 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:samba_share_t:s0 tclass=file</div></pre></td></tr></table></figure></p>
+<p>当然，由于该操作涉及 <code>httpd</code> 服务进程，Apache 也有自己的日志文件，因此，也可以查看 Apache 服务器的错误日志文件 <code>/var/log/httpd/error_log</code> :<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ cat /var/<span class="built_in">log</span>/httpd/error_log | grep denied</div><div class="line">[Mon Dec 22 14:57:59.507103 2014] [core:error] [pid 18874] (13)Permission denied: [client 140.254.254.254:57804] AH00035: access to /info.php denied (filesystem path <span class="string">'/var/www/html/info.php'</span>) because search permissions are missing on a component of the path</div></pre></td></tr></table></figure></p>
+<h3 id="5-3-非限制进程"><a href="#5-3-非限制进程" class="headerlink" title="5.3 非限制进程"></a>5.3 非限制进程</h3><p>非限制进程运行在<strong>非限制域</strong>中。比如，<code>init</code> 进程运行在非限制的 <code>initrc_t</code> <strong>域</strong> 中，非限制的 Kernel 进程运行在 <code>kernel_t</code> 域中，非限制的用户运行在 <code>unconfined_t</code> 域中。对于非限制的进程， SELinux 的策略规则仍然适用，然而有关允许进程运行在非限制域的规则几乎允许所有的访问。此时，相当于 SELinux 不起作用，SELinux 架起来的防护只相当于“退化”到传统的 DAC机制。如果一个非限制进程被黑客控制，那么 SELinux 将无法阻止黑客进一步活动（当然 DAC 规则仍然适用， SELinux 只是在 DAC 层次上附加了一层更高强度的防护，而不是替代 DAC 机制）。<br>下面将给出一个具体的例子来演示 Apache HTTP 服务器的 <code>httpd</code> 进程在非限制条件下运行时，是如何访问本应由 Samba 服务器访问的数据的。（下面的例子需要安装 SELinux 相关的 <code>setroubleshoot-server</code>、<code>audit</code>等工具包，同上，SELinux 也需要运行在 <code>enforcing</code> 模式下）。</p>
+<ol>
+<li><p>通过 <code>sestatus</code> 命令检查 SELinux 的运行状态：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ sestatus</div><div class="line">SELinux status:                 enabled</div><div class="line">SELinuxfs mount:                /sys/fs/selinux</div><div class="line">SELinux root directory:         /etc/selinux</div><div class="line">Loaded policy name:             targeted</div><div class="line">Current mode:                   enforcing</div><div class="line">Mode from config file:          enforcing</div><div class="line">Policy MLS status:              enabled</div><div class="line">Policy deny_unknown status:     allowed</div><div class="line">Max kernel policy version:      28</div></pre></td></tr></table></figure>
+</li>
+<li><p>确保上述的 <code>info.php</code> 文件 SELinux 上下文中的<strong>类型</strong>仍然是 <code>samba_share_t</code>：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:samba_share_t:s0 info.php</div></pre></td></tr></table></figure>
+</li>
+<li><p><code>httpd</code> 进程原来运行在<strong>受限制</strong> 的 <code>httpd_t</code> <strong>域</strong> 内，其进程启动文件 <code>/usr/sbin/httpd</code> 的文件类型为 <code>httpd_exec_t</code> :</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z /usr/sbin/httpd</div><div class="line">-rwxr-xr-x. root root system_u:object_r:httpd_exec_t:s0 /usr/sbin/httpd</div><div class="line">➜ </div><div class="line">➜ ps <span class="_">-e</span>Z | grep httpd </div><div class="line">system_u:unconfined_r:httpd_t:s0 23284 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:httpd_t:s0 23286 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:httpd_t:s0 23287 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:httpd_t:s0 23288 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:httpd_t:s0 23289 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:httpd_t:s0 23290 ?  00:00:00 httpd</div></pre></td></tr></table></figure>
+</li>
+<li><p>在将 <code>httpd</code> 进程从 <strong>限制</strong> 改为 <strong>非限制</strong> 之前，需要先终止该进程：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ systemctl stop httpd.service</div></pre></td></tr></table></figure>
+</li>
+<li><p>以 <code>root</code> 用户身份运行以下命令来改变 <code>httpd</code> 进程启动命令文件的 <strong>类型</strong>，以确保其启动之后不运行在原来的 <code>httpd_t</code> <strong>域</strong> 内（将 <code>/usr/sbin/httpd</code> 的 <strong>类型</strong> 改为 <code>unconfined_exec_t</code> ，启动后进程将运行在 <code>unconfind_t</code> <strong>非限制域</strong> 内）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">➜ chcon -t unconfined_exec_t /usr/sbin/httpd</div><div class="line">➜ ls -Z /usr/sbin/httpd </div><div class="line">-rwxr-xr-x. root root system_u:object_r:unconfined_exec_t:s0 /usr/sbin/httpd</div><div class="line">➜ </div><div class="line">➜ systemctl start httpd.service</div><div class="line">➜ ps <span class="_">-e</span>Z | grep httpd </div><div class="line">system_u:unconfined_r:unconfined_t:s0 23284 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:unconfined_t:s0 23286 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:unconfined_t:s0 23287 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:unconfined_t:s0 23288 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:unconfined_t:s0 23289 ?  00:00:00 httpd</div><div class="line">system_u:unconfined_r:unconfined_t:s0 23290 ?  00:00:00 httpd</div></pre></td></tr></table></figure>
+</li>
+<li><p>此时，用运行在 <strong>非限制域</strong> 内的 <code>httpd</code> 进程访问本来只能由 Samba 进程访问的、类型为 <code>samba_share_t</code>的 <code>info.php</code>文件：<br><img src="/imgs/1419236983990.png" alt="Alt text"><br>该结果显示，虽然 <code>httpd</code> 进程原来没有访问标记为 <code>samba_share_t</code> <strong>类型</strong>的文件的权限，然而由于 <code>httpd</code> 现在运行在<strong>非限制域</strong> <code>unconfined_t</code> 中，所以 SELinux 的防护策略没起作用，相当于只有 Linux 系统的 DAC 机制起作用。</p>
+</li>
+<li>测试结束后，可以用 <code>restorecon</code> 命令来恢复文件的<strong>默认类型</strong>，下面依次恢复上述测试中的两个文件的默认类型，并重新启动相关进程：<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">➜ restorecon -v /var/www/html/info.php</div><div class="line">restorecon reset /var/www/html/info.php context unconfined_u:object_r:samba_share_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div><div class="line">➜ ls -Z /var/www/html/info.php </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/info.php</div><div class="line">➜ </div><div class="line">➜ systemctl stop httpd.service</div><div class="line">➜ restorecon -v /usr/sbin/httpd</div><div class="line">restorecon reset /usr/sbin/httpd context system_u:object_r:unconfined_exec_t:s0-&gt;system_u:object_r:httpd_exec_t:s0</div><div class="line">➜ systemctl start httpd.service </div><div class="line">➜ ps <span class="_">-e</span>Z | grep httpd</div><div class="line">system_u:system_r:httpd_t:s0    24479 ?        00:00:00 httpd</div><div class="line">system_u:system_r:httpd_t:s0    24481 ?        00:00:00 httpd</div><div class="line">system_u:system_r:httpd_t:s0    24482 ?        00:00:00 httpd</div><div class="line">system_u:system_r:httpd_t:s0    24483 ?        00:00:00 httpd</div><div class="line">system_u:system_r:httpd_t:s0    24484 ?        00:00:00 httpd</div><div class="line">system_u:system_r:httpd_t:s0    24485 ?        00:00:00 httpd</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>上述步骤演示了 SELinux 如果通过限制进程的运行来保证 Linux 系统安全的，也演示了如果将重要进程改为<strong>非限制进程</strong>的安全隐患，因此，将一个进程的运行状态由<strong>限制</strong>改为<strong>非限制</strong>的时候，应当十分慎重。</p>
+<h4 id="3-4-4-限制和非限制用户"><a href="#3-4-4-限制和非限制用户" class="headerlink" title="3.4.4 限制和非限制用户"></a>3.4.4 限制和非限制用户</h4><p>前文介绍过，每个 Linux 系统用户在 SELinux 中都被映射为一个 SELinux User，这使得 Linux 用户能够继承在 SELinux 实现的 SELinux User 访问控制。用 <code>semanage login -l</code> 查看两种用户间的映射情况：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">➜ semanage login <span class="_">-l</span></div><div class="line"></div><div class="line">登录名                SELinux 用户          MLS/MCS 范围          服务</div><div class="line"></div><div class="line">__default__          unconfined_u         s0<span class="_">-s</span>0:c0.c1023        *</div><div class="line">root                 unconfined_u         s0<span class="_">-s</span>0:c0.c1023        *</div><div class="line">system_u             system_u             s0<span class="_">-s</span>0:c0.c1023        *</div></pre></td></tr></table></figure></p>
+<p>CentOS7 中，Linux 用户被默认映射到 SELinux 的 <code>__default__</code> login 中，从而映射为 <code>unconfined_u</code> <strong>类型</strong>。下面通过一个具体的在 CentOS7 中添加新用户的例子，来掩饰 SELinux 是如何映射 Linux 系统用户的。</p>
+<ol>
+<li><p>以 <code>root</code> 用户身份，运行 <code>useradd</code> 命令新增用户 <code>jiayu</code> ，并用<code>passwd</code> 命令给新用户设置密码：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ useradd jiayu</div><div class="line">➜ passwd jiayu</div></pre></td></tr></table></figure>
+</li>
+<li><p>用<code>su jiayu</code> 命令切换到用户 <code>jiayu</code> 登录 Shell，并用 <code>id -Z</code> 命令查看该用户的 SELinux 上下文：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜ su jiayu</div><div class="line">[jiayu@localhost ~]$ id -Z</div><div class="line">unconfined_u:unconfined_r:unconfined_t:s0<span class="_">-s</span>0:c0.c1023</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>由上面步骤可以看到，当 Linux 添加一个新用户时， SELinux 默认将该<strong>用户</strong>映射为 <code>unconfined_u</code> 类型，<strong>角色</strong> 为 <code>unconfined_r</code>，<strong>域</strong> 为 <code>unconfined_t</code>。</p>
+<p><strong>限制和非限制的用户都需要接受可执行和可写的内存检查，并接受 MCS（Multi-Category Security） 与 MLS（Multi-Level Security）机制的约束</strong>。如果一个非限制用户执行了一个从 <code>unconfined_t</code>域向一个允许的域转变的应用程序，非限制用户仍要接受那个转变到的域的限制。<strong>这个机制就保证了即使一个用户是非限制的，这个应用也是受限的</strong>，因此，软件的漏洞引起的风险仍能得到一定程度的控制。</p>
+<h4 id="3-4-5-策略目录介绍"><a href="#3-4-5-策略目录介绍" class="headerlink" title="3.4.5 策略目录介绍"></a>3.4.5 策略目录介绍</h4><p>SELinux 系统上安装的每个策略在 <code>/etc/selinux/</code> 目录下都有他们自己的目录，子目录的名字对应于策略的名字（如本小节介绍的 <code>Targeted Policy</code>），在 SELinux 配置文件中就要使用这些子目录名字，高速内核在启动时载入什么策略。看下 CentOS7 上 <code>/etc/selinux/</code> 目录中内容：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span>Z /etc/selinux </div><div class="line">-rw-r--r--. root root system_u:object_r:selinux_config_t:s0 config</div><div class="line">-rw-r--r--. root root system_u:object_r:selinux_config_t:s0 semanage.conf</div><div class="line">drwxr-xr-x. root root system_u:object_r:selinux_config_t:s0 targeted</div></pre></td></tr></table></figure></p>
+<p>上面结果显示，CentOS7 系统默认只安装了一个策略：<strong>targeted</strong> 。注意目录和策略子目录的<strong>类型</strong>都是 <code>selinux_config_t</code>。</p>
+<p><code>semodule</code> 和 <code>semanage</code> 命令管理策略的诸多方面，前者管理可载入策略模块的安装、更新和删除，它对可载入策略包起作用，包括一个可载入策略模块和文件上下文消息；后者管理添加、修改和删除用户、角色文件上下文、MLS/MCS转换、端口标记和接口标记。</p>
+<p>每个策略子目录包括的文件，以及文件如何标记必须遵守一个规范，这个规范被许多系统实用程序使用，帮助管理策略。通常，任何设计优良的策略源树都将正确安装策略文件，下面是 <code>targeted</code> 策略目录的列表输出，它就是一个典型：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span>Z /etc/selinux/targeted </div><div class="line">-rw-r--r--. root root system_u:object_r:selinux_config_t:s0 booleans.subs_dist</div><div class="line">drwxr-xr-x. root root system_u:object_r:default_context_t:s0 contexts</div><div class="line">drwxr-xr-x. root root system_u:object_r:selinux_login_config_t:s0 logins</div><div class="line">drwxr-xr-x. root root system_u:object_r:selinux_config_t:s0 modules</div><div class="line">drwxr-xr-x. root root system_u:object_r:semanage_store_t:s0 policy</div><div class="line">-rw-r--r--. root root system_u:object_r:selinux_config_t:s0 setrans.conf</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:selinux_config_t:s0 seusers</div></pre></td></tr></table></figure></p>
+<h2 id="6-SELinux-配置文件及启用-禁用"><a href="#6-SELinux-配置文件及启用-禁用" class="headerlink" title="6. SELinux 配置文件及启用/禁用"></a>6. SELinux 配置文件及启用/禁用</h2><h3 id="6-1-配置文件"><a href="#6-1-配置文件" class="headerlink" title="6.1 配置文件"></a>6.1 配置文件</h3><p>SELinux 的主配置文件是 <code>/etc/selinux/config</code> 文件，它控制系统<strong>下一次启动</strong>过程中载入哪个策略。以及 SELinux 以什么样的模式运行。下面显示了一个 <code>config</code> 文件的内容：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">➜ cat /etc/selinux/config </div><div class="line"></div><div class="line"><span class="comment"># This file controls the state of SELinux on the system.</span></div><div class="line"><span class="comment"># SELINUX= can take one of these three values:</span></div><div class="line"><span class="comment">#     enforcing - SELinux security policy is enforced.</span></div><div class="line"><span class="comment">#     permissive - SELinux prints warnings instead of enforcing.</span></div><div class="line"><span class="comment">#     disabled - No SELinux policy is loaded.</span></div><div class="line">SELINUX=enforcing</div><div class="line"><span class="comment"># SELINUXTYPE= can take one of these two values:</span></div><div class="line"><span class="comment">#     targeted - Targeted processes are protected,</span></div><div class="line"><span class="comment">#     minimum - Modification of targeted policy. Only selected processes are protected. </span></div><div class="line"><span class="comment">#     mls - Multi Level Security protection.</span></div><div class="line">SELINUXTYPE=targeted</div></pre></td></tr></table></figure></p>
+<p>该配置文件主要控制两个方面的设置：SELinux 的 <strong>运行模式</strong> 和 <strong>活动策略</strong>。</p>
+<ul>
+<li><p>SELinux 模式（由上面 <code>SELINUX=enforcing</code> 一行确定）：可以被设置为 <code>enforcing</code>/<code>permissive</code>/<code>disabled</code> 共3种。</p>
+<ul>
+<li><strong><code>enforcing</code></strong> 模式，在该模式下，SELinux 策略背完政治性，这是 SELinux 主要工作模式要使 SELinux 发挥增强系统安全的作用，必须开启此模式；</li>
+<li><strong><code>permissive</code></strong>模式，该模式下，SELinux 的策略规则不会被强制执行，相反，只是<strong>审核并记录</strong>遭受拒绝的消息，除此之外，SELinux 对系统的安全性没有影响，此模式在调试 SELinux 策略时很有帮助；</li>
+<li><strong><code>disabled</code></strong>模式，内核中的 SELinux 机制完全关闭，只有系统启动时策略载入前系统才会处于 <code>disabled</code> 模式，该模式和 <code>permissive</code> 模式有所不同，<code>permissive</code> 模式有 SELinux 内合特征操作，但不会拒绝任何访问，只是进行审核、记录；在 <code>disabled</code> 模式下， SELinux 将不会有任何动作，只有在不希望使用 SELinux 时才使用该模式。<blockquote>
+<p><strong>NOTE</strong>:<br>在 <code>enforcing</code> 模式和 <code>permissive</code> 模式或者 <code>disabled</code> 模式之间切换要小心，当返回 <code>enforcing</code> 模式时，通常会导致文件标记不一致。SELinux 配置文件中的模式设置由 <code>init</code> 进程使用，在它载入初始策略前配置 SELinux 使用。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>SELinux 活动策略：SELinux 配置文件中的 <code>SELINUXTYPE</code> 配置项告诉 <code>init</code> 进程在系统启动过程中载入哪个 SELinux 策略，这里设置的字符串必须匹配用来存储二进制策略版本的目录名，例如，我们使用 <code>targeted</code> 策略为例，因此设置 <code>SELINUXTYPE=targeted</code>。</p>
+</li>
+</ul>
+<h3 id="6-2-启用-禁用-SELinux"><a href="#6-2-启用-禁用-SELinux" class="headerlink" title="6.2 启用/禁用 SELinux"></a>6.2 启用/禁用 SELinux</h3><p>启用/禁用 SELinux步骤很简单，只需修改其配置文件，然后重启系统即可。</p>
+<p><strong>启用 SELinux</strong></p>
+<ol>
+<li><p>编辑配置文件 <code>/etc/selinux/config</code> 。根据前面对配置文件的介绍，编辑确定 SELinux 的运行模式（<strong>enforcing</strong>）和活动策略（<strong>targeted</strong>）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># This file controls the state of SELinux on the system.</span></div><div class="line"><span class="comment"># SELINUX= can take one of these three values:</span></div><div class="line"><span class="comment">#     enforcing - SELinux security policy is enforced.</span></div><div class="line"><span class="comment">#     permissive - SELinux prints warnings instead of enforcing.</span></div><div class="line"><span class="comment">#     disabled - No SELinux policy is loaded.</span></div><div class="line">SELINUX=enforcing</div><div class="line"><span class="comment"># SELINUXTYPE= can take one of these two values:</span></div><div class="line"><span class="comment">#     targeted - Targeted processes are protected,</span></div><div class="line"><span class="comment">#     minimum - Modification of targeted policy. Only selected processes are protected. </span></div><div class="line"><span class="comment">#     mls - Multi Level Security protection.</span></div><div class="line">SELINUXTYPE=targeted</div></pre></td></tr></table></figure>
+</li>
+<li><p>重启系统：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">shutdown -r now</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>禁用 SELinux</strong></p>
+<ol>
+<li><p>编辑配置文件 <code>/etc/selinux/config</code> 。根据前面对配置文件的介绍，编辑 SELinux 的运行模式（<strong>disabled</strong>）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># This file controls the state of SELinux on the system.</span></div><div class="line"><span class="comment"># SELINUX= can take one of these three values:</span></div><div class="line"><span class="comment">#     enforcing - SELinux security policy is enforced.</span></div><div class="line"><span class="comment">#     permissive - SELinux prints warnings instead of enforcing.</span></div><div class="line"><span class="comment">#     disabled - No SELinux policy is loaded.</span></div><div class="line">SELINUX=disabled</div><div class="line"><span class="comment"># SELINUXTYPE= can take one of these two values:</span></div><div class="line"><span class="comment">#     targeted - Targeted processes are protected,</span></div><div class="line"><span class="comment">#     minimum - Modification of targeted policy. Only selected processes are protected. </span></div><div class="line"><span class="comment">#     mls - Multi Level Security protection.</span></div><div class="line">SELINUXTYPE=targeted</div></pre></td></tr></table></figure>
+</li>
+<li><p>重启系统：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">shutdown -r now</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="7-SELinux-布尔值（Booleans）"><a href="#7-SELinux-布尔值（Booleans）" class="headerlink" title="7. SELinux 布尔值（Booleans）"></a>7. SELinux 布尔值（Booleans）</h2><hr>
+<p>SELinux 中的布尔值<strong>允许 SELinux 在运行状态下动态调整部分策略</strong>，而无需重新加载 SELinux 或 重新编译 SELinux 策略，比如 允许某些服务访问 NFS 卷。</p>
+<h3 id="7-1-查看-SELinux-布尔值"><a href="#7-1-查看-SELinux-布尔值" class="headerlink" title="7.1 查看 SELinux 布尔值"></a>7.1 查看 SELinux 布尔值</h3><p>以 <code>root</code> 用户身份，运行 <code>semanage boolean -l</code> 命令，即可查看包括 <strong>关闭(off)</strong> 和 <strong>打开(on)</strong> 状态的所有布尔变量，下面是部分布尔值列表：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">➜ semanage boolean <span class="_">-l</span> | wc <span class="_">-l</span></div><div class="line">282</div><div class="line">➜</div><div class="line">➜ semanage boolean <span class="_">-l</span> | more </div><div class="line">SELinux 布尔值                 状态 默认 描述</div><div class="line"></div><div class="line">ftp_home_dir                   (关,关)  Allow ftp to home dir</div><div class="line">smartmon_3ware                 (关,关)  Allow smartmon to 3ware</div><div class="line">mpd_enable_homedirs            (关,关)  Allow mpd to <span class="built_in">enable</span> homedirs</div><div class="line">xdm_sysadm_login               (关,关)  Allow xdm to sysadm login</div><div class="line">xen_use_nfs                    (关,关)  Allow xen to use nfs</div><div class="line">mozilla_read_content           (关,关)  Allow mozilla to <span class="built_in">read</span> content</div><div class="line">ssh_chroot_rw_homedirs         (关,关)  Allow ssh to chroot rw homedirs</div><div class="line">mount_anyfile                  (开,开)  Allow mount to anyfile</div><div class="line">icecast_use_any_tcp_ports      (关,关)  Allow icecast to use any tcp ports</div><div class="line">openvpn_can_network_connect    (关,关)  Allow openvpn to can network connect</div><div class="line">zoneminder_anon_write          (关,关)  Allow zoneminder to anon write</div><div class="line">telepathy_connect_all_ports    (关,关)  Allow telepathy to connect all ports</div><div class="line">spamassassin_can_network       (关,关)  Allow spamassassin to can network</div><div class="line">gluster_anon_write             (关,关)  Allow gluster to anon write</div><div class="line">deny_ptrace                    (关,关)  Allow deny to ptrace</div><div class="line">selinuxuser_execmod            (开,开)  Allow selinuxuser to execmod</div><div class="line">httpd_can_network_relay        (关,关)  Allow httpd to can network relay</div><div class="line">openvpn_enable_homedirs        (开,开)  Allow openvpn to <span class="built_in">enable</span> homedirs</div><div class="line">gpg_agent_env_file             (关,关)  Allow gpg to agent env file</div></pre></td></tr></table></figure></p>
+<p>上面三列内容的意义：</p>
+<ul>
+<li><strong>SELinux 布尔值</strong> 列出了 SELinux 布尔值的名称；</li>
+<li><strong>状态 默认</strong> 一对数据列出了对应布尔值当前的开关状态与默认状态；</li>
+<li><strong>描述</strong> 列出了布尔值的用途。</li>
+</ul>
+<p>比如第一行的 <code>ftp_home_dir</code> 当前状态和默认状态都是 <strong>关(off)</strong> ，这条策略组织 FTP 服务的守护进程（比如 <code>vsftpd</code>）读/写 用户主目录里的文件。</p>
+<p><code>getsebool -a</code> 命令会简要列出 SELinux 布尔值及其 <strong>当前状态</strong>（默认安字典序） ，而无其他信息，下面是部分结果：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">➜ getsebool <span class="_">-a</span></div><div class="line">abrt_anon_write --&gt; off</div><div class="line">abrt_handle_event --&gt; off</div><div class="line">abrt_upload_watch_anon_write --&gt; on</div><div class="line">antivirus_can_scan_system --&gt; off</div><div class="line">antivirus_use_jit --&gt; off</div><div class="line">auditadm_exec_content --&gt; on</div><div class="line">authlogin_nsswitch_use_ldap --&gt; off</div><div class="line">authlogin_radius --&gt; off</div><div class="line">authlogin_yubikey --&gt; off</div><div class="line">awstats_purge_apache_log_files --&gt; off</div><div class="line">boinc_execmem --&gt; on</div><div class="line">cdrecord_read_content --&gt; off</div><div class="line">cluster_can_network_connect --&gt; off</div><div class="line">cluster_manage_all_files --&gt; off</div><div class="line">cluster_use_execmem --&gt; off</div><div class="line">cobbler_anon_write --&gt; off</div><div class="line">cobbler_can_network_connect --&gt; off</div><div class="line">cobbler_use_cifs --&gt; off</div><div class="line">cobbler_use_nfs --&gt; off</div></pre></td></tr></table></figure></p>
+<p>而运行 <code>getsebool [boolean-name]</code> 命令则会列出<strong>指定布尔值</strong>的当前状态：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ getsebool cvs_read_shadow</div><div class="line">cvs_read_shadow --&gt; off</div></pre></td></tr></table></figure></p>
+<p>上面例子中，还可以用 <strong>空格</strong> 隔开多个布尔值名称，用以一次查看多个布尔值变量的状态：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ getsebool cvs_read_shadow daemons_dump_core ftp_home_dir</div><div class="line">cvs_read_shadow --&gt; off</div><div class="line">daemons_dump_core --&gt; off</div><div class="line">ftp_home_dir --&gt; off</div></pre></td></tr></table></figure></p>
+<h3 id="7-2-配置布尔值"><a href="#7-2-配置布尔值" class="headerlink" title="7.2 配置布尔值"></a>7.2 配置布尔值</h3><p>以 <code>root</code> 用户身份运行 <code>setsebool [boolean_name] [on|off]</code> 命令就可以将指定的布尔值状态修改成 <strong>关闭</strong> 或 <strong>打开</strong>。下面用一个实例演示如何用此命令调整布尔值 <code>httpd_can_network_connect_db</code> 的状态。</p>
+<ol>
+<li><p>布尔值 <code>httpd_can_network_connect_db</code> 用以 允许/阻止 HTTP 服务器访问数据库服务，默认状态为 <code>off</code>：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ getsebool httpd_can_network_connect_db</div><div class="line">httpd_can_network_connect_db --&gt; off</div></pre></td></tr></table></figure>
+</li>
+<li><p>下面的命令可以 <strong>临时允许</strong> HTTP 服务器中的脚本或模块访问数据库服务器：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ setsebool httpd_can_network_connect_db on</div><div class="line">➜</div><div class="line">➜ getsebool httpd_can_network_connect_db   </div><div class="line">httpd_can_network_connect_db --&gt; on</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>即可发现状态修改成功。</p>
+<ol>
+<li>需要注意的是上述修改知识 <strong>临时</strong> 的，重启系统即会失效，若要 <strong>永久</strong> 修改某个布尔值的状态，需要对 <code>setsebool</code> 命令加 <code>-P</code> 参数：<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ setsebool -P httpd_can_network_connect_db on</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="8-SELinux-上下文修改与恢复"><a href="#8-SELinux-上下文修改与恢复" class="headerlink" title="8. SELinux 上下文修改与恢复"></a>8. SELinux 上下文修改与恢复</h2><p>在前文『3.4.2 限制进程』与『3.4.3 非限制进程』两个小节的例子中，曾经使用过 <code>chcon</code> 命令来修改文件的<strong>类型</strong>，用 <code>restorecon</code> 命令来<strong>恢复</strong>文件的<strong>类型</strong>，本小节再多介绍一下其用法。</p>
+<h3 id="8-1-临时修改上下文"><a href="#8-1-临时修改上下文" class="headerlink" title="8.1 临时修改上下文"></a>8.1 临时修改上下文</h3><p><code>chcon</code> 命令可以修改文件的 SELinux 上下文，但其功能不止能修改前文例子中的<strong>类型</strong>，<strong>类型</strong>只是 SELinux 上下文的 4 个主要元素（<code>user:role:type:level</code>）之一，而该命令可以修改任何一个元素。先看其 <strong>Usage</strong>：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line">➜ chcon --help</div><div class="line">用法:  chcon [选项]... 环境 文件...</div><div class="line">　或:  chcon [选项]... [-u 用户] [-r 角色] [<span class="_">-l</span> 范围] [-t 类型] 文件...</div><div class="line">　或:  chcon [选项]... --reference=参考文件 文件...</div><div class="line">Change the SELinux security context of each FILE to CONTEXT.</div><div class="line">With --reference, change the security context of each FILE to that of RFILE.</div><div class="line"></div><div class="line">Mandatory arguments to long options are mandatory <span class="keyword">for</span> short options too.</div><div class="line">      --dereference      affect the referent of each symbolic link (this is</div><div class="line">                         the default), rather than the symbolic link itself</div><div class="line">  -h, --no-dereference   affect symbolic links instead of any referenced file</div><div class="line">  -u, --user=USER        <span class="built_in">set</span> user USER <span class="keyword">in</span> the target security context</div><div class="line">  -r, --role=ROLE        <span class="built_in">set</span> role ROLE <span class="keyword">in</span> the target security context</div><div class="line">  -t, --type=TYPE        <span class="built_in">set</span> <span class="built_in">type</span> TYPE <span class="keyword">in</span> the target security context</div><div class="line">  <span class="_">-l</span>, --range=RANGE      <span class="built_in">set</span> range RANGE <span class="keyword">in</span> the target security context</div><div class="line">      --no-preserve-root  <span class="keyword">do</span> not treat <span class="string">'/'</span> specially (the default)</div><div class="line">      --preserve-root    fail to operate recursively on <span class="string">'/'</span></div><div class="line">      --reference=RFILE  use RFILE<span class="string">'s security context rather than specifying</span></div><div class="line">                         a CONTEXT value</div><div class="line">  -R, --recursive        operate on files and directories recursively</div><div class="line">  -v, --verbose          output a diagnostic for every file processed</div><div class="line"></div><div class="line">The following options modify how a hierarchy is traversed when the -R</div><div class="line">option is also specified.  If more than one is specified, only the final</div><div class="line">one takes effect.</div><div class="line"></div><div class="line">  -H                     if a command line argument is a symbolic link</div><div class="line">                         to a directory, traverse it</div><div class="line">  -L                     traverse every symbolic link to a directory</div><div class="line">                         encountered</div><div class="line">  -P                     do not traverse any symbolic links (default)</div><div class="line"></div><div class="line">      --help        显示此帮助信息并退出</div><div class="line">      --version     显示版本信息并退出</div><div class="line"></div><div class="line">GNU coreutils online help: &lt;http://www.gnu.org/software/coreutils/&gt;</div><div class="line">请向&lt;http://translationproject.org/team/zh_CN.html&gt; 报告chcon 的翻译错误</div><div class="line">要获取完整文档，请运行：info coreutils 'chcon invocation<span class="string">'</span></div></pre></td></tr></table></figure></p>
+<p>有两个要点需要注意：</p>
+<ul>
+<li>根据<code>chcon</code> 命令的 <strong>Usage</strong> ，前文只用 <code>-t</code> 参数修改了指定文件的 <strong>类型</strong>，而还可以用 <code>-u</code> 参数修改文件的 <strong>SELinux user</strong>，用 <code>-r</code> 参数修改指定文件的 <strong>角色</strong>，用 <code>-l</code> 参数修改文件的 <strong>level</strong>。用法雷同，此处不详述；</li>
+<li>除了能修改 <strong>文件</strong> 的上下文，该命令还能修改 <strong>目录</strong> 的上下文信息，参数 <code>-R</code> 可以递归地修改目录下所有文件、子目录及子目录里的文件的上下文信息；</li>
+<li><code>chcon</code> 命令对 文件/目录 上下文的修改是 <strong>临时</strong> 性的，重启系统即会失效，若要 <strong>永久</strong> 修改上下文信息，需要用 <code>semanage</code> 命令，下文详述。</li>
+</ul>
+<p><strong><code>restorecon</code> 命令用法单一，功能也单一，仅仅是恢复 文件/目录 的默认上下文信息。</strong></p>
+<h3 id="8-2-永久修改上下文"><a href="#8-2-永久修改上下文" class="headerlink" title="8.2 永久修改上下文"></a>8.2 永久修改上下文</h3><p>如前文所述，<code>semanage</code> 命令可以 <strong>永久性</strong> 修改 文件/目录 的上下文信息。当 SELinux 使用 Targeted Policy 时，该命令修改的文件的上下文先信息存储在 <code>/etc/selinux/targeted/contexts/files/</code> 目录：</p>
+<ul>
+<li><code>file_contexts</code> 文件存放的是大部分文件的默认上下文信息，包括<code>semanage fcontext</code> 命令更新的文件上下文信息；</li>
+<li><code>file_contexts.local</code> 文件存放的是 <code>file_contexts</code> 文件中不存在的、新增文件/目录的上下文信息。</li>
+</ul>
+<p>有两个工具可以访问上述两个文件：<code>setfiles</code> 和 <code>restorecon</code>。前者在文件系统重新加载的时候重新标记文件上下文；后者在恢复指定文件的上下文信息的时候读取该文件的默认上下文。由此可知，<code>semanage fcontext</code> 命令修改的文件上下文是<strong>永久性</strong>的，无论文件系统是否重新加载。至于某个 Linux 系统用户能够修改指定文件的上下文信息，则由 SELinux 的策略规则控制。</p>
+<p><code>semanage</code> 命令的用法:<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">➜ semanage -h</div><div class="line">usage: semanage [-h]</div><div class="line">                </div><div class="line">                &#123;import,<span class="built_in">export</span>,login,user,port,interface,module,node,fcontext,boolean,permissive,dontaudit&#125;</div><div class="line">                ...</div><div class="line"></div><div class="line">semanage is used to configure certain elements of SELinux policy with-out</div><div class="line">requiring modification to or recompilation from policy source.</div><div class="line"></div><div class="line">positional arguments:</div><div class="line">  &#123;import,<span class="built_in">export</span>,login,user,port,interface,module,node,fcontext,boolean,permissive,dontaudit&#125;</div><div class="line">    import              Output <span class="built_in">local</span> customizations</div><div class="line">    <span class="built_in">export</span>              Output <span class="built_in">local</span> customizations</div><div class="line">    login               Manage login mappings between linux users and SELinux</div><div class="line">                        confined users</div><div class="line">    user                Manage SELinux confined users (Roles and levels <span class="keyword">for</span> an</div><div class="line">                        SELinux user)</div><div class="line">    port                Manage network port <span class="built_in">type</span> definitions</div><div class="line">    interface           Manage network interface <span class="built_in">type</span> definitions</div><div class="line">    module              Manage SELinux policy modules</div><div class="line">    node                Manage network node <span class="built_in">type</span> definitions</div><div class="line">    fcontext            Manage file context mapping definitions</div><div class="line">    boolean             Manage booleans to selectively <span class="built_in">enable</span> functionality</div><div class="line">    permissive          Manage process <span class="built_in">type</span> enforcement mode</div><div class="line">    dontaudit           Disable/Enable dontaudit rules <span class="keyword">in</span> policy</div><div class="line"></div><div class="line">optional arguments:</div><div class="line">  -h, --help            show this <span class="built_in">help</span> message and <span class="built_in">exit</span></div></pre></td></tr></table></figure></p>
+<p>可以看到 <code>semanage</code> 命令下有个 子命令 <code>fcontext</code> ，可以管理文件的上下文，其 <code>Usage</code> 为：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line">➜ semanage fcontext -h</div><div class="line">usage: semanage fcontext [-h] [-n] [-N] [<span class="_">-s</span> STORE] [ --add ( -t TYPE <span class="_">-f</span> FTYPE -r RANGE <span class="_">-s</span> SEUSER | <span class="_">-e</span> EQUAL ) FILE_SPEC ) | --delete ( -t TYPE <span class="_">-f</span> FTYPE | <span class="_">-e</span> EQUAL ) FILE_SPEC ) | --deleteall  | --extract  | --list -C | --modify ( -t TYPE <span class="_">-f</span> FTYPE -r RANGE <span class="_">-s</span> SEUSER | <span class="_">-e</span> EQUAL ) FILE_SPEC ) ]</div><div class="line"></div><div class="line">positional arguments:</div><div class="line">  file_spec             file_spec</div><div class="line"></div><div class="line">optional arguments:</div><div class="line">  -h, --help            show this <span class="built_in">help</span> message and <span class="built_in">exit</span></div><div class="line">  -C, --locallist       List fcontext <span class="built_in">local</span> customizations</div><div class="line">  -n, --noheading       Do not <span class="built_in">print</span> heading when listing fcontext object</div><div class="line">                        types</div><div class="line">  -N, --noreload        Do not reload policy after commit</div><div class="line">  -S STORE, --store STORE</div><div class="line">                        Select an alternate SELinux Policy Store to manage</div><div class="line">  <span class="_">-a</span>, --add             Add a record of the fcontext object <span class="built_in">type</span></div><div class="line">  <span class="_">-d</span>, --delete          Delete a record of the fcontext object <span class="built_in">type</span></div><div class="line">  -m, --modify          Modify a record of the fcontext object <span class="built_in">type</span></div><div class="line">  <span class="_">-l</span>, --list            List records of the fcontext object <span class="built_in">type</span></div><div class="line">  -E, --extract         Extract customizable commands, <span class="keyword">for</span> use within a</div><div class="line">                        transaction</div><div class="line">  -D, --deleteall       Remove all fcontext objects <span class="built_in">local</span> customizations</div><div class="line">  <span class="_">-e</span> EQUAL, --equal EQUAL</div><div class="line">                        Substitute target path with sourcepath when generating</div><div class="line">                        default label. This is used with fcontext. Requires</div><div class="line">                        <span class="built_in">source</span> and target path arguments. The context labeling</div><div class="line">                        <span class="keyword">for</span> the target subtree is made equivalent to that</div><div class="line">                        defined <span class="keyword">for</span> the source.</div><div class="line">  <span class="_">-f</span> &#123;a,f,d,c,b,s,l,p&#125;, --ftype &#123;a,f,d,c,b,s,l,p&#125;</div><div class="line">                        File Type. This is used with fcontext. Requires a file</div><div class="line">                        <span class="built_in">type</span> as shown <span class="keyword">in</span> the mode field by ls, e.g. use <span class="_">-d</span> to</div><div class="line">                        match only directories or -- to match only regular</div><div class="line">                        files. The following file <span class="built_in">type</span> options can be passed:</div><div class="line">                        -- (regular file),<span class="_">-d</span> (directory),-c (character</div><div class="line">                        device), -b (block device),<span class="_">-s</span> (socket),<span class="_">-l</span> (symbolic</div><div class="line">                        link),-p (named pipe) If you <span class="keyword">do</span> not specify a file</div><div class="line">                        <span class="built_in">type</span>, the file <span class="built_in">type</span> will default to <span class="string">"all files"</span>.</div><div class="line">  <span class="_">-s</span> SEUSER, --seuser SEUSER</div><div class="line">                        SELinux user name</div><div class="line">  -t TYPE, --type TYPE  SELinux Type <span class="keyword">for</span> the object</div><div class="line">  -r RANGE, --range RANGE</div><div class="line">                        MLS/MCS Security Range (MLS/MCS Systems only) SELinux</div><div class="line">                        Range <span class="keyword">for</span> SELinux login mapping defaults to the</div><div class="line">                        SELinux user record range.</div></pre></td></tr></table></figure></p>
+<p>用 <code>semanage fcontext</code> 命令永久性修改 文件/目录 的上下文，需要两个步骤：</p>
+<ol>
+<li><p>设定指定 文件/目录 的默认上下文（注意文件/目录的路径要用完整路径）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">semanage fcontext <span class="_">-a</span> [options] [file|dir]</div></pre></td></tr></table></figure>
+</li>
+<li><p>用 <code>restorecon</code> 命令还原该文件/目录的上下文：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">restorecon -v [file|dir]</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<hr>
+<p><strong>永久修改文件/目录上下文</strong></p>
+<p>下面实例演示一下如何永久性修改一个文件/目录的上下文信息。</p>
+<ol>
+<li>以 <code>root</code> 用户身份在 <code>/etc/</code> 目录下新建一个文件 <code>file</code>（按照 SELinux 策略规则，<code>/etc/</code> 目录下的新建文件默认类型为 <code>etc_t</code>）:<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">/etc ➜ touch file1</div><div class="line">/etc ➜ ls -Z file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:etc_t:s0   file1</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p><strong>NOTE</strong>:<br>此处的 <code>file1</code>，也可是新建一个目录，查看指定目录的 SELinux 上下文信息可用命令：<code>ls -dZ [dir]</code></p>
+</blockquote>
+<ol>
+<li>以 <code>root</code> 用户身份运行以下命令将 <code>file1</code> 的 <strong>类型</strong> 修改为 <code>samba_share_t</code> :<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜ semanage fcontext <span class="_">-a</span> -t samba_share_t /etc/file1</div><div class="line">➜ ls -Z /etc/file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:etc_t:s0   /etc/file1</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>上述 <code>semanage fcontext</code> 命令往 <code>/etc/selinux/targeted/contexts/files/file_contexts. local</code> 文件中新增了一条规则：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜ tail /etc/selinux/targeted/contexts/files/file_contexts.local </div><div class="line"><span class="comment"># This file is auto-generated by libsemanage</span></div><div class="line"><span class="comment"># Do not edit directly.</span></div><div class="line">/etc/file1    system_u:object_r:samba_share_t:s0</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>选项 <code>-a</code> 代表要 <strong>新增</strong> 一条规则到前文所述的 <code>file_contexts.local</code> 文件；选项 <code>-t</code> 代表要修改的上下文元素为 <strong>类型</strong>。可以看到 <code>semanage fcontext</code> 命令执行后，<code>/etc/file1</code> 文件新的上下文并<strong>没有立即生效</strong>。</p>
+</blockquote>
+<ol>
+<li>用 <code>restorecon</code> 命令恢复 <code>/etc/file1</code> 的上下文。因为前面的操作为该文件在 <code>file_contexts.local</code> 中新增了一条记录， <code>restorecon</code> 命令会从 <code>file_contexts.local</code> 中读取这一条规则为 <code>/etc/file1</code> 恢复上下文，进而将 <code>/etc/file1</code> 的<strong>类型</strong>改为 <code>samba_share_t</code> ：<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ restorecon -v /etc/file1 </div><div class="line">restorecon reset /etc/file1 context unconfined_u:object_r:etc_t:s0-&gt;unconfined_u:object_r:samba_share_t:s0</div><div class="line">➜ </div><div class="line">➜ ls -Z /etc/file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:samba_share_t:s0 /etc/file1</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<hr>
+<p><strong>一次性永久修改目录和其中文件的上下文</strong></p>
+<p><code>semanage fcontext</code> 命令还支持通过匹配目录下所有文件/目录的正则表达式，来批量永久修改指定目录及其下属所有文件/目录的 SELinux 上下文。下面实例演示如何新建一个目录，将它以及它内部所有的文件/子目录<strong>类型</strong>修改为可供 Apache HTTP 服务器访问的 <code>httpd_sys_content_t</code>（如果需要将 HTTP 服务器主目录改到别处，此例会非常有用）。</p>
+<ol>
+<li><p>以 <code>root</code> 用户身份新建一个目录 <code>/web/</code> ，并在其中新建三个文件 <code>file1</code>/<code>file2</code>/<code>file3</code> ，该目录和其中的文件默认 <strong>类型</strong> 将会是 <code>default_t</code> ：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">➜ mkdir /web</div><div class="line">➜ touch /web/file&#123;1,2,3&#125;</div><div class="line">➜ ls <span class="_">-d</span>Z /web</div><div class="line">drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /web</div><div class="line">➜ ls -Z /web</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file3</div></pre></td></tr></table></figure>
+</li>
+<li><p>以 <code>root</code> 用户身份用 <code>semanage fcontext</code> 命令将 <code>/web</code> 目录及其中的 3 个文件的 <strong>类型</strong> 改为 <code>httpd_sys_content_t</code> （同前面的例子，不会马上生效）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">➜ semanage fcontext <span class="_">-a</span> -t httpd_sys_content_t <span class="string">"/web(/.*)?"</span></div><div class="line">➜ ls <span class="_">-d</span>Z /web</div><div class="line">drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /web</div><div class="line">➜ ls -Z /web</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file3</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>同前面的例子，<code>semanage fcontext</code> 命令往 <code>/etc/selinux/targeted/contexts/files/file_contexts. local</code> 文件中新增了一条规则：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">/web(/.*)?    system_u:object_r:httpd_sys_content_t:s0</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>上述例子中 <code>semanage fcontext</code> 命令里的正则表达式 <code>&quot;/web(/.*)?&quot;</code> 表示 <code>/web/</code> 目录自己机器中的所有 文件/子目录。</p>
+</blockquote>
+<ol>
+<li>同样，用 <code>restorecon</code> 命令恢复 <code>/web</code> 目录及其中所有文件/子目录的上下文：<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ restorecon -Rv /web</div><div class="line">restorecon reset /web context unconfined_u:object_r:default_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div><div class="line">restorecon reset /web/file1 context unconfined_u:object_r:default_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div><div class="line">restorecon reset /web/file2 context unconfined_u:object_r:default_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div><div class="line">restorecon reset /web/file3 context unconfined_u:object_r:default_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p><strong>NOTE</strong>:<br>按照 SELinux 的默认策略，目录中新增文件的 SELinux 上下文将继承自目录的 SELinux 上下文，所以，经过上面的操作，如果 <code>/web/</code> 目录下再有新增文件/子目录，它们的 SELinux 上下文的 <strong>类型</strong> 将会是 <code>httpd_sys_content_t</code> 。</p>
+</blockquote>
+<hr>
+<p><strong>删除新增 SELinux 策略规则</strong></p>
+<p>通过 <code>semanage fcontext -a</code> 命令新增的 SELinux 上下文规则，可以通过 <code>semanage fcontext -d [file|dir]</code> 命令来删除（可以参考<code>semanage fcontext</code> 的 <code>Usage</code> ）。通常分两个步骤，先删除，后 <code>restorecon</code>。如果删除时遇到正则表达式（比如上面的 <code>/web(/.*)?</code>），一定要用半角双引号将正则括起来，例如：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ semanage fcontext <span class="_">-d</span> <span class="string">"/web(/.*)?"</span></div></pre></td></tr></table></figure></p>
+<p>选项 <code>-d</code> 后面的 <code>[file|dir]</code> 是 <code>semanage fcontext -a [options] [file|dir]</code> 命令添加上下文规则是指定的 文件/目录 ，也是 <code>/etc/selinux/targeted/contexts/files/file_contexts. local</code> 文件中的 第一列，如下面的 <code>/etc/file</code> 和 <code>/web(/.*)?</code> :<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ tail /etc/selinux/targeted/contexts/files/file_contexts.local</div><div class="line"><span class="comment"># This file is auto-generated by libsemanage</span></div><div class="line"><span class="comment"># Do not edit directly.</span></div><div class="line">/etc/file1    system_u:object_r:samba_share_t:s0</div><div class="line">/web(/.*)?    system_u:object_r:httpd_sys_content_t:s0</div></pre></td></tr></table></figure></p>
+<p>比如我们要删除上面对 <code>/web</code> 目录及其里面文件/子目录的新增上下文类型，只需按照下面的步骤来操作：</p>
+<ol>
+<li><p>删除记录（不会立即生效）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ semanage fcontext <span class="_">-d</span> <span class="string">"/web(/.*)?"</span></div><div class="line">➜ cat /etc/selinux/targeted/contexts/files/file_contexts.local</div><div class="line"><span class="comment"># This file is auto-generated by libsemanage</span></div><div class="line"><span class="comment"># Do not edit directly.</span></div><div class="line">➜ ls <span class="_">-d</span>Z /web</div><div class="line">drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /web</div><div class="line">➜ ls -Z /web</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div></pre></td></tr></table></figure>
+</li>
+<li><p>恢复默认上下文：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">➜ restorecon -Rv /web     </div><div class="line">restorecon reset /web context unconfined_u:object_r:httpd_sys_content_t:s0-&gt;unconfined_u:object_r:default_t:s0</div><div class="line">restorecon reset /web/file1 context unconfined_u:object_r:httpd_sys_content_t:s0-&gt;unconfined_u:object_r:default_t:s0</div><div class="line">restorecon reset /web/file2 context unconfined_u:object_r:httpd_sys_content_t:s0-&gt;unconfined_u:object_r:default_t:s0</div><div class="line">restorecon reset /web/file3 context unconfined_u:object_r:httpd_sys_content_t:s0-&gt;unconfined_u:object_r:default_t:s0</div><div class="line">➜ ls <span class="_">-d</span>Z /web</div><div class="line">drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /web</div><div class="line">➜ ls -Z /web </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file3</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>可以看到 <code>/web</code> 目录及其下属所有文件的 SELinux 上下文<strong>类型</strong>都恢复到初始的<code>default_t</code>了。</p>
+<h2 id="9-SELinux-上下文保持"><a href="#9-SELinux-上下文保持" class="headerlink" title="9. SELinux 上下文保持"></a>9. SELinux 上下文保持</h2><hr>
+<p>本小节解释 文件/目录 在 拷贝/移动/归档打包 过程中其 SELinux 上下文发生的变化，以及如何在 拷贝 和 归档打包 过程中保留原 SELinux 上下文。</p>
+<h3 id="9-1-拷贝-文件-目录"><a href="#9-1-拷贝-文件-目录" class="headerlink" title="9.1 拷贝 文件/目录"></a>9.1 拷贝 文件/目录</h3><p>默认情况下，将一个文件/目录 拷贝到另一个地方（假设目的目录的 SELinux上下文不同于文件原来的上下文），最后在新位置的文件 SELinux 上下文将继承目的目录的上下文，示例如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">➜ <span class="built_in">pwd</span></div><div class="line">/root</div><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 test.txt</div><div class="line">➜ cp -v test.txt /etc/</div><div class="line"><span class="string">"test.txt"</span> -&gt; <span class="string">"/etc/test.txt"</span>➜ ls -Z /etc/test.txt </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:etc_t:s0   /etc/test.txt</div></pre></td></tr></table></figure></p>
+<p>由此可知，原来在 <code>/root</code> 目录下 SELinux 上下文类型为 <code>admin_home_t</code> 的 <code>test.txt</code> 文件，用 <code>cp</code> 命令直接拷贝到 <code>/etc/</code> 目录，其 SELinux 上下文 <strong>类型</strong> 就会变成 <code>/etc/</code> 目录中默认的类型 <code>etc_t</code> （假设 <code>/etc/test.txt</code> 文件原来不存在）。</p>
+<p>上面的例子中，如果 <code>/etc/test.txt</code> 文件原本就存在，那么直接用 <code>cp</code> 命令将执行 <strong>覆盖拷贝</strong> ，但新的 <code>/etc/test.txt</code> SELinux 上下文将 <strong>不变</strong>（既不继承 <code>/etc/</code> 默认的上下文类型，也不会被原来 <code>/root/test.txt</code> 的 SELinux 上下文类型所覆盖）。</p>
+<hr>
+<p><strong>保留原上下文</strong></p>
+<p>若要拷贝过程中，保留源文件的 SELinux 上下文类型，则需要对 <code>cp</code> 命令加上选项 <code>--preserve=context</code> ，示例如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">➜ rm -v /etc/test.txt </div><div class="line">已删除<span class="string">"/etc/test.txt"</span></div><div class="line">➜ cp -v --preserve=context test.txt /etc/</div><div class="line"><span class="string">"test.txt"</span> -&gt; <span class="string">"/etc/test.txt"</span></div><div class="line">➜ ls -Z /etc/test.txt </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /etc/test.txt</div></pre></td></tr></table></figure></p>
+<p>由此例可知，对 <code>cp</code> 命令加上选项 <code>--preserve=context</code> 后，将文件  <code>test.txt</code> 从 <code>/root</code> 目录拷贝到 <code>/etc/</code> 目录，其 SELinux 上下文 <strong>类型</strong> 依然是 <code>admin_home_t</code> 。</p>
+<hr>
+<p><strong>拷贝过程中更改上下文</strong></p>
+<p>还可以在拷贝文件过程中更改 SELinux 上下文，新生成的文件上下文将会既不同于源文件的上下文，也不同于目的目录的默认上下文。只要对 <code>cp</code> 命令加上选项 <code>--context=[user:role:type:level]</code> 即可，示例如下 ：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">➜ rm -v /etc/test.txt</div><div class="line">已删除<span class="string">"/etc/test.txt"</span></div><div class="line">➜ cp -v --context=system_u:object_r:samba_share_t:s0 test.txt /etc/</div><div class="line"><span class="string">"test.txt"</span> -&gt; <span class="string">"/etc/test.txt"</span></div><div class="line">➜ ls -Z /etc/test.txt </div><div class="line">-rw-r--r--. root root system_u:object_r:samba_share_t:s0 /etc/test.txt</div></pre></td></tr></table></figure></p>
+<p>由此例可知，在拷贝过程中对 <code>cp</code> 命令加上选项 <code>--context=system_u:object_r:samba_share_t:s0</code> 后，新生成的 <code>/etc/test.txt</code> 文件的 SELinux 上下文就变成了 <code>system_u:object_r:samba_share_t:s0</code> 。</p>
+<h3 id="9-2-移动-文件-目录"><a href="#9-2-移动-文件-目录" class="headerlink" title="9.2 移动 文件/目录"></a>9.2 移动 文件/目录</h3><p>Linux 中的 <code>mv</code> 命令来移动 文件/目录，会将 源文件/源目录 的 SELinux 上下文也一并附带移动，到目的地址新生成的 文件/目录 将保持与 源文件/源目录 相同的 SELinux 上下文。所以，在启用 SELinux 的 Linux 系统中，移动操作需要额外注意 SELinux 上下文信息。此处无示例演示。</p>
+<h3 id="9-3-使用-tar-归档打包-文件-目录"><a href="#9-3-使用-tar-归档打包-文件-目录" class="headerlink" title="9.3 使用 tar 归档打包 文件/目录"></a>9.3 使用 tar 归档打包 文件/目录</h3><p>默认情况下，使用 <code>tar</code> 命令归档打包 文件/目录 时，是不附带 SELinux 上下文信息的，将一个 tar 包解开到新目录，其中的文件将会继承新目录的 SELinux 上下文，示例如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">➜ <span class="built_in">cd</span> /var/www/html</div><div class="line">➜ touch file&#123;1,2,3&#125;</div><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div><div class="line">➜ tar cf test.tar file&#123;1,2,3&#125;</div><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 test.tar</div><div class="line">➜ cp -v test.tar ~/</div><div class="line"><span class="string">"test.tar"</span> -&gt; <span class="string">"/root/test.tar"</span></div><div class="line">➜ <span class="built_in">cd</span> ~ </div><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 test.tar</div><div class="line">➜ tar -xf test.tar</div><div class="line">➜ ls -Z</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 file3</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 test.tar</div></pre></td></tr></table></figure></p>
+<p>上面的例子可知，在 <code>/var/www/html</code> 目录新建的 3 个 SELinux 上下文类型为 <code>httpd_sys_content_t</code> 的文件，进过 <code>tar</code> 命令直接打包，然后拷贝到 <code>/root</code> 目录再解压，其中的 3 根文件 SELinux 上下文 <strong>类型</strong> 却变成了 <code>admin_home_t</code> 。</p>
+<p><strong>有没有办法在打包归档过程中保留原始文件的 SELinux 上下文信息？</strong></p>
+<p>其实，<code>tar</code> 命令提供了一个选项 <code>--selinux</code> ，使用 <code>tar --selinux -cf test. tar [files]</code> 的形式，即可保留源文件的 SELinux 上下文信息，此处不做演示。</p>
+<h2 id="10-检查默认上下文"><a href="#10-检查默认上下文" class="headerlink" title="10. 检查默认上下文"></a>10. 检查默认上下文</h2><hr>
+<p>用 <code>matchpathcon</code> 工具可以检查指定的 文件/目录 的 SELinux 上下文是否“正确”，该工具会索引系统默认的 SELinux 策略，并以此检查指定的 文件/目录 的 SELinux 上下文是否与默认策略吻合。下面示例演示如何使用该工具。<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">➜ ls -Z /var/www/html </div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div><div class="line">➜ chcon -t samba_share_t /var/www/html/file1</div><div class="line">➜ ls -Z /var/www/html</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:samba_share_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div><div class="line">➜ matchpathcon -V /var/www/html/*</div><div class="line">/var/www/html/file1 has context unconfined_u:object_r:samba_share_t:s0, should be system_u:object_r:httpd_sys_content_t:s0</div><div class="line">/var/www/html/file2 verified.</div><div class="line">/var/www/html/file3 verified.</div><div class="line">➜ restorecon -v /var/www/html/file1</div><div class="line">restorecon reset /var/www/html/file1 context unconfined_u:object_r:samba_share_t:s0-&gt;unconfined_u:object_r:httpd_sys_content_t:s0</div><div class="line">➜ ls -Z /var/www/html</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file1</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file2</div><div class="line">-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 file3</div></pre></td></tr></table></figure></p>
+<p>在上面例子中，第 2 条命令用 <code>chcon</code> 将 <code>/var/www/html/file1</code> 的 SELinux 上下文 <strong>类型</strong> 改为 <code>samba_share_t</code>，然后第 4 条命令用 <code>matchpathcon</code> 检测到该文件的 SELinux 上下文应为 <code>system_u:object_r:httpd_sys_content_t:s0</code> ，随后用 <code>restorecon</code> 命令就会将该文件的 SELinux 上下文“修正”。</p>
+<h2 id="11-总结"><a href="#11-总结" class="headerlink" title="11. 总结"></a>11. 总结</h2><p>本系列 2 篇文档从最基本的安全模型开始，把 Linux 系统中实现的权限管理与访问控制从<code>UGO+RWX</code>机制到 ACL 机制到最后的 SELinux，详细介绍一遍。</p>
+<p>由上面的内容可知，这些 Linux 系统中实现的安全机制与策略，是依次增强的，对权限和访问的管理、控制粒度是依次减小的，所以能得到更灵活也更安全的配置，当然，也更复杂繁琐。</p>
+<p>机制本身的安全性毋庸置疑，只是如果在使用相关工具对这些安全机制进行安全配置时，如果掌握不好配置方法与注意事项，那么配置出来的系统可能会有安全隐患，例如不恰当地应用 <code>setuid</code> 位。</p>
+<p>最后的 SELinux 部分，其实只介绍了其安全模型设计原理、SELinux 中的元素和工作原理、基础的管理与配置，这些都是使用 SELinux 的基础知识，掌握这些基础知识，才能对 SELinux 进行<strong>基础</strong>地使用。而 SELinux 的一些高级用法，比如自定义编写、编译策略规则，本文档并未介绍。</p>
+<h2 id="12-参考资料"><a href="#12-参考资料" class="headerlink" title="12. 参考资料"></a>12. 参考资料</h2><ol>
+<li><a href="https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/SELinux_Users_and_Administrators_Guide/part_I-SELinux.html" target="_blank" rel="external">SELinux Manual For RHEL7</a></li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/Linux-authority-and-access-control-2.html';
+          this.page.identifier = 'posts_bak/Linux-authority-and-access-control-2.html';
+          this.page.title = 'Linux 权限管理与访问控制详解(2)——MAC 和 SELinux';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

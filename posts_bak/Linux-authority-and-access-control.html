@@ -1,0 +1,820 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content=",,," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。另，本文中所有例子均是在 CentOS7 中运行的，不同系统运行结果可能有所不同。
+
+1. 安全模型概述操作系统的权限管理与访问控制机制，遵从一定的 安全模型 或者 安全机制 ，常见的安全模型有 BLP安全模">
+<meta name="keywords">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 权限管理与访问控制详解(1)——基本概念和 DAC">
+<meta property="og:url" content="http://jiayu0x.com/posts_bak/Linux-authority-and-access-control.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。另，本文中所有例子均是在 CentOS7 中运行的，不同系统运行结果可能有所不同。
+
+1. 安全模型概述操作系统的权限管理与访问控制机制，遵从一定的 安全模型 或者 安全机制 ，常见的安全模型有 BLP安全模">
+<meta property="og:image" content="http://jiayu0x.com/imgs/1418802142487.png">
+<meta property="og:updated_time" content="2017-04-25T14:02:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux 权限管理与访问控制详解(1)——基本概念和 DAC">
+<meta name="twitter:description" content="Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。另，本文中所有例子均是在 CentOS7 中运行的，不同系统运行结果可能有所不同。
+
+1. 安全模型概述操作系统的权限管理与访问控制机制，遵从一定的 安全模型 或者 安全机制 ，常见的安全模型有 BLP安全模">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/1418802142487.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/posts_bak/Linux-authority-and-access-control.html"/>
+
+
+
+
+
+  <title>
+  
+
+  
+    Linux 权限管理与访问控制详解(1)——基本概念和 DAC | JiaYu's Blog
+  
+</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left  ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+  <header class="post-header">
+
+	<h1 class="post-title" itemprop="name headline">Linux 权限管理与访问控制详解(1)——基本概念和 DAC</h1>
+
+
+
+</header>
+
+    
+    
+      <blockquote>
+<p>Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。<br>另，<strong>本文中所有例子均是在 <code>CentOS7</code> 中运行的，不同系统运行结果可能有所不同。</strong></p>
+</blockquote>
+<h2 id="1-安全模型概述"><a href="#1-安全模型概述" class="headerlink" title="1. 安全模型概述"></a>1. 安全模型概述</h2><p>操作系统的权限管理与访问控制机制，遵从一定的 <strong>安全模型</strong> 或者 <strong>安全机制</strong> ，常见的安全模型有 <strong>BLP安全模型</strong>， <strong>RBAC安全模型</strong> 和 <strong>多级别安全机制</strong> 。Linux 系统也不例外，其基础的权限管理与访问控制机制和加强的 ACL 机制、SELinux，都对这些安全模型与安全机制有所实现。</p>
+<h3 id="1-1-BLP安全模型"><a href="#1-1-BLP安全模型" class="headerlink" title="1.1 BLP安全模型"></a>1.1 BLP安全模型</h3><hr>
+<p><strong>BLP</strong>(Bell &amp; Lapadula)安全模型是由David Bell 和 Leonard La Padula 在1973年模拟军事安全策略创建的计算机系统安全模型, 74年改进, 76年首次实现于 <strong>Multics</strong> 操作系统。该安全模型是一个状态机模型，有一系列错综复杂的数学证明来保证其安全性的结果；它是定义多级安全性的基础，被视作<strong>基本安全公理</strong>。</p>
+<a id="more"></a>
+<p>该模型将信息系统中的实体分为两部分：<strong>主体</strong>(Subject)和<strong>客体</strong>(Object)。实时操作的成为<strong>主体</strong>，如<strong>用户</strong>和<strong>进程</strong>；被操作的对象则成为<strong>客体</strong>，如<strong>文件</strong>和<strong>数据库</strong>等。对主体和客体来说，有两种最重要的安全控制方法：<strong>自主存取控制</strong>和<strong>强制存取控制</strong>。</p>
+<ul>
+<li><strong>DAC</strong>(Discretionary Access Control,自主访问控制)。DAC 机制就是指对象的拥有者可以任意修改或授予此对象相应的权限。从主体和客体的角度来说，就是主体对其拥有的客体，有权决定自己和其他主体对该客体应具有怎样的访问权限。传统的Linux、Windows都采用这种机制，比如某用户对于其所有的文件或目录，可以随意设定<strong>UGO</strong>(即：本用户、本用户组、其他用户)对该文件的<strong>RWX</strong>(即：读、写、执行)权限，下文详解；</li>
+<li><strong>MAC</strong>(Mandatory Access Control，强制访问控制)。MAC机制是指系统不再允许对象的拥有者随意修改或授予此对象相应的权限，而是通过强制的方式为每个对象一一授予权限，SELinux即采用这种机制。该机制主要通过<strong>安全级</strong>来实现，下文详解。</li>
+</ul>
+<h3 id="1-2-RBAC安全模型"><a href="#1-2-RBAC安全模型" class="headerlink" title="1.2 RBAC安全模型"></a>1.2 RBAC安全模型</h3><hr>
+<p><strong>RBAC</strong>(Role Based Access Control，基于角色的访问控制)模型是一种强制访问控制机制。在RBAC中，权限与角色相关联，用户通过成为适当角色的成员而得到这些角色的权限。这就极大地简化了权限的管理。在一个组织中，角色是为了完成各种工作而创造，用户则依据它的责任和资格来被指派相应的角色，用户可以很容易地从一个角色被指派到另一个角色。角色可依新的需求和系统的合并而赋予新的权限，而权限也可根据需要而从某角色中回收。角色与权限的关系可以建立起来以囊括更广泛的客观情况。</p>
+<p>RBAC 支持三个著名的安全原则：最小权限原则，责任分离原则和数据抽象原则</p>
+<ul>
+<li>最小权限原则之所以被RBAC所支持，是因为RBAC可以将其角色配置成其完成任务所需要的最小的权限集；</li>
+<li>责任分离原则可以通过调用相互独立的角色来共同完成一个任务，比如要求一个计帐员和财务管理员一起参与过帐；</li>
+<li>数据抽象可以通过权限的抽象来体现，如财务操作用借款、存款等抽象权限，而不用操作系统提供的典型的读、写、执行权限。然而这些原则必须通过RBAC各部件的详细配置才能得以体现。</li>
+</ul>
+<p>SELinux 部分实现了RBAC的机制，SELinux 上下文中的 <strong>Role</strong> 元素，即是基于 RBAC 设计的，下文详解。</p>
+<h3 id="1-3-多级别安全机制"><a href="#1-3-多级别安全机制" class="headerlink" title="1.3 多级别安全机制"></a>1.3 多级别安全机制</h3><hr>
+<p><strong>MLS</strong>(Multi-Level Security，多级别安全)机制给用户提供了可以用不同等级的安全角色来访问系统。例如，MLS安全分级从低到高为<strong>Confidential</strong>、<strong>Secret</strong>、<strong>TOP Secret</strong> 和 <strong>Individuals</strong>，不同级别可以访问不同分类的信息，低级别无权访问高级别信息。</p>
+<p>SELinux 中，客体上的安全级别称为 <strong>分级</strong>(Classifications)，主体上的安全级别称为 <strong>Clearances</strong>。SELinux上下文元素中的 <strong>安全级别</strong>，即是基于此安全机制而设计。SELinux 中的对象上下文，必须至少有一个安全级别(它由单个敏感度和0个或多个范围组成)，但可以包括两个安全级别，这两个安全级别分别叫做 <strong>低</strong>(或<strong>进程趋势</strong>，即安全级别下限) 或 <strong>高</strong>(或<strong>进程间隙</strong>，即安全级别上限)，如果<strong>高</strong>安全级别丢失，它会被认为与低安全级别的值相同(最常见的情况)。实际上，对于客体和进程而言，低和高安全级别通常都是相同的，通常用于进程的级别范围被认为是受信任的主体（即进程信任降级信息）或多层客体，如一个目录，它又包括了不同安全级别的客体。</p>
+<h2 id="2-自主访问控制"><a href="#2-自主访问控制" class="headerlink" title="2. 自主访问控制"></a>2. 自主访问控制</h2><p>Linux中实现的<strong>自主访问控制</strong>(DAC)机制主要包括基础的 <code>UGO+RWX</code> 和加强的 <code>ACL(Access Control List)</code>。</p>
+<h3 id="2-1-UGO-RWX-相关"><a href="#2-1-UGO-RWX-相关" class="headerlink" title="2.1 UGO+RWX 相关"></a>2.1 UGO+RWX 相关</h3><hr>
+<p>该机制的思想是通过对用户(组)及其所属进程对文件和目录的访问赋予一定的权限，来实现基本的权限管理与访问控制。</p>
+<p>Linux为每个文件都分配了一个文件所有者，称为文件主，并赋予文件主惟一的注册名。对文件的控制取决于文件主或超级用户（root）。文件或目录的创建者对创建的文件或目录拥有特别使用权。</p>
+<p>文件的所有关系是可以改变的，可以将文件或目录的所有权转让给其它用户，但只有文件主或root用户才有权改变文件的所有关系。文件的所有权的标志是用户ID(UID)，这正是DAC机制的核心概念。</p>
+<h4 id="2-1-1-UGO-RWX表示"><a href="#2-1-1-UGO-RWX表示" class="headerlink" title="2.1.1 UGO+RWX表示"></a>2.1.1 UGO+RWX表示</h4><p>Linux系统中的每个文件和目录（客体）都有相应的访问权限，通过其确定谁（主体）可以通过何种方式对文件/目录进行访问和操作。文件/目录（客体）的访问权限分为三种：<strong>读</strong>、<strong>写</strong> 和 <strong>执行</strong>。该机制限制三种不同的<strong>主体</strong>：<strong>文件所有者</strong>、<strong>同组用户</strong> 和 <strong>其他用户</strong>。</p>
+<p>每个文件或目录的访问权限都有三组，每组用三位表示，分别为文件属主的读、写和执行三种权限。当用Shell命令 <code>ls -l</code> 显示文件或目录的详细信息时，最左边的一排为文件的访问权限。例如：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">➜  ls <span class="_">-l</span> /var</div><div class="line"></div><div class="line">drwxr-xr-x.  2 root root   18 10月 16 17:25 account</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 adm</div><div class="line">drwxr-xr-x. 11 root root 4096 12月 12 14:32 cache</div><div class="line">drwxr-xr-x.  2 root root    6 10月 23 19:27 crash</div><div class="line">drwxr-xr-x.  3 root root   32 12月 10 14:54 db</div><div class="line">drwxr-xr-x.  3 root root   17 10月 16 17:25 empty</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 games</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 gopher</div><div class="line">-rw-r--r--.  1 root root   25 12月 12 15:01 info.php</div><div class="line">drwxr-xr-x.  3 root root   17 10月 16 17:21 kerberos</div><div class="line">drwxr-xr-x. 40 root root 4096 12月 17 03:20 lib</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 <span class="built_in">local</span></div><div class="line">lrwxrwxrwx.  1 root root   11 10月 16 17:19 lock -&gt; ../run/lock</div><div class="line">drwxr-xr-x. 13 root root 4096 12月 15 14:50 <span class="built_in">log</span></div><div class="line">lrwxrwxrwx.  1 root root   10 10月 16 17:19 mail -&gt; spool/mail</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 nis</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 opt</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 preserve</div><div class="line">lrwxrwxrwx.  1 root root    6 10月 16 17:19 run -&gt; ../run</div><div class="line">drwxr-xr-x. 10 root root 4096 10月 16 17:25 spool</div><div class="line">drwxrwxrwt.  7 root root 4096 12月 15 14:52 tmp</div><div class="line">drwxr-xr-x.  3 root root   16 10月 16 17:23 var</div><div class="line">drwxr-xr-x.  4 root root   31 12月 12 15:03 www</div><div class="line">drwxr-xr-x.  2 root root    6 6月  10 2014 yp</div></pre></td></tr></table></figure>
+<p>权限列共有 10 个字符，第一个字符为文件类型，后面九个分为三组：第一组为 <strong>U</strong>(User) ，即文件属主对应的权限；第二组为 <strong>G</strong>(Group)，即同组用户对应的权限；第三组为 <strong>O</strong>(Others)，即其他用户对应的权限。每个字符的意义可用下图描述：</p>
+<p><img src="/imgs/1418802142487.png" alt="图解文件权限"></p>
+<blockquote>
+<p><strong>NOTE</strong>:<br>上面例子中，权限列的第一个字符（文件类型），<code>-</code>代表普通文件；<code>l</code>代表链接文件；<code>d</code>代表目录文件。</p>
+</blockquote>
+<p>另，Linux中，文件与目录的权限有所区别，如下所示：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"></th>
+<th style="text-align:center">文件</th>
+<th style="text-align:center">目录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><strong>R</strong>(可读)</td>
+<td style="text-align:center">读取文件内容</td>
+<td style="text-align:center">读包含在目录中的文件名称</td>
+</tr>
+<tr>
+<td style="text-align:center"><strong>W</strong>(可写)</td>
+<td style="text-align:center">对文件内容进行编辑</td>
+<td style="text-align:center">可以写信息到目录中，即可以创建、删除文件、移动文件等操作</td>
+</tr>
+<tr>
+<td style="text-align:center"><strong>X</strong>(可执行)</td>
+<td style="text-align:center">作为执行文件执行</td>
+<td style="text-align:center">可以进入目录；可以搜索（能用该目录名称作为路径名去访问它所包含的文件和子目录）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>举例说明</strong>：</p>
+<ol>
+<li>对文件有 <code>w</code> 权限不能删除文件，需要对文件所在的目录有 <code>w</code> 权限；</li>
+<li>对目录有 <code>w</code> 权限不能 <code>cd</code> 进入目录，需要对目录有 <code>x</code> 权限；</li>
+<li>对目录有 <code>x</code> 权限，只有在知道文件名并且有 <code>r</code> 权限的时候才能访问目录下的文件；</li>
+<li>对目录必须有 <code>x</code> 权限才能 <code>cd</code> 进入到目录，必须有 <code>rx</code> 权限才能使用 <code>ls</code> 列出目录清单</li>
+<li>对目录有 <code>w</code> 权限，可以对目录中的任何文件或子目录进行创建、删除或修改操作，即使该文件或目录的所有者是其它用户也是如此。</li>
+</ol>
+<h4 id="2-1-2-权限管理"><a href="#2-1-2-权限管理" class="headerlink" title="2.1.2 权限管理"></a>2.1.2 权限管理</h4><p><strong>chmod</strong></p>
+<p><code>chmod</code>命令可以修改文件或目录的权限，但有两种方式来修改，一种是字母权限设定法，另一种是数字权限设定法。用字母权限设定法时，该命令的格式通常是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">chmod [who] [+|-|=] [mode] [file/dir]</div></pre></td></tr></table></figure></p>
+<p>其中，操作对象 <code>who</code> 表示将权限赋予的<strong>主体</strong>；<code>[+|-|=]</code>部分是权限的操作符；<code>[mode]</code>即为三个标志位表示的权限。</p>
+<p><code>who</code>可以是下列字母中的单个字母或多个字母的组合：</p>
+<blockquote>
+<p><code>u</code>: 表示 <strong>用户(User)</strong>，即文件属主；<br><code>g</code>: 表示 <strong>同组用户(Group)</strong>，即与文件属主在同一用户组的用户；<br><code>o</code>: 表示 <strong>其他用户(Others)</strong>；<br><code>a</code>: 表示 <strong>所有用户(All)</strong>。此为系统默认值</p>
+</blockquote>
+<p>权限操作符解释如下：</p>
+<blockquote>
+<p><code>+</code> : 添加某权限；<br><code>-</code>：取消某权限；<br><code>=</code> : 覆盖原权限。</p>
+</blockquote>
+<p><code>mode</code> 所表示的权限可用下列字母的任意组合：</p>
+<blockquote>
+<p><code>r</code>: 可读；<br><code>w</code>: 可写；<br><code>x</code>: 可执行(只有目标文件对某些用户是可执行的或该文件为目录时才可追加<code>X</code>属性)；<br><code>s</code>: 在文件执行时，把进程的属主或组ID置为该文件的文件属主。方式 <code>u+s</code> 设置文件的用户ID位，<code>g+s</code>设置组ID位；<br><code>t</code>: 将程序的文本保存到交换设备上；<br><code>u</code>: 与文件属主拥有同样的权限；<br><code>g</code>: 与文件属主同组用户拥有同样的权限；<br><code>o</code>: 与其他用户拥有同样的权限。</p>
+</blockquote>
+<hr>
+<p><strong>数字权限设定法</strong></p>
+<p><code>chmod</code>命令用这种方式设定文件/目录权限是的格式通常为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">chmod [digital_mode] [file/dir]</div></pre></td></tr></table></figure></p>
+<p>这种方法与字幕权限设定法在功能上是等价的，不过更加简便：将上述字母表示的权限位映射为数字，并将3组数字组合起来。映射关系为：</p>
+<blockquote>
+<p><code>r</code> —-&gt; <code>4</code><br><code>w</code> —-&gt; <code>2</code><br><code>x</code> —-&gt; <code>1</code><br><code>-</code> —-&gt; <code>0</code> (空权限，即无此权限)</p>
+</blockquote>
+<p>所以数字属性的格式为 3 个 <code>0~7</code> 的八进制数，其顺序是 <strong>U/G/O</strong>。</p>
+<p>对于两种权限表示方法，统一给出一组示例如下：</p>
+<blockquote>
+<p><code>-rw-------</code>  (600)    只有所有者才有读和写的权限<br><code>-rw-r--r--</code>  (644)     只有所有者才有读和写的权限，组群和其他人只有读的权限<br><code>-rwx------</code>  (700)     只有所有者才有读，写，执行的权限<br><code>-rwxr-xr-x</code>  (755)     只有所有者才有读，写，执行的权限，组群和其他人只有读和执行的权限<br><code>-rwx--x--x</code>  (711)     只有所有者才有读，写，执行的权限，组群和其他人只有执行的权限<br><code>-rw-rw-rw-</code>  (666)     每个人都有读写的权限<br><code>-rwxrwxrwx</code>  (777)     每个人都有读写和执行的权限</p>
+<p><strong>NOTE</strong>:<br>使用 <code>chmod</code> 命令还可以将某个目录下的所有文件、子目录及子目录下的所有文件递归地设置为统一的权限，只需要加一个<code>-R</code>参数即可。</p>
+</blockquote>
+<hr>
+<p><strong>chown</strong></p>
+<p>该命令可以改变文件的<strong>属主</strong>。示例如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">➜ touch test.txt</div><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 root root 0 12月 17 17:20 test.txt</div><div class="line">➜ chown jiayu test.txt</div><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 jiayu root 0 12月 17 17:20 test.txt</div></pre></td></tr></table></figure></p>
+<p>其实也可以修改文件所属的<strong>用户组</strong>，示例如下：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 jiayu jiayu 0 12月 17 17:20 test.txt</div><div class="line">➜ chown :root test.txt </div><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 jiayu root 0 12月 17 17:20 test.txt</div></pre></td></tr></table></figure></p>
+<p>还可以同时修改文件的<strong>属主</strong>和所属<strong>用户组</strong>：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 jiayu jiayu 0 12月 17 17:20 test.txt</div><div class="line">➜ chown root:root test.txt </div><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 root root 0 12月 17 17:20 test.txt</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>该命令也可以用<code>-R</code>参数进行递归操作。</p>
+</blockquote>
+<hr>
+<p><strong>chgrp</strong></p>
+<p>该命令<strong>只可以</strong>修改文件所属的<strong>用户组</strong>：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 root root 0 12月 17 17:20 test.txt</div><div class="line">➜ chgrp jiayu test.txt </div><div class="line">➜ ls <span class="_">-l</span></div><div class="line">-rw-r--r--. 1 root jiayu 0 12月 17 17:20 test.txt</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>该命令也可以用<code>-R</code>参数进行递归操作。</p>
+</blockquote>
+<hr>
+<p><strong>umask</strong></p>
+<p><code>umask</code>又叫<strong>权限掩码</strong>，其功能是<strong>设定新建文件/目录的默认权限</strong>。它与 <code>chmod</code> 配套，总共为4位（gid/uid,属主，组权，其它用户的权限）,不过通常用到的是后3个，例如你用 <code>chmod 755 file</code>（此时这文件的权限是属主读(4)+写(2)＋执行(1),同组的和其它用户有读写权限)。当新文件被创建时，<strong>其最初的权限由文件创建掩码决定</strong>。用户每次注册进入系统时，<code>umask</code>命令都被执行,并自动设置掩码 <code>mode</code> 来限制新文件的权限。用户可以通过再次执行<code>umask</code>来改变默认值，新的权限将会把旧的覆盖掉。</p>
+<p>默认情况下的 <code>umask</code>值是 <code>022</code>(可以用<code>umask</code>命令查看），此时你建立的文件默认权限是755(即<code>777-022</code>)。</p>
+<p>利用<code>umask</code>命令可以指定哪些权限将在新文件的默认权限中被删除。例如，可以使用下面的命令创建掩码,取消组用户的写权限以及其他用户的读、写和执行权限: <code>umask u=,g=w,o=rwx</code></p>
+<p>执行该命令以后，下面所建新文件的文件主权限未作任何改变，而组用户没有写权限,其它用户的所有权限都被取消。</p>
+<blockquote>
+<p>在<code>umask</code>命令和<code>chmod</code>命令中，操作符<code>=</code>的作用恰恰相反。在<code>chmod</code>中,利用它来设置指定的权限,而其余权限都被取消；但是在<code>umask</code>命令中,它将在原有权限的基础上把指定的权限<strong>删除</strong>。</p>
+</blockquote>
+<p>不能直接利用<code>umask</code>创建一个可执行的文件,用户只能在其后利用<code>chmod</code>命令使它具有执行权限。假设执行了下面命令:<br><code>umask u=,g=w,o=rwx</code><br>虽然在命令行中，文件主和组用户的执行权限没有被删去，但默认的文件权限还 是640(即rw-r—–),而不是750(rwxr-x—)。但是，如果创建的是目录，或者通过编译程序创建一个可执行文件，将不受此限制。 在这种情况下,文件的执行权限会被设置。</p>
+<p>此外，也可以使用八进制数值来设置mode。在umask中所指定的权限 表示要删除的权限，所以，如果一个文件原来的初始权限是777，那么执行命令<code>umask 022</code>以后, 那么该文件的权限将变为`755;<strong>如果该文件原来的初始权限是666, 那么该文件的权限将变为644</strong>。</p>
+<hr>
+<p><strong>特殊访问模式及粘滞位：setuid/setgid/sticky bit</strong></p>
+<p>Linux中，非<code>root</code>用户可以使用<code>passwd</code>命令修改自己的密码，这是合理的设置，但是有个小问题：该命令位置是<code>/bin/passwd</code>，其详细的权限为：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span> /bin/passwd</div><div class="line">-rwsr-xr-x. 1 root root 27832 6月  10 2014 /bin/passwd</div></pre></td></tr></table></figure></p>
+<p>可以看到其属主为<code>root</code>用户，所属用户组也为<code>root</code>组，那为何非<code>root</code>用户也可以调用此命令呢？<br>问题出在 <strong>本用户权限</strong> 处的<code>s</code>权限位，可以看到它处在原属于<strong>可执行权限<code>x</code></strong>的位置。这个<code>s</code>就是<code>setuid</code>位的标识。<code>setuid</code>位表明该文件在<strong><code>执行阶段</code></strong>具有文件属主的权限。所以非<code>root</code>用户也能调用这个本属于<code>root</code>用户的<code>/bin/passwd</code>命令来执行修改密码的操作。</p>
+<p>与其类似的还有下面两个标志位：</p>
+<ul>
+<li><strong>setgid</strong>:该权限只对目录有效. 目录被设置该位后, 任何用户在此目录下创建的文件都具有和该目录所属的组相同的组;</li>
+<li><strong>sticky bit</strong>: 粘滞位，该位可以理解为防删除位. 一个文件是否可以被某用户删除, 主要取决于该文件所属的组是否对该用户具有写权限. 如果没有写权限, 则这个目录下的所有文件都不能被删除, 同时也不能添加新的文件. 如果希望用户能够添加文件但同时不能删除文件, 则可以对文件使用<code>sticky bit</code>位. 设置该位后, 就算用户对目录具有写权限, 也不能删除该文件.</li>
+</ul>
+<p>这三个特殊权限位也可以用<code>chmod</code>命令来操作，同样也分字幕权限设定和数字权限设定两种方式。<br>文字设定法：</p>
+<blockquote>
+<p><code>chmod u+s file</code>：为文件 file 加上 setuid 标志位；<br><code>chmod g+s dir</code>：为目录 dir 加上 setgid 标志位；<br><code>chmod o+t file</code>：为文件 file 加上 sticky 标志。</p>
+</blockquote>
+<p>数字权限设定法：<br>其实本身linux 下权限是有四个数字的，我们常用的 <code>chmod 777 xxx</code> 其实默认是 <code>chmod 0777 xxx</code></p>
+<p>而第一位的 <code>0</code> 也有 <code>4/2/1</code> 三种组合，分别代表</p>
+<blockquote>
+<p><code>setuid</code> 的二进制串为：<code>100</code>，换算十进制为：<code>4</code>，若该位有效，显示为<code>s</code>，在原来<strong>本用户权限</strong>的<code>x</code>标志位上；<br><code>setgid</code> 的二进制串为:<code>010</code>,换算十进制：<code>2</code>，若该位有效，显示为<code>s</code>，在原来<strong>同组用户权限</strong>的<code>x</code>标志位上；<br><code>sticky bit</code> 二进制串：<code>001</code>，换算十进制：<code>1</code>，若该位有效，显示为<code>t</code>,在原来<strong>其他用户权限</strong>的<code>x</code>标志位上。</p>
+</blockquote>
+<p>显示的示例如下：</p>
+<blockquote>
+<p><strong>r-srw-r–</strong> : 表示有 <code>setuid</code> 标志；<br><strong>rwxrwsrw-</strong> : 表示有 <code>setgid</code> 标志；<br><strong>rwxrw-rwt</strong> : 表示有 <code>sticky</code> 标志。</p>
+</blockquote>
+<h3 id="2-2-ACL相关"><a href="#2-2-ACL相关" class="headerlink" title="2.2 ACL相关"></a>2.2 ACL相关</h3><h4 id="2-2-1-为什么要用-ACL"><a href="#2-2-1-为什么要用-ACL" class="headerlink" title="2.2.1 为什么要用 ACL"></a>2.2.1 为什么要用 ACL</h4><hr>
+<p>在Linux下,对一个文件(或者资源)可以进行操作的对象被分为三类: <strong>U</strong>(文件的拥有者), <strong>G</strong>(文件所属用户组), <strong>O</strong>(其他)；而对于每一类别又分别定义了<strong>R</strong>(可读)，<strong>W</strong>(可写)和 <strong>X</strong>(可执行)三种权限 (这里不讨论<code>SUID</code>, <code>SGID</code>以及<code>Sticky bit</code>的设置)。此即上述<code>UGO+RWX</code>的传统权限管理与访问控制机制。<br>通过<code>ls -l</code>命令就我们就可以列出一个文件的权限：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">➜ ls <span class="_">-l</span> </div><div class="line">-rw-rw---- 1 leonard admin 0 Jul 3 20:12 test.txt</div></pre></td></tr></table></figure></p>
+<p>在这里说明了对于<code>test.txt</code>这个文件<code>leonard</code>用户(由于是<code>file owner</code>)拥有权限. 所有属于<code>admin</code>组的用户(group)拥有读和写权限. 其他任何用户(other)对于文件没有任何的权限。<br>如果我们现在希望<code>john</code>这个用户也可以对<code>test.txt</code>文件进行读写操作.大概会想到以下几种办法 (<strong>这里假设<code>john</code>不属于<code>admin</code>用户组</strong>)：</p>
+<ol>
+<li>给文件的<strong>other</strong>类别增加读和写权限. 这样由于<code>john</code>会被归为<code>other</code>类别,那么他也将拥有读写的权限；</li>
+<li>将<code>john</code>加入到<code>admin</code> 用户组. 那么<code>john</code>会被归为<code>admin</code>类别,那么他将拥有读写的权限；</li>
+<li>设置<code>sudo</code>, 使<code>john</code>能够以<code>leonard</code>的身份对<code>test.txt</code>进行操作,从而获得读写权限。</li>
+</ol>
+<p>第一种做法的问题在于所有用户都将对<code>test.txt</code>拥有读写操作,显然这种做法不可取;<br>第二种做法的问题在于<code>john</code>被赋予了过多的权限.所有属于<code>admin</code>组的文件,<code>john</code>都可以拥有其等同的权限了;<br>第三种做法虽然可以达到只限定<code>john</code>用户一人拥有对<code>test.txt</code>文件的读写权限.但是需要对<code>sudoers</code>文件进行严格的格式控制. 而且当文件数量和用户很多的时候,这种方法就相当地不灵活了。</p>
+<p>上述方案都不太理想，其实问题就出在 Linux 的 <strong>UGO+RWX</strong> 权限管理机制里面,对于<code>other</code>的定义过于广泛,以至于很难把权限限定于一个不属于<code>file owner</code>和<code>group</code>的用户身上。<strong>ACL(Access Control List，访问控制列表)</strong> 就是用来帮助我们解决这个问题的。</p>
+<p>简单地来说ACL就是可以设置特定用户或者用户组对于一个文件的操作权限. 需要掌握的命令也只有三个: <code>getfacl</code>, <code>setfacl</code>, <code>chacl</code>。</p>
+<h4 id="2-2-2-ACL安装"><a href="#2-2-2-ACL安装" class="headerlink" title="2.2.2 ACL安装"></a>2.2.2 ACL安装</h4><ol>
+<li><p>Debian &amp; Ubuntu 下安装ACL：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ apt-get install acl</div></pre></td></tr></table></figure>
+</li>
+<li><p>RHEL &amp; CentOS &amp; Fedora 下安装ACL ：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ yum install acl</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>重新挂载分区(如果分区不支持ACL，需要以ACL的属性重新挂载)</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">➜ mount -o remount,rw,acl /dev/sda3</div></pre></td></tr></table></figure>
+<p><strong>分区在不支持acl的情况下<code>getfacl</code>可以工作，但是<code>setfacl</code>不能够工作的。</strong></p>
+<h4 id="2-2-3-ACL机制简介"><a href="#2-2-3-ACL机制简介" class="headerlink" title="2.2.3 ACL机制简介"></a>2.2.3 ACL机制简介</h4><p>ACL 是由一系列的 <strong>Access Entry</strong> 所组成的. 每一条 <strong>Access Entry</strong> 定义了特定的类别可以对文件拥有的操作权限.，<strong>Access Entry</strong> 有三个组成部分: <code>Entry tag type</code>, <code>qualifier (optional)</code>, <code>permission</code>。</p>
+<p>最重要的Entry tag type, 它有以下几个类型：</p>
+<ul>
+<li><strong>ACL_USER_OBJ</strong> : 相当于Linux里权限位<code>U</code>；</li>
+<li><strong>ACL_USER</strong> : 定义了额外的用户可以对此文件拥有的权限；</li>
+<li><strong>ACL_GROUP_OBJ</strong> : 相当于Linux里权限位<code>G</code>；</li>
+<li><strong>ACL_GROUP</strong> : 定义了额外的组可以对此文件拥有的权限；</li>
+<li><strong>ACL_MASK</strong> : 定义了<code>ACL_USER</code>, <code>ACL_GROUP_OBJ</code>和<code>ACL_GROUP</code>的最大权限；</li>
+<li><strong>ACL_OTHER</strong> : 相当于Linux里权限位<code>O</code>。</li>
+</ul>
+<p>举例说明一下，<code>getfacl</code>命令来查看一个定义好了的ACL文件代码：<br><figure class="highlight sh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">➜ getfacl ./test.txt </div><div class="line"><span class="comment"># file: test.txt </span></div><div class="line"><span class="comment"># owner: leonard </span></div><div class="line"><span class="comment"># group: admin </span></div><div class="line">user::rw- </div><div class="line">user:john:rw- </div><div class="line">group::rw- </div><div class="line">group:dev:r-- </div><div class="line">mask::rw- </div><div class="line">other::r--</div></pre></td></tr></table></figure></p>
+<p>前面三个以<code>#</code>开头的定义了文件名,<code>file</code>,<code>owner</code>和 <code>group</code>， 这些只是辅助信息，没有太大的作用,可以用 <code>--omit-header</code>参数来省略掉：</p>
+<blockquote>
+<p><strong>user::rw-</strong> : 定义了<code>ACL_USER_OBJ</code>, 说明<code>file owner</code>拥有读写权限；<br><strong>user:john:rw-</strong> : 定义了<code>ACL_USER</code>,这样用户<code>john</code>就拥有了对文件的读写权限,实现了我们一开始要达到的目的；<br><strong>group::rw-</strong> : 定义了<code>ACL_GROUP_OBJ</code>,说明文件的<code>group</code>拥有读写权限；<br><strong>group:dev:r–</strong> : 定义了<code>ACL_GROUP</code>,使得<code>dev</code>组拥有了对文件的读权限；<br><strong>mask::rw-</strong> : 定义了<code>ACL_MASK</code>的权限为读和写；<br><strong>other::r–</strong> : 定义了<code>ACL_OTHER</code>的权限为读。</p>
+</blockquote>
+<p>从这里可以看出ACL提供了定义特定用户和用户组相应权限的功能。关于如何设定一个文件或目录的ACL权限，以及 <code>ACL_MASK</code>怎么使用，<code>Default ACL</code>如何使用等信息，可参考参《<a href="http://linuxguest.blog.51cto.com/195664/124107" target="_blank" rel="external">Linux ACL管理详解</a>》。</p>
+<h2 id="3-参考资料"><a href="#3-参考资料" class="headerlink" title="3. 参考资料"></a>3. 参考资料</h2><ol>
+<li><a href="http://lichunhui.iteye.com/blog/1835802" target="_blank" rel="external">Linux文件或目录的读/写/执行权限</a></li>
+<li><a href="http://www.lampweb.org/linux/2/6.html" target="_blank" rel="external">chmod 设置目录或文件的访问权限</a></li>
+<li><a href="http://nba20717zcx.blog.51cto.com/343890/392063" target="_blank" rel="external">深入理解SetUID</a></li>
+<li><a href="http://hubingforever.blog.163.com/blog/static/17104057920138232126687/" target="_blank" rel="external">chmod命令高级篇–SetUID与SetGID标识位</a></li>
+<li><a href="http://linuxguest.blog.51cto.com/195664/124107" target="_blank" rel="external">Linux ACL管理详解</a></li>
+<li><a href="http://wiki.debian.org.hk/w/Control_access_to_file_with_POSIX_ACL_in_Linux" target="_blank" rel="external">在 Linux 使用 POSIX ACL 控制档案的存取</a></li>
+</ol>
+
+    
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/posts_bak/Linux-authority-and-access-control.html';
+          this.page.identifier = 'posts_bak/Linux-authority-and-access-control.html';
+          this.page.title = 'Linux 权限管理与访问控制详解(1)——基本概念和 DAC';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
