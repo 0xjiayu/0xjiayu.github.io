@@ -1,0 +1,1026 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="security,c++,re," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="原文： http://www.openrce.org/articles/full_view/23
+
+这是本系列第二篇（第一篇 👉： MSVC++ 逆向(1)——异常处理 ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 类结构内存布局、虚函数、RTTI（Run-Time Type Information，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关">
+<meta property="og:type" content="article">
+<meta property="og:title" content="(译)MSVC++ 逆向（二）—— 类、方法和 RTTI">
+<meta property="og:url" content="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="原文： http://www.openrce.org/articles/full_view/23
+
+这是本系列第二篇（第一篇 👉： MSVC++ 逆向(1)——异常处理 ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 类结构内存布局、虚函数、RTTI（Run-Time Type Information，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关">
+<meta property="og:image" content="http://jiayu0x.com/imgs/14936061421938.jpg">
+<meta property="og:image" content="http://jiayu0x.com/imgs/14938199737802.jpg">
+<meta property="og:image" content="http://jiayu0x.com/imgs/14938205753585.jpg">
+<meta property="og:updated_time" content="2017-05-03T15:29:54.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="(译)MSVC++ 逆向（二）—— 类、方法和 RTTI">
+<meta name="twitter:description" content="原文： http://www.openrce.org/articles/full_view/23
+
+这是本系列第二篇（第一篇 👉： MSVC++ 逆向(1)——异常处理 ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 类结构内存布局、虚函数、RTTI（Run-Time Type Information，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/14936061421938.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/"/>
+
+
+
+
+
+  <title> (译)MSVC++ 逆向（二）—— 类、方法和 RTTI | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                (译)MSVC++ 逆向（二）—— 类、方法和 RTTI
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-04-30T00:00:00+08:00">
+                2017-04-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/04/30/reversing-msvcxx-exception-handling-2/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/04/30/reversing-msvcxx-exception-handling-2/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>原文： <a href="http://www.openrce.org/articles/full_view/23" target="_blank" rel="external">http://www.openrce.org/articles/full_view/23</a></p>
+</blockquote>
+<p>这是本系列第二篇（第一篇 👉： <a href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/">MSVC++ 逆向(1)——异常处理</a> ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 <strong>类结构内存布局</strong>、<strong>虚函数</strong>、<strong>RTTI</strong>（<strong>Run-Time Type Information</strong>，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关基础。</p>
+<a id="more"></a>
+<h2 id="类的内存布局基础"><a href="#类的内存布局基础" class="headerlink" title="类的内存布局基础"></a>类的内存布局基础</h2><p>为了方便阐述接下来的内容，先看一段简单的 C++ 代码示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> A</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> a1;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">      <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">A_virt1</span><span class="params">()</span></span>;</div><div class="line">      <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">A_virt2</span><span class="params">()</span></span>;</div><div class="line">      <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">A_static1</span><span class="params">()</span></span>;</div><div class="line">      <span class="function"><span class="keyword">void</span> <span class="title">A_simple1</span><span class="params">()</span></span>;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">class</span> B</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> b1;</div><div class="line">    <span class="keyword">int</span> b2;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">B_virt1</span><span class="params">()</span></span>;</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">B_virt2</span><span class="params">()</span></span>;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">class</span> C: <span class="keyword">public</span> A, <span class="keyword">public</span> B</div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> c1;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">A_virt2</span><span class="params">()</span></span>;</div><div class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">int</span> <span class="title">B_virt2</span><span class="params">()</span></span>;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>多数情况下 MSVC++ 的 <strong>类</strong> 中个元素在内存布局中的顺序如下：</p>
+<ul>
+<li>指向<strong>虚函数表</strong>的<strong>指针</strong>（ <code>_vtable_</code> 或者 <code>_vftable_</code> ），仅当类中有<strong>虚函数</strong>、并且<strong>基类</strong>中没有相应的<strong>虚函数表</strong>的时候才有此指针元素；</li>
+<li>基类</li>
+<li>类成员</li>
+</ul>
+<p><strong>虚函数表</strong>中囊括了类中的各个<strong>虚函数</strong>，以虚函数声明的顺序排列。其中，<strong>重载函数</strong> 的 <strong>地址</strong> 覆盖基类中相应函数的地址。如此一来，上面 3 个类在内存中的布局大概如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">class A size(8)</div><div class="line">       +---</div><div class="line">    0  | &#123;vfptr&#125;</div><div class="line">    4  | a1</div><div class="line">       +---</div><div class="line"></div><div class="line">A&apos;s vftable:</div><div class="line">    0  | &amp;A::A_virt1</div><div class="line">    4  | &amp;A::A_virt2</div><div class="line">-----------------------</div><div class="line"></div><div class="line">class B size(12):</div><div class="line">        +---</div><div class="line">    0   | &#123;vfptr&#125;</div><div class="line">    4   | b1</div><div class="line">    8   | b2</div><div class="line">        +---</div><div class="line"></div><div class="line">B&apos;s vftable:</div><div class="line">    0   | &amp;B::B_virt1</div><div class="line">    4   | &amp;B::B_virt2</div><div class="line">-----------------------</div><div class="line"></div><div class="line">class C size(24):</div><div class="line">         +---</div><div class="line">         | +--- (base class A)</div><div class="line">    0    | | &#123;vfptr&#125;</div><div class="line">    4    | | a1</div><div class="line">         | +---</div><div class="line">         | +--- (base class B)</div><div class="line">    8    | | &#123;vfptr&#125;</div><div class="line">    12   | | b1</div><div class="line">    16   | | b2</div><div class="line">         | +---</div><div class="line">    20   | c1</div><div class="line">         +---</div><div class="line"></div><div class="line">C&apos;s vftable for A:</div><div class="line">    0   | &amp;A::A_virt1</div><div class="line">    4   | &amp;C::A_virt2</div><div class="line"></div><div class="line">C&apos;s vftable for B:</div><div class="line">    0   | &amp;B::B_virt1</div><div class="line">    4   | &amp;C::B_virt2</div></pre></td></tr></table></figure>
+<p>上面的图标是在 VC8 中用一个文档中没说明的编译选项生成的，对于编译器产生的类内存布局图表，用 <code>-d1reportSingleClassLayout</code> 编译选项可以查看单个类的布局图表；用 <code>-d1reportAllClassLayout</code> 可以查看所有类的内存布局（包括内部的 CRT 类），布局图标会在 <code>stdout</code> 中输出。</p>
+<p>从上面编译器生成的图表可以看出，类 <code>C</code> 里有两个 <strong>虚函数表</strong>，这是因为它继承了两个基类，而两个基类均有自己的虚函数成员。在类 C 的第一个虚函数表中，虚函数 <code>C::A_virt2()</code> 的地址覆盖了基类 A 在 C 中派生的 <code>A_virt2()</code> 的地址；类似地，在类 C 的第二个虚函数表中，虚函数 <code>C::B_virt2()</code> 的地址覆盖了基类 B 在 C 中派生的 <code>B_virt2()</code> 的地址。</p>
+<h2 id="调用约定与类方法"><a href="#调用约定与类方法" class="headerlink" title="调用约定与类方法"></a>调用约定与类方法</h2><p>MSVC++ 中的类方法调用时，默认遵守 <code>_thiscall_</code> 调用约定。通过类的对象调用<strong>非静态成员函数</strong>或<strong>非全局函数时</strong>，类的对象自身的地址（即 <code>*this</code> 指针的值）会以<strong>隐含参数</strong>的形式传递给被调用的类的成员函数，通常，这个 <code>*this</code> 指针的值，存储在寄存器 <code>ecx</code> 中。在函数体的实现中，编译器通常把这个指针值塞在其他寄存器中（比如 <code>esi</code> 或 <code>edi</code> ），或者直接存入栈中的某个变量，然后对其他所有类成员的访问，都基于这个地址进行相对寻址来实现。然而，当实现 <code>COM</code> 类的时候，对类成员函数的调用则遵循 <code>_stdcall_</code> 的调用约定。下面详述几种不同的类成员方法调用时的底层细节：</p>
+<h3 id="1-静态成员函数"><a href="#1-静态成员函数" class="headerlink" title="1) 静态成员函数"></a>1) 静态成员函数</h3><p>调用<strong>静态成员函数</strong>不需要类的实例对象，可以直接通过类名来调用，在底层看来就跟调用普通非成员函数差不多，并不涉及 <code>*this</code> 指针的隐式传递。不过，也正因如此，逆向过程中不容易区分类的静态成员函数和普通的非成员函数。比如：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">A::A_static1();</div><div class="line">call    A::A_static1</div></pre></td></tr></table></figure>
+<h3 id="2-普通成员函数"><a href="#2-普通成员函数" class="headerlink" title="2) 普通成员函数"></a>2) 普通成员函数</h3><p><strong>普通成员函数</strong>的调用，就需要通过类的实例对象来调用了，这种情况下 <code>*this</code> 指针会以隐含参数的形式作为被调函数的第一个参数传递进去，并遵循 <code>_thiscall_</code> 调用约定，在底层会存储在 <code>ecx</code> 寄存器中。另外，如果存在类继承的情况，基类对象的地址可能与派生类的对象的地址不同，这时候如果在派生类的对象中调用基类的成员函数， <code>*this</code> 指针的值需要调整到<strong>基类对象</strong>的起始地址，然后才能调用基类中的普通成员函数。示例如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;pC-&gt;A_simple1(1);</span></div><div class="line"><span class="comment">;esi = pC</span></div><div class="line"><span class="keyword">push</span>    <span class="number">1</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, <span class="built_in">esi</span></div><div class="line"><span class="keyword">call</span>    A::A_simple1</div><div class="line"></div><div class="line"><span class="comment">;pC-&gt;B_simple1(2,3);</span></div><div class="line"><span class="comment">;esi = pC</span></div><div class="line"><span class="keyword">lea</span> <span class="built_in">edi</span>, [<span class="built_in">esi</span>+<span class="number">8</span>] <span class="comment">;调整 *this 指针的值</span></div><div class="line"><span class="keyword">push</span>    <span class="number">3</span></div><div class="line"><span class="keyword">push</span>    <span class="number">2</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, <span class="built_in">edi</span></div><div class="line"><span class="keyword">call</span>    B::B_simple1</div></pre></td></tr></table></figure>
+<p>如上所示，在调用 <code>B</code> 类的成员函数之前， <code>*this</code> 指针的值调整为 <code>B</code> 类子对象的起始地址。</p>
+<h3 id="3-虚函数"><a href="#3-虚函数" class="headerlink" title="3) 虚函数"></a>3) 虚函数</h3><p>为了调用<strong>虚函数</strong>，编译器首先需要从<strong>虚函数表</strong>中取出相应虚函数的起始地址，然后就按照类似普通成员函数调用的方式去调用它（把 <code>*this</code> 指针以隐含参数的方式传递），示例如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;pC-&gt;A_virt2()</span></div><div class="line"><span class="comment">;esi = pC</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">eax</span>, [<span class="built_in">esi</span>]  <span class="comment">;获取虚函数表的地址</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, <span class="built_in">esi</span></div><div class="line"><span class="keyword">call</span> [<span class="built_in">eax</span>+<span class="number">4</span>]  <span class="comment">;调用虚函数表中的第二个虚函数</span></div><div class="line"></div><div class="line"><span class="comment">;pC-&gt;B_virt1()</span></div><div class="line"><span class="comment">;edi = pC</span></div><div class="line"><span class="keyword">lea</span> <span class="built_in">edi</span>, [<span class="built_in">esi</span>+<span class="number">8</span>] <span class="comment">;调整 *this 指针的值</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">eax</span>, [<span class="built_in">edi</span>]   <span class="comment">;获取虚函数表的地址</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, <span class="built_in">edi</span></div><div class="line"><span class="keyword">call</span> [<span class="built_in">eax</span>]       <span class="comment">;调用第一个虚函数</span></div></pre></td></tr></table></figure>
+<h3 id="4-构造函数和析构函数"><a href="#4-构造函数和析构函数" class="headerlink" title="4) 构造函数和析构函数"></a>4) 构造函数和析构函数</h3><p><strong>构造函数</strong>和<strong>析构函数</strong>的调用过程，与普通成员函数类似。不同的是，即使按惯例来说构造函数并没有返回值，它仍然会把构造好的类的实例对象的起始地址隐式地返回（<code>return</code> 到寄存器 <code>eax</code> 中）。</p>
+<h2 id="RTTI-的实现"><a href="#RTTI-的实现" class="headerlink" title="RTTI 的实现"></a>RTTI 的实现</h2><p><strong>RTTI</strong>（Run-Time Type Identification，<strong>运行时类型识别</strong>）是编译器为了支持 C++ 中 <code>dynamic_cast&lt;&gt;</code> 和 <code>typeid()</code> 两个操作符操作符以及 C++ 异常而生成的特殊编译信息。RTTI 的特性只有当类涉及<strong>多态</strong>的时候才会用到，比如类中声明了<strong>虚函数</strong>。</p>
+<p>在类的内存布局中，MSVC 编译器会把一个指向 <strong><code>COL</code></strong>（Complete Object Locator，<strong>完整对象定位符</strong>）结构体的指针放在<strong>虚函数表</strong>之前。之所以叫<strong>完整对象定位符</strong>，是因为它允许编译器根据一个特定的<strong>虚函数表指针</strong>（一个类中可能有多个<strong>虚函数表指针</strong>）定位到整个对象。<strong>COL</strong>的结构定义如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> RTTICompleteObjectLocator</div><div class="line">&#123;</div><div class="line">    DWORD signature;  <span class="comment">// 一直为 0 ?</span></div><div class="line">    DWORD offset;       <span class="comment">// 改虚函数表在类中相对与类的起始地址的偏移量（offset of this vtable in the complete class）</span></div><div class="line">    DWORD cdOffset;   <span class="comment">// 构造函数偏移（constructor displacement offset）</span></div><div class="line">    <span class="keyword">struct</span> TypeDescriptor* pTypeDescriptor;  <span class="comment">// 整个类的类型描述符（TypeDescriptor of the complete class）</span></div><div class="line">    <span class="keyword">struct</span> RTTIClassHierarchyDescriptor* pClassDescriptor;  <span class="comment">// 类的继承关系描述结构（describes inheritance hierarchy）</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p><code>RTTIClassHierarchyDescriptor</code> 描述整个类的继承关系，它对类的所有 <code>COL</code> 都是通用的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> RTTIClassHierarchyDescriptor</div><div class="line">&#123;</div><div class="line">    DWORD signature;      <span class="comment">// 一直为 0 ?</span></div><div class="line">    DWORD attributes;     <span class="comment">//bit 0 set = 多重继承, bit 1 set = 虚继承</span></div><div class="line">    DWORD numBaseClasses; <span class="comment">// pBaseClassArray 中的基类数量（number of classes in pBaseClassArray）</span></div><div class="line">    <span class="keyword">struct</span> RTTIBaseClassArray* pBaseClassArray;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p><code>Base Class Array</code> 定义了在执行 <code>_dynamic_cast_</code> 时<strong>派生类</strong>可以动态映射成的所有<strong>基类</strong>的信息，其中每一个<strong>基类描述符</strong>（Base Class Descriptor）的结构如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> RTTIBaseClassDescriptor</div><div class="line">&#123;</div><div class="line">    <span class="keyword">struct</span> TypeDescriptor* pTypeDescriptor; <span class="comment">// 类的类型描述符（type descriptor of the class）</span></div><div class="line">    DWORD numContainedBases; <span class="comment">// Base Class Array 中的基类数量（number of nested classes following in the Base Class Array）</span></div><div class="line">    <span class="keyword">struct</span> PMD where;        <span class="comment">// 内部成员偏移信息（pointer-to-member displacement info）</span></div><div class="line">    DWORD attributes;        <span class="comment">// 标志位, 通常置 0</span></div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">struct</span> PMD</div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> mdisp;  <span class="comment">// 内部成员偏移（member displacement）</span></div><div class="line">    <span class="keyword">int</span> pdisp;  <span class="comment">// 虚函数表的偏移（vbtable displacement）</span></div><div class="line">    <span class="keyword">int</span> vdisp;  <span class="comment">// 虚函数表的内部偏移（displacement inside vbtable）</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p><code>PMD</code> 结构描述一个<strong>基类</strong>在其<strong>派生类</strong>中的位置信息。<strong>简单继承</strong>的时候，<strong>基类</strong>相对于其<strong>派生类</strong>的<strong>偏移量</strong>是固定的，偏移量的值即 <code>_mdisp_</code> 的值；如果涉及到<strong>虚继承</strong>，就需要先从<strong>虚函数表</strong>中取出一个额外的偏移量一起计算出基类的偏移，在函数调用的时候则需要重新调整 <code>*this</code> 指针的值。整个过程的伪码示例如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//char* pThis; struct PMD pmd;</span></div><div class="line">pThis += pmd.mdisp;</div><div class="line"><span class="keyword">if</span> (pmd.pdisp != <span class="number">-1</span>)</div><div class="line">&#123;</div><div class="line">  <span class="keyword">char</span> *vbtable = pThis + pmd.pdisp;</div><div class="line">  pThis += *(<span class="keyword">int</span>*)(vbtable + pmd.vdisp);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>举例来说，文章开头 3 个类的继承关系中 RTTI 的信息图下图所示：</p>
+<p><img src="/imgs/14936061421938.jpg" alt="示例l类中的 RTTI 继承关系"></p>
+<h2 id="信息提取"><a href="#信息提取" class="headerlink" title="信息提取"></a>信息提取</h2><h3 id="1-RTTI"><a href="#1-RTTI" class="headerlink" title="1) RTTI"></a>1) RTTI</h3><p>如果存在 <strong>RTTI</strong>，那么 <strong>RTTI</strong> 能为逆向工作提供很多有价值的信息。根据 <strong>RTTI</strong>，我们可能还原<strong>类名</strong>、<strong>类的继承关系</strong>，甚至有时候能还原部分类的<strong>内存布局</strong>信息。在 <strong>附录 1</strong> 中，我写了一个 <strong>RTTI 信息扫描器</strong>，可以做进一步参考。</p>
+<h3 id="2-静态初始化-和-全局初始化"><a href="#2-静态初始化-和-全局初始化" class="headerlink" title="2) 静态初始化 和 全局初始化"></a>2) 静态初始化 和 全局初始化</h3><p><strong>全局</strong>和<strong>静态</strong>的对象会在 <code>main()</code> 函数前面初始化。在 MSVC++ 中，编译器会为<strong>全局</strong>和<strong>静态</strong>函数生成相应的<strong>初始化器</strong>，并把他们的地址放在一个<strong>表</strong>（<code>table</code>）中，这个<strong>表</strong>会在 <code>_cinit()</code> 初始化 <strong>CRT</strong> 的时候生成。在 <strong>PE</strong> 结构中，这个<strong>表</strong>通常在 <code>.data</code> 段的起始位置。典型的初始化器结构示例如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">_init_gA1:</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, offset _gA1</div><div class="line">    <span class="keyword">call</span>    A::A()</div><div class="line">    <span class="keyword">push</span>    offset _term_gA1</div><div class="line">    <span class="keyword">call</span>    _atexit</div><div class="line">    <span class="keyword">pop</span>     <span class="built_in">ecx</span></div><div class="line">    <span class="keyword">retn</span></div><div class="line"><span class="symbol">_term_gA1:</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, offset _gA1</div><div class="line">    <span class="keyword">call</span>    A::~A()</div><div class="line">    <span class="keyword">retn</span></div></pre></td></tr></table></figure>
+<p>这样，从上面这个表里我们可以看出：</p>
+<ul>
+<li><strong>全局</strong>/<strong>静态</strong>对象的地址；</li>
+<li>它们的<strong>构造函数</strong></li>
+<li>它们的<strong>析构函数</strong></li>
+</ul>
+<p>更多细节可以参考 <code>_#pragma_directive_init_seg_</code> [5]。</p>
+<h3 id="3-栈展开处理函数（Unwind-Funclets）"><a href="#3-栈展开处理函数（Unwind-Funclets）" class="headerlink" title="3) 栈展开处理函数（Unwind Funclets）"></a>3) 栈展开处理函数（Unwind Funclets）</h3><p>一个函数中生成任何<strong>动态</strong>的对象时，VC++ 编译器总会生成一个相关的异常处理结构，以便在遇到异常时进行栈展开、销毁该动态对象。VC++ 中异常处理的底层细节可以参考本系列前一篇。典型的 <code>Unwind Funclets</code> 结构如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">unwind_1tobase:</span>  <span class="comment">; state 1 -&gt; -1</span></div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [<span class="built_in">ebp</span>+a1]</div><div class="line">    <span class="keyword">jmp</span>     A::~A()</div></pre></td></tr></table></figure>
+<p>通过在函数体中寻找相反的状态变化，或者在第一次访问栈中的同一个变量，我们也可以找到其<strong>构造函数</strong>：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">lea</span>     <span class="built_in">ecx</span>, [<span class="built_in">ebp</span>+a1]</div><div class="line"><span class="keyword">call</span>    A::A()</div><div class="line"><span class="keyword">mov</span>     [<span class="built_in">ebp</span>+__$EHRec$.state], <span class="number">1</span></div></pre></td></tr></table></figure>
+<p>对与那些用 <code>new()</code> 方法创建的对象，<strong>栈展开处理函数</strong> 保证即使在析构函数失效的情况下，也能删除掉分配给这些对象的内存：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">unwind_0tobase:</span> <span class="comment">; state 0 -&gt; -1</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">eax</span>, [<span class="built_in">ebp</span>+pA1]</div><div class="line">    <span class="keyword">push</span>    <span class="built_in">eax</span></div><div class="line">    <span class="keyword">call</span>    operator delete(void *)</div><div class="line">    <span class="keyword">pop</span>     <span class="built_in">ecx</span></div><div class="line">    <span class="keyword">retn</span></div></pre></td></tr></table></figure>
+<p>在函数体中：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;A* pA1 = new A();</span></div><div class="line">    <span class="keyword">push</span></div><div class="line">    <span class="keyword">call</span>    operator new(uint)</div><div class="line">    <span class="keyword">add</span>     <span class="built_in">esp</span>, <span class="number">4</span></div><div class="line">    <span class="keyword">mov</span>     [<span class="built_in">ebp</span>+pA1], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">test</span>    <span class="built_in">eax</span>, <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [<span class="built_in">ebp</span>+__$EHRec$.state], <span class="number">0</span><span class="comment">; state 0: memory allocated but object is not yet constructed</span></div><div class="line">    <span class="keyword">jz</span>      short @@new_failed</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, <span class="built_in">eax</span></div><div class="line">    <span class="keyword">call</span>    A::A()</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">esi</span>, <span class="built_in">eax</span></div><div class="line">    <span class="keyword">jmp</span>     short @@constructed_ok</div><div class="line"></div><div class="line">@@new_failed:</div><div class="line">    <span class="keyword">xor</span>     <span class="built_in">esi</span>, <span class="built_in">esi</span></div><div class="line"></div><div class="line">@@constructed_ok:</div><div class="line">    <span class="keyword">mov</span>     [<span class="built_in">esp</span>+<span class="number">14h</span>+__$EHRec$.state], -<span class="number">1</span></div><div class="line"><span class="comment">;state -1: either object was constructed successfully or memory allocation failed</span></div><div class="line"><span class="comment">;in both cases further memory management is done by the programmer</span></div></pre></td></tr></table></figure>
+<p>另一种形式的 <strong>栈展开处理函数</strong> 存在于<strong>构造函数</strong> 和 <strong>析构函数</strong> 中，它将保证在程序遇到异常时销毁对象成员。这种情况下的 <strong>栈展开处理函数</strong> 使用的是保存在栈变量中的 <code>_this_</code> 指针：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">unwind_2to1:</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, [<span class="built_in">ebp</span>+_this] <span class="comment">; state 2 -&gt; 1</span></div><div class="line">    <span class="keyword">add</span>     <span class="built_in">ecx</span>, <span class="number">4Ch</span></div><div class="line">    <span class="keyword">jmp</span>     B1::~B1</div></pre></td></tr></table></figure>
+<p>上面这个例子中，<strong>栈展开处理函数</strong> 销毁了 <code>B1</code> 在偏移 <code>0x4c</code> 处的成员。总的来说，通过 <strong>栈展开处理函数</strong>，我们可以获取一下信息：</p>
+<ul>
+<li>栈中保存的通过 <code>_operator_new_</code> 创建的 C++ 对象，或指向对象的指针；</li>
+<li>类的构造函数；</li>
+<li>类的析构函数；</li>
+<li><code>new()</code> 创建出来的对象的 <code>size</code>。</li>
+</ul>
+<h3 id="4-递归构造-析构函数"><a href="#4-递归构造-析构函数" class="headerlink" title="4) 递归构造/析构函数"></a>4) 递归构造/析构函数</h3><p>这个规则很简单：<strong>递归构造函数</strong>递归地调用其他构造函数（比如基类的构造函数、其他成员的构造函数）；<strong>递归析构函数</strong> 递归地调用他们所有的析构函数。典型的<strong>构造函数</strong>具有以下功能：</p>
+<ul>
+<li>调用基类的构造函数；</li>
+<li>调用其他嵌套对象所属类的构造函数；</li>
+<li>如果类中声明了<strong>虚函数</strong>，则初始化<strong>虚函数表指针</strong>（ <code>vfptr</code> ）；</li>
+<li>执行程序员定义的<strong>构造函数</strong>函数体。</li>
+</ul>
+<p>典型的<strong>析构函数</strong>则具有相对应的以下功能：</p>
+<ul>
+<li>如果类中声明了<strong>虚函数</strong>，则初始化<strong>虚函数表指针</strong>（ <code>vfptr</code> ）；</li>
+<li>执行程序员定义的<strong>析构函数</strong>函数体；</li>
+<li>调用其他嵌套对象所属类的析构函数</li>
+<li>调用基类的析构函数。</li>
+</ul>
+<p>不过， MSVC 编译器创建的 <strong>析构函数</strong> 还有一个特性：<code>_state_</code> 以<strong>最大值</strong>初始化，并随着对成员对象的析构行为而递减。这样一来反而方便分析析构函数的执行。另外需要注意的是，在 MSVC 中，简单的 构造/析构函数通常是以内联形式存在的，所以经常会在同一个函数中看到<strong>虚函数表指针</strong>被不同指针重复调用。</p>
+<h3 id="5-数组构造与析构"><a href="#5-数组构造与析构" class="headerlink" title="5) 数组构造与析构"></a>5) 数组构造与析构</h3><p>MSVC 用辅助函数来完成一个对象数组的构造与析构。用以下代码为例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">A* pA = <span class="keyword">new</span> A[n];</div><div class="line"><span class="keyword">delete</span> [] pA;</div></pre></td></tr></table></figure>
+<p>用 C++ 伪码详细还原一下，大概如下所示：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">array = new char(sizeof(A)*n+sizeof(int))</div><div class="line">if (array)</div><div class="line">&#123;</div><div class="line">  *(int*)array=n; //store array size in the beginning</div><div class="line">  'eh vector constructor iterator'(array+sizeof(int),sizeof(A),count,&amp;A::A,&amp;A::~A);</div><div class="line">&#125;</div><div class="line">pA = array;</div><div class="line"></div><div class="line">'eh vector destructor iterator'(pA,sizeof(A),count,&amp;A::~A);</div></pre></td></tr></table></figure>
+<p>如果 <code>A</code> 包含虚函数，删除对象数组的时候会调用一个 <code>vector deleting destructor</code> ：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;pA-&gt;'vector deleting destructor'(3);</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, pA</div><div class="line"><span class="keyword">push</span> <span class="number">3</span> <span class="comment">; flags: 0x2=deleting an array, 0x1=free the memory</span></div><div class="line"><span class="keyword">call</span> A::<span class="string">'vector deleting destructor'</span></div></pre></td></tr></table></figure>
+<p>如果 <code>A</code> 的<strong>析构函数</strong>是个<strong>虚函数</strong>，那么析构的时候会以调用虚函数的方式调用析构函数：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, pA</div><div class="line"><span class="keyword">push</span> <span class="number">3</span></div><div class="line"><span class="keyword">mov</span> <span class="built_in">eax</span>, [<span class="built_in">ecx</span>] <span class="comment">;fetch vtable pointer</span></div><div class="line"><span class="keyword">call</span> [<span class="built_in">eax</span>]     <span class="comment">;call deleting destructor</span></div></pre></td></tr></table></figure>
+<p>因此，通常来说通过构造/析构的数组迭代调用，我们可以发掘以下信息：</p>
+<ul>
+<li>对象数组的地址；</li>
+<li>数组里各对象的构造函数；</li>
+<li>数组里各对象的析构函数；</li>
+<li>类的 <code>size</code>。</li>
+</ul>
+<h3 id="6-删除析构函数（-deleting-destructor-）"><a href="#6-删除析构函数（-deleting-destructor-）" class="headerlink" title="6) 删除析构函数（ deleting destructor ）"></a>6) 删除析构函数（ <code>deleting destructor</code> ）</h3><p>当类中含有<strong>虚析构函数</strong>（ <code>virtual destructor</code> ）时，编译器会生成一个辅助函数——<strong>删除析构函数</strong>，这样便能确保销毁一个类实例的时候合适的 <code>_operator delete_</code> 被调用。<strong>删除析构函数</strong> 的伪码如下：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">virtual void * A::'scalar deleting destructor'(uint flags)</div><div class="line">&#123;</div><div class="line">  this-&gt;~A();</div><div class="line">  if (flags&amp;1) A::operator delete(this);</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>该函数的地址会被放在<strong>虚函数表</strong>( <code>vftable</code>) 中，并覆盖原有的析构函数地址。这样一来，如果另外一个类覆盖了这个虚析构函数，那么它的 <code>_delete_</code> 将被调用。然而实际代码中 <code>_delete_</code> 几乎不会被覆盖，所以你通常只看到调用默认的delete()。有时候，编译器也生成一个删除析构函数向量，伪码示例如下：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">virtual void * A::'vector deleting destructor'(uint flags)</div><div class="line">&#123;</div><div class="line">  if (flags&amp;2) //删除一个数组（destructing a vector）</div><div class="line">  &#123;</div><div class="line">    array = ((int*)this)-1; //数组大小存于此指针前面（array size is stored just before the this pointer）</div><div class="line">    count = array[0];</div><div class="line">    'eh vector destructor iterator'(this,sizeof(A),count,A::~A);</div><div class="line">    if (flags&amp;1) A::operator delete(array);</div><div class="line">  &#125;</div><div class="line">  else &#123;</div><div class="line">    this-&gt;~A();</div><div class="line">    if (flags&amp;1) A::operator delete(this);</div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>我忽略了大部分涉及虚基类的类的实现细节，因为它们是在太复杂，而且在现实生活中很少用到。请参考 Jan Gray 的文章[1]，它非常相近（请忽略那看着脑仁疼的匈牙利命名法）。文章[2]描述了一个MSVC实现虚继承的实现。更多细节还可以看 MS 专利[3]。</p>
+<h2 id="附录-1：-ms-rtti4-idc"><a href="#附录-1：-ms-rtti4-idc" class="headerlink" title="附录 1： ms_rtti4.idc"></a>附录 1： <code>ms_rtti4.idc</code></h2><p>这是我为解析 <strong>RTTI</strong> 和<strong>虚函数表</strong>写的一个 IDA 脚本，读者可以从 <a href="http://www.openrce.org/downloads/details/196" target="_blank" rel="external"> Microsoft VC++ Reversing Helpers</a> 下载到该脚本以及本系列两篇文章。该脚本的功能特性有以下几个：</p>
+<ul>
+<li>解析 <strong>RTTI</strong> 结构、用相应的类名重命名<strong>虚函数表</strong>；</li>
+<li>在相对简单的分析工作中重命名<strong>构造函数</strong>与<strong>析构函数</strong>；</li>
+<li>把所有的<strong>虚函数表</strong>以及<strong>引用函数</strong>和类的继承关系输出到文件中。</li>
+</ul>
+<blockquote>
+<p><strong>Usage</strong>：<br>IDA 的初始化分析结束之后，载入 <code>ms_rtti4.idc</code> ，它会询问你是否要扫描 PE 文件中的<strong>虚函数表</strong>（vftables)。需要注意的是，这个过程可能需要比较长的时间。如果你选择跳过扫描，后续仍然可以手动解析<strong>虚函数表</strong>。如果你选择让脚本帮你执行扫描，脚本会识别 PE 文件中所有使用 <strong>RTTI</strong> 的<strong>虚函数表</strong>，并且会重命名<strong>虚函数表</strong>、识别和重命名构造/析构函数。也有可能脚本会解析失败，尤其是涉及到<strong>虚继承</strong>的情况。扫描结束后，脚本会自动打开存放扫描结果的文件。</p>
+</blockquote>
+<p>另外，脚本载入以后，可以使用以下 <strong>快捷键</strong> 来对 MSVC 生成的结构进行手动解析：</p>
+<ul>
+<li><strong><code>Alt+F8</code></strong>：解析一个<strong>虚函数表。游标应该会停在虚函数表的起始位置。如果里面用到了 </strong>RTTI<strong>，脚本会使用里面的类名来重命名虚函数表。如果没有涉及到 </strong>RTTI<strong>，你可以手动输入类名来自定义。如果脚本扫描到了</strong>虚析构函数**，一样也会把它重命名。</li>
+<li><p><strong><code>Alt+F7</code></strong>：解析 <code>FuncInfo</code> 结构。<code>FuncInfo</code> 是一个描述在栈上创建对象或使用异常处理句柄的函数信息的结构。它的地址在异常处理句柄中通常被解析为 <code>_CxxFrameHandler</code> ：</p>
+  <figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">mov</span> <span class="built_in">eax</span>, offset FuncInfo1</div><div class="line"><span class="keyword">jmp</span> _CxxFrameHandler</div></pre></td></tr></table></figure>
+<p>  多数情况下它会被 IDA 直接识别并解析，但是我提供的脚本可以解析出更多的信息，你可以用 <code>ms_ehseh.idc</code> 解析文件中的所有 <code>FuncInfo</code> 。<br>  游标放到 <code>FuncInfo</code> 起始位置的，此快捷键有效。</p>
+</li>
+<li><p><strong><code>Alt+F9</code></strong>：解析 <code>throw</code> 信息。<code>Throw info</code> 是 <code>_CxxThrowException</code> 在实现 <code>_throw</code> 操作符时用到的辅助结构，它通常作为 <code>_CxxThrowException</code> 的第二个参数被调用：</p>
+  <figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">lea</span>     <span class="built_in">ecx</span>, [<span class="built_in">ebp</span>+e]</div><div class="line"><span class="keyword">call</span>    E::E()</div><div class="line"><span class="keyword">push</span>    offset ThrowInfo_E</div><div class="line"><span class="keyword">lea</span>     <span class="built_in">eax</span>, [<span class="built_in">ebp</span>+e]</div><div class="line"><span class="keyword">push</span>    <span class="built_in">eax</span></div><div class="line"><span class="keyword">call</span>    _CxxThrowException</div></pre></td></tr></table></figure>
+<p>  游标放在 <code>throw info</code> 起始位置的时候次快捷键才有效。该脚本会解析 <code>throw info</code> 并为调用 <code>throw</code> 操作符的类添加注释。它还可以识别和重命名异常的析构函数和拷贝构造函数。</p>
+</li>
+</ul>
+<h2 id="附录-2：实战恢复一个类的结构"><a href="#附录-2：实战恢复一个类的结构" class="headerlink" title="附录 2：实战恢复一个类的结构"></a>附录 2：实战恢复一个类的结构</h2><p>我们练手的对象是 <code>MSN Messenger 7.5</code> （ <code>msnmsgr.exe</code>  版本是 <code>7.5.324.0</code> , 大小 7094272 Bytes ），它主要由 C++ 实现，并且里面用到了很多 <strong>RTTI</strong> 的结构，正符合我们的需求。先看一下位于 <code>.0040EFD8</code> 和 <code>.0040EFE0</code> 的两处<strong>虚函数表</strong>。其中完整的 RTTI 结构及其继承关系如下所示：<br><img src="/imgs/14938199737802.jpg" alt="RTTI hierarchy for MSN Messenger 7.5"></p>
+<p>这样一来，就有了两个<strong>虚函数表</strong>属于同一个<strong>类</strong> —— <code>CContentMenuItem</code> ，再看它们的<strong>基类描述符</strong>我们可以发现：</p>
+<ul>
+<li><code>CContentMenuItem</code> 里面包含 3 个<strong>基类</strong> —— <code>CDownloader</code>/<code>CNativeEventSink</code>/<code>CNativeEventSource</code>;</li>
+<li><code>CDownloader</code> 包含 1 个<strong>基类</strong> —— <code>CNativeEventSink</code>；</li>
+<li>因此 <code>CContentMenuItem</code> 继承自 <code>CDownloader</code> 和 <code>CNativeEventSource</code>，而 <code>CDownloader</code> 继承自 <code>CNativeEventSink</code>；</li>
+<li><code>CDownloader</code> 位于整个对象的起始位置，<code>CNativeEventSource</code> 则位于偏移为 <code>0x24</code> 的位置。</li>
+</ul>
+<p><img src="/imgs/14938205753585.jpg" alt=""></p>
+<p>据此，我们可以得出这么一个结论：第一个<strong>虚函数表</strong>列出了 <code>CNativeEventSource</code> 里的方法，第二个<strong>虚函数表</strong>列出了 <code>CDownloader</code> 或者 <code>CNativeEventSink</code> 里的方法（如果这两者都不是，<code>CContentMenuItem</code> 会重用 <code>CNativeEventSource</code> 的<strong>虚函数表</strong>）。我们再来看都有谁引用了这两个<strong>虚函数表</strong>，它们<strong>都</strong>被位于 <code>.052B5E0</code> 和 <code>.052B547</code> 的两个函数引用（这样进一步印证了它们属于同一个<strong>类</strong>）。如果我们仔细查看 <code>.052B547</code> 处函数的开头，可以发现 <code>_state_</code> 被初始化为 <code>6</code>，这表明该函数是一个 <strong>析构函数</strong>；由于一个类只能有 1 个析构函数，我们可以推断 <code>.052B5E0</code> 处的函数是一个<strong>构造函数</strong>：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">CContentMenuItem:</span>:CContentMenuItem   proc <span class="built_in">near</span></div><div class="line">this = <span class="built_in">esi</span></div><div class="line">    <span class="keyword">push</span>    this</div><div class="line">    <span class="keyword">push</span>    <span class="built_in">edi</span></div><div class="line">    <span class="keyword">mov</span>     this, <span class="built_in">ecx</span></div><div class="line">    <span class="keyword">call</span>    sub_4CA77A</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">edi</span>, [this+<span class="number">24h</span>]</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, <span class="built_in">edi</span></div><div class="line">    <span class="keyword">call</span>    sub_4CBFDB</div><div class="line">    <span class="keyword">or</span>      <span class="built_in">dword</span> <span class="built_in">ptr</span> [this+<span class="number">48h</span>], <span class="number">0FFFFFFFFh</span></div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+<span class="number">4Ch</span>]</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">dword</span> <span class="built_in">ptr</span> [this], offset const CContentMenuItem::<span class="string">'vftable'</span>&#123;for <span class="string">'CContentMenuItem'</span>&#125;</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">dword</span> <span class="built_in">ptr</span> [<span class="built_in">edi</span>], offset const CContentMenuItem::<span class="string">'vftable'</span>&#123;for <span class="string">'CNativeEventSource'</span>&#125;</div><div class="line">    <span class="keyword">call</span>    sub_4D8000</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+<span class="number">50h</span>]</div><div class="line">    <span class="keyword">call</span>    sub_4D8000</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+<span class="number">54h</span>]</div><div class="line">    <span class="keyword">call</span>    sub_4D8000</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+<span class="number">58h</span>]</div><div class="line">    <span class="keyword">call</span>    sub_4D8000</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+<span class="number">5Ch</span>]</div><div class="line">    <span class="keyword">call</span>    sub_4D8000</div><div class="line">    <span class="keyword">xor</span>     <span class="built_in">eax</span>, <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+<span class="number">64h</span>], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+<span class="number">68h</span>], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+<span class="number">6Ch</span>], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">pop</span>     <span class="built_in">edi</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">dword</span> <span class="built_in">ptr</span> [this+<span class="number">60h</span>], offset const CEventSinkList::<span class="string">'vftable'</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">eax</span>, this</div><div class="line">    <span class="keyword">pop</span>     this</div><div class="line">    <span class="keyword">retn</span></div><div class="line">sub_52B5E0      endp</div></pre></td></tr></table></figure>
+<p>编译器在<strong>预言</strong>(<code>prolog</code>) 之后要做的第一件事就是把 <code>_this_</code> 指针的值从 <code>ecx</code> 拷贝到 <code>esi</code>，继而后续所有的寻址都是相对于 <code>esi</code> 作为基址。在初始化<strong>虚函数表指针</strong>(<code>vfptrs</code>) 之前调用了两个其他函数，这一定是<strong>基类的构造函数</strong>——本例中即 <code>CDownloader</code> 和 <code>CNativeEventSource</code> 的构造函数。进一步深入函数跟踪分析可以帮助我们确认这一点：第一个<strong>虚函数表指针</strong>（ <code>vfptf</code> ）用 <code>CDownloader::&#39;vftable&#39;</code> 来初始化， 第二个<strong>虚函数表指针</strong>用 <code>CNativeEventSource::&#39;vftable&#39;</code> 来初始化。我们也可以进一步检查 <code>CDownloader</code> 的<strong>构造函数</strong> —— 它调用了其<strong>基类</strong> <code>CNativeEventSink</code> 的构造函数。</p>
+<p>类似的，<code>_this_</code> 指针的值通过 <code>edi</code> 传入，这时它被重置为 <code>_this_ + 24h</code> ，根据我们上面的类结构图来看，这是 <code>CNativeEventSource</code> 子对象的位置。这是另一个证明被调用的第二个函数是 <code>CNativeEventSource</code> 的构造函数的证据。</p>
+<p>结束了基类的构造函数调用过程之后，<strong>基类</strong>中的<strong>虚函数指针</strong>被 <code>CContentMenuItem</code> 中自己的实现所覆盖，即 <code>CContentMenuItem</code> 实现了基类中的部分<strong>虚函数</strong>（或者增加了自己的<strong>虚函数</strong>）。有必要的话，我们可以对比这些表、检查那些指针被修改过或被添加了——新添加的指针就是 <code>CContentMenuItem</code> 中新实现的虚函数。</p>
+<p>接下来我们就看到几个对地址 <code>.04D8000</code> 的调用，调用之前 <code>ecx</code> 的值被设置为 <code>this+4Ch</code> 到 <code>this+5Ch</code> —— 这很明显是在初始化成员对象。一个问题是，我们如何分辨初始化函数是编译器自动生成的构造函数，还是程序员编写的自定义构造函数呢？这里有两个关键点可以参考：</p>
+<ul>
+<li>函数使用 <code>_thiscall_</code> 的 <strong>调用约定</strong>，而且是第一次访问这些字段；</li>
+<li>字段的初始化顺序是按照地址增长的方向进行的。</li>
+</ul>
+<p>为了确定这些点，我们可以查看<strong>析构函数</strong>中的<strong>栈展开处理函数</strong>（Unwind Funclets），在那里我们可以看到编译器为这些成员变量生成的构造函数。</p>
+<p>这个新的类并没有<strong>虚函数</strong>，因此也没有 <strong>RTTI</strong>，所以我们也不知道它的名字，不妨先命名为  RefCountedPtr<code>。根据前面的分析，位于</code>.4D8000<code>的函数是**构造函数**，那么在</code>CContentMenuItem<code>我们可以看到析构函数中的**栈展开处理函数**——在</code>.63CCB4` 处。</p>
+<p>回过头去看 <code>CContentMenuItem</code> 的 <strong>构造函数</strong>，可以看到 3 个字段初始化为 0，另外一个初始化为一个 <strong>虚函数表指针</strong>（ <code>vftable pointer</code> ）。这个看起来想一个成员变量的内联构造函数（不是<strong>基类</strong>，因为<strong>基类</strong>会出现在继承关系树中）。从一个使用了的虚函数表的 RTTI 中我们可以看出这是一个 <code>CEventSinkList</code> 模板的实例。</p>
+<p>根据上面的分析，我们可以大概勾勒出类的结构声明：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> CContentMenuItem: <span class="keyword">public</span> CDownloader, <span class="keyword">public</span> CNativeEventSource</div><div class="line">&#123;</div><div class="line"><span class="comment">/* 00 CDownloader */</span></div><div class="line"><span class="comment">/* 24 CNativeEventSource */</span></div><div class="line"><span class="comment">/* 48 */</span> DWORD m_unknown48;</div><div class="line"><span class="comment">/* 4C */</span> RefCountedPtr m_ptr4C;</div><div class="line"><span class="comment">/* 50 */</span> RefCountedPtr m_ptr50;</div><div class="line"><span class="comment">/* 54 */</span> RefCountedPtr m_ptr54;</div><div class="line"><span class="comment">/* 58 */</span> RefCountedPtr m_ptr58;</div><div class="line"><span class="comment">/* 5C */</span> RefCountedPtr m_ptr5C;</div><div class="line"><span class="comment">/* 60 */</span> CEventSinkList m_EventSinkList;</div><div class="line"><span class="comment">/* size = 70? */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>我们不确定偏移为 <code>0x48</code> 处的变量是否为 <code>CNativeEventSource</code> 的一部分，但由于它并没有被 <code>CNativeEventSource</code> 的构造函数访问到，那么它很可能属于 <code>CContentMenuItem</code>。包含被重命名函数的构造函数与类的结构如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">public:</span> __thiscall CContentMenuItem::CContentMenuItem(void) proc <span class="built_in">near</span></div><div class="line">    <span class="keyword">push</span>    this</div><div class="line">    <span class="keyword">push</span>    <span class="built_in">edi</span></div><div class="line">    <span class="keyword">mov</span>     this, <span class="built_in">ecx</span></div><div class="line">    <span class="keyword">call</span>    CDownloader::CDownloader(void)</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">edi</span>, [this+CContentMenuItem._CNativeEventSource]</div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">ecx</span>, <span class="built_in">edi</span></div><div class="line">    <span class="keyword">call</span>    CNativeEventSource::CNativeEventSource(void)</div><div class="line">    <span class="keyword">or</span>      [this+CContentMenuItem.m_unknown48], -<span class="number">1</span></div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+CContentMenuItem.m_ptr4C]</div><div class="line">    <span class="keyword">mov</span>     [this+CContentMenuItem._CDownloader._vfptr], offset const CContentMenuItem::<span class="string">'vftable'</span>&#123;for <span class="string">'CContentMenuItem'</span>&#125;</div><div class="line">    <span class="keyword">mov</span>     [<span class="built_in">edi</span>+CNativeEventSource._vfptr], offset const CContentMenuItem::<span class="string">'vftable'</span>&#123;for <span class="string">'CNativeEventSource'</span>&#125;</div><div class="line">    <span class="keyword">call</span>    RefCountedPtr::RefCountedPtr(void)</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+CContentMenuItem.m_ptr50]</div><div class="line">    <span class="keyword">call</span>    RefCountedPtr::RefCountedPtr(void)</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+CContentMenuItem.m_ptr54]</div><div class="line">    <span class="keyword">call</span>    RefCountedPtr::RefCountedPtr(void)</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+CContentMenuItem.m_ptr58]</div><div class="line">    <span class="keyword">call</span>    RefCountedPtr::RefCountedPtr(void)</div><div class="line">    <span class="keyword">lea</span>     <span class="built_in">ecx</span>, [this+CContentMenuItem.m_ptr5C]</div><div class="line">    <span class="keyword">call</span>    RefCountedPtr::RefCountedPtr(void)</div><div class="line">    <span class="keyword">xor</span>     <span class="built_in">eax</span>, <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+CContentMenuItem.m_EventSinkList.field_4], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+CContentMenuItem.m_EventSinkList.field_8], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">mov</span>     [this+CContentMenuItem.m_EventSinkList.field_C], <span class="built_in">eax</span></div><div class="line">    <span class="keyword">pop</span>     <span class="built_in">edi</span></div><div class="line">    <span class="keyword">mov</span>     [this+CContentMenuItem.m_EventSinkList._vfptr], offset const CEventSinkList::<span class="string">'vftable'</span></div><div class="line">    <span class="keyword">mov</span>     <span class="built_in">eax</span>, this</div><div class="line">    <span class="keyword">pop</span>     this</div><div class="line">    <span class="keyword">retn</span></div><div class="line"><span class="symbol">public:</span> __thiscall CContentMenuItem::CContentMenuItem(void) endp</div></pre></td></tr></table></figure>
+<h2 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h2><ol>
+<li><a href="http://msdn.microsoft.com/archive/default.asp?url=/archive/en-us/dnarvc/html/jangrayhood.asp" target="_blank" rel="external">http://msdn.microsoft.com/archive/default.asp?url=/archive/en-us/dnarvc/html/jangrayhood.asp</a></li>
+<li><a href="http://www.lrdev.com/lr/c/virtual.html" target="_blank" rel="external">http://www.lrdev.com/lr/c/virtual.html</a></li>
+<li><p>微软关于 C++ 各部分实现的专利材料：</p>
+<ul>
+<li><a href="http://freepatentsonline.com/5410705.html" target="_blank" rel="external">http://freepatentsonline.com/5410705.html</a></li>
+<li><a href="http://freepatentsonline.com/5617569.html" target="_blank" rel="external">http://freepatentsonline.com/5617569.html</a></li>
+<li><a href="http://freepatentsonline.com/5754862.html" target="_blank" rel="external">http://freepatentsonline.com/5754862.html</a></li>
+<li><a href="http://freepatentsonline.com/5297284.html" target="_blank" rel="external">http://freepatentsonline.com/5297284.html</a></li>
+<li><a href="http://freepatentsonline.com/5371891.html" target="_blank" rel="external">http://freepatentsonline.com/5371891.html</a></li>
+<li><a href="http://freepatentsonline.com/5603030.html" target="_blank" rel="external">http://freepatentsonline.com/5603030.html</a></li>
+<li><a href="http://freepatentsonline.com/6138269.html" target="_blank" rel="external">http://freepatentsonline.com/6138269.html</a></li>
+</ul>
+</li>
+<li><p><a href="http://members.ozemail.com.au/~geoffch@ozemail.com.au/samples/programming/msvc/language/predefined/index.html" target="_blank" rel="external">http://members.ozemail.com.au/~geoffch@ozemail.com.au/samples/programming/msvc/language/predefined/index.html</a></p>
+</li>
+<li><a href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/vclang/html/_predir_init_seg.asp" target="_blank" rel="external">http://msdn.microsoft.com/library/default.asp?url=/library/en-us/vclang/html/_predir_init_seg.asp</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+    <div><font color="green">看得爽的话，赞助个地铁通勤费？</font></div>
+    <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+      <span>赏</span>
+    </button>
+    <div id="QR" style="display: none;">
+      
+        <div id="wechat" style="display: inline-block">
+          <img id="wechat_qr" src="/imgs/wechat.png" alt="0xjiayu WeChat Pay"/>
+          <p>微信打赏</p>
+        </div>
+      
+      
+        <div id="alipay" style="display: inline-block">
+          <img id="alipay_qr" src="/imgs/alipay.png" alt="0xjiayu Alipay"/>
+          <p>支付宝打赏</p>
+        </div>
+      
+    </div>
+  </div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/" title="(译)MSVC++ 逆向（二）—— 类、方法和 RTTI">http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/c/" rel="tag"># c++</a>
+          
+            <a href="/tags/re/" rel="tag"># re</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/04/25/reversing-msvcxx-exception-handling/" rel="next" title="(译)MSVC++ 逆向(一) —— 异常处理">
+                <i class="fa fa-chevron-left"></i> (译)MSVC++ 逆向(一) —— 异常处理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#类的内存布局基础"><span class="nav-number">1.</span> <span class="nav-text">类的内存布局基础</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#调用约定与类方法"><span class="nav-number">2.</span> <span class="nav-text">调用约定与类方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-静态成员函数"><span class="nav-number">2.1.</span> <span class="nav-text">1) 静态成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-普通成员函数"><span class="nav-number">2.2.</span> <span class="nav-text">2) 普通成员函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-虚函数"><span class="nav-number">2.3.</span> <span class="nav-text">3) 虚函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-构造函数和析构函数"><span class="nav-number">2.4.</span> <span class="nav-text">4) 构造函数和析构函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RTTI-的实现"><span class="nav-number">3.</span> <span class="nav-text">RTTI 的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#信息提取"><span class="nav-number">4.</span> <span class="nav-text">信息提取</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RTTI"><span class="nav-number">4.1.</span> <span class="nav-text">1) RTTI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-静态初始化-和-全局初始化"><span class="nav-number">4.2.</span> <span class="nav-text">2) 静态初始化 和 全局初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-栈展开处理函数（Unwind-Funclets）"><span class="nav-number">4.3.</span> <span class="nav-text">3) 栈展开处理函数（Unwind Funclets）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-递归构造-析构函数"><span class="nav-number">4.4.</span> <span class="nav-text">4) 递归构造/析构函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-数组构造与析构"><span class="nav-number">4.5.</span> <span class="nav-text">5) 数组构造与析构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-删除析构函数（-deleting-destructor-）"><span class="nav-number">4.6.</span> <span class="nav-text">6) 删除析构函数（ deleting destructor ）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#附录-1：-ms-rtti4-idc"><span class="nav-number">5.</span> <span class="nav-text">附录 1： ms_rtti4.idc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#附录-2：实战恢复一个类的结构"><span class="nav-number">6.</span> <span class="nav-text">附录 2：实战恢复一个类的结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料："><span class="nav-number">7.</span> <span class="nav-text">参考资料：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/';
+          this.page.identifier = '2017/04/30/reversing-msvcxx-exception-handling-2/';
+          this.page.title = '(译)MSVC++ 逆向（二）—— 类、方法和 RTTI';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
