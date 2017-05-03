@@ -213,13 +213,13 @@
     <link href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/"/>
     <id>http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/</id>
     <published>2017-04-24T16:00:00.000Z</published>
-    <updated>2017-05-03T15:32:08.000Z</updated>
+    <updated>2017-05-03T15:35:13.000Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>原文： <a href="http://www.openrce.org/articles/full_view/21" target="_blank" rel="external">http://www.openrce.org/articles/full_view/21</a>  </p>
 </blockquote>
 <h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p><strong>MSVC++</strong> 是编写 Win32 应用程序最常用的编译器，所以在 Win32 平台的逆向工作中，懂得其底层工作原理，对逆向工程师来说至关重要。掌握 VC++ 程序的底层原理之后，便能在逆向过程中精准、快速识别编译器生成的<strong>胶水代码</strong>（Glue Code），这样可以让逆向工程师快速聚焦于二进制文件背后的真实程序和真实逻辑。另外，这对还原程序中高层次的结构（<strong><code>译注</code></strong>：面向对象的数据结构和程序组织结构、异常相关数据结构等）也有莫大帮助。  </p>
-<p>本文只是系列文章的上半部分（下半部分见： <a href="http:/www.openrce.org/articles/full_view/23" target="_blank" rel="external">Part II: Classes, Methods and RTT</a>），主要讲栈展开、异常处理以及 MSVC 编译生成相关的数据结构。阅读本文需要有汇编、寄存器和调用约定相关的知识储备，当然，MSVC++ 的编程基础知识也是必要的。  </p>
+<p>本文只是系列文章的上半部分（下半部分见： <a href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/">(译)MSVC++ 逆向（二）—— 类、方法和 RTTI</a>），主要讲栈展开、异常处理以及 MSVC 编译生成相关的数据结构。阅读本文需要有汇编、寄存器和调用约定相关的知识储备，当然，MSVC++ 的编程基础知识也是必要的。  </p>
 <a id="more"></a>
 <p><strong>名词解释</strong>：</p>
 <blockquote>
@@ -389,7 +389,7 @@
 &lt;p&gt;原文： &lt;a href=&quot;http://www.openrce.org/articles/full_view/21&quot;&gt;http://www.openrce.org/articles/full_view/21&lt;/a&gt;  &lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;h2 id=&quot;摘要&quot;&gt;&lt;a href=&quot;#摘要&quot; class=&quot;headerlink&quot; title=&quot;摘要&quot;&gt;&lt;/a&gt;摘要&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;MSVC++&lt;/strong&gt; 是编写 Win32 应用程序最常用的编译器，所以在 Win32 平台的逆向工作中，懂得其底层工作原理，对逆向工程师来说至关重要。掌握 VC++ 程序的底层原理之后，便能在逆向过程中精准、快速识别编译器生成的&lt;strong&gt;胶水代码&lt;/strong&gt;（Glue Code），这样可以让逆向工程师快速聚焦于二进制文件背后的真实程序和真实逻辑。另外，这对还原程序中高层次的结构（&lt;strong&gt;&lt;code&gt;译注&lt;/code&gt;&lt;/strong&gt;：面向对象的数据结构和程序组织结构、异常相关数据结构等）也有莫大帮助。  &lt;/p&gt;
-&lt;p&gt;本文只是系列文章的上半部分（下半部分见： &lt;a href=&quot;http:/www.openrce.org/articles/full_view/23&quot;&gt;Part II: Classes, Methods and RTT&lt;/a&gt;），主要讲栈展开、异常处理以及 MSVC 编译生成相关的数据结构。阅读本文需要有汇编、寄存器和调用约定相关的知识储备，当然，MSVC++ 的编程基础知识也是必要的。  &lt;/p&gt;
+&lt;p&gt;本文只是系列文章的上半部分（下半部分见： &lt;a href=&quot;http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/&quot;&gt;(译)MSVC++ 逆向（二）—— 类、方法和 RTTI&lt;/a&gt;），主要讲栈展开、异常处理以及 MSVC 编译生成相关的数据结构。阅读本文需要有汇编、寄存器和调用约定相关的知识储备，当然，MSVC++ 的编程基础知识也是必要的。  &lt;/p&gt;
     
     </summary>
     
