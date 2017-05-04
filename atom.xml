@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2017-05-03T15:29:54.000Z</updated>
+  <updated>2017-05-04T13:48:47.000Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/"/>
     <id>http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/</id>
     <published>2017-04-29T16:00:00.000Z</published>
-    <updated>2017-05-03T15:29:54.000Z</updated>
+    <updated>2017-05-04T13:48:47.000Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>原文： <a href="http://www.openrce.org/articles/full_view/23" target="_blank" rel="external">http://www.openrce.org/articles/full_view/23</a></p>
@@ -37,7 +37,7 @@
 </ul>
 <p><strong>虚函数表</strong>中囊括了类中的各个<strong>虚函数</strong>，以虚函数声明的顺序排列。其中，<strong>重载函数</strong> 的 <strong>地址</strong> 覆盖基类中相应函数的地址。如此一来，上面 3 个类在内存中的布局大概如下所示：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">class A size(8)</div><div class="line">       +---</div><div class="line">    0  | &#123;vfptr&#125;</div><div class="line">    4  | a1</div><div class="line">       +---</div><div class="line"></div><div class="line">A&apos;s vftable:</div><div class="line">    0  | &amp;A::A_virt1</div><div class="line">    4  | &amp;A::A_virt2</div><div class="line">-----------------------</div><div class="line"></div><div class="line">class B size(12):</div><div class="line">        +---</div><div class="line">    0   | &#123;vfptr&#125;</div><div class="line">    4   | b1</div><div class="line">    8   | b2</div><div class="line">        +---</div><div class="line"></div><div class="line">B&apos;s vftable:</div><div class="line">    0   | &amp;B::B_virt1</div><div class="line">    4   | &amp;B::B_virt2</div><div class="line">-----------------------</div><div class="line"></div><div class="line">class C size(24):</div><div class="line">         +---</div><div class="line">         | +--- (base class A)</div><div class="line">    0    | | &#123;vfptr&#125;</div><div class="line">    4    | | a1</div><div class="line">         | +---</div><div class="line">         | +--- (base class B)</div><div class="line">    8    | | &#123;vfptr&#125;</div><div class="line">    12   | | b1</div><div class="line">    16   | | b2</div><div class="line">         | +---</div><div class="line">    20   | c1</div><div class="line">         +---</div><div class="line"></div><div class="line">C&apos;s vftable for A:</div><div class="line">    0   | &amp;A::A_virt1</div><div class="line">    4   | &amp;C::A_virt2</div><div class="line"></div><div class="line">C&apos;s vftable for B:</div><div class="line">    0   | &amp;B::B_virt1</div><div class="line">    4   | &amp;C::B_virt2</div></pre></td></tr></table></figure>
-<p>上面的图标是在 VC8 中用一个文档中没说明的编译选项生成的，对于编译器产生的类内存布局图表，用 <code>-d1reportSingleClassLayout</code> 编译选项可以查看单个类的布局图表；用 <code>-d1reportAllClassLayout</code> 可以查看所有类的内存布局（包括内部的 CRT 类），布局图标会在 <code>stdout</code> 中输出。</p>
+<p>上面的图表是在 VC8 中用一个文档中没说明的编译选项生成的，对于编译器产生的类内存布局图表，用 <code>-d1reportSingleClassLayout</code> 编译选项可以查看单个类的布局图表；用 <code>-d1reportAllClassLayout</code> 可以查看所有类的内存布局（包括内部的 CRT 类），布局图表会在 <code>stdout</code> 中输出。</p>
 <p>从上面编译器生成的图表可以看出，类 <code>C</code> 里有两个 <strong>虚函数表</strong>，这是因为它继承了两个基类，而两个基类均有自己的虚函数成员。在类 C 的第一个虚函数表中，虚函数 <code>C::A_virt2()</code> 的地址覆盖了基类 A 在 C 中派生的 <code>A_virt2()</code> 的地址；类似地，在类 C 的第二个虚函数表中，虚函数 <code>C::B_virt2()</code> 的地址覆盖了基类 B 在 C 中派生的 <code>B_virt2()</code> 的地址。</p>
 <h2 id="调用约定与类方法"><a href="#调用约定与类方法" class="headerlink" title="调用约定与类方法"></a>调用约定与类方法</h2><p>MSVC++ 中的类方法调用时，默认遵守 <code>_thiscall_</code> 调用约定。通过类的对象调用<strong>非静态成员函数</strong>或<strong>非全局函数时</strong>，类的对象自身的地址（即 <code>*this</code> 指针的值）会以<strong>隐含参数</strong>的形式传递给被调用的类的成员函数，通常，这个 <code>*this</code> 指针的值，存储在寄存器 <code>ecx</code> 中。在函数体的实现中，编译器通常把这个指针值塞在其他寄存器中（比如 <code>esi</code> 或 <code>edi</code> ），或者直接存入栈中的某个变量，然后对其他所有类成员的访问，都基于这个地址进行相对寻址来实现。然而，当实现 <code>COM</code> 类的时候，对类成员函数的调用则遵循 <code>_stdcall_</code> 的调用约定。下面详述几种不同的类成员方法调用时的底层细节：</p>
 <h3 id="1-静态成员函数"><a href="#1-静态成员函数" class="headerlink" title="1) 静态成员函数"></a>1) 静态成员函数</h3><p>调用<strong>静态成员函数</strong>不需要类的实例对象，可以直接通过类名来调用，在底层看来就跟调用普通非成员函数差不多，并不涉及 <code>*this</code> 指针的隐式传递。不过，也正因如此，逆向过程中不容易区分类的静态成员函数和普通的非成员函数。比如：</p>
@@ -213,7 +213,7 @@
     <link href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/"/>
     <id>http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/</id>
     <published>2017-04-24T16:00:00.000Z</published>
-    <updated>2017-05-03T15:35:13.000Z</updated>
+    <updated>2017-05-04T13:44:04.000Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>原文： <a href="http://www.openrce.org/articles/full_view/21" target="_blank" rel="external">http://www.openrce.org/articles/full_view/21</a>  </p>
@@ -409,7 +409,7 @@
     <link href="http://jiayu0x.com/2016/12/27/flume-summary/"/>
     <id>http://jiayu0x.com/2016/12/27/flume-summary/</id>
     <published>2016-12-26T16:00:00.000Z</published>
-    <updated>2017-04-04T12:05:49.000Z</updated>
+    <updated>2017-05-04T13:48:22.000Z</updated>
     
     <content type="html"><![CDATA[<h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1. 背景"></a>1. 背景</h2><p>最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 <code>Hadoop+HBase+Flume+Kafka</code>这套大数据分析的工具。在数据分析环境架构中，<code>Flume-1.7.0</code> 主要用来收集各种来源、形式的数据，并把数据传给 <code>Kafka</code> 集群，由 <code>Kafka</code> 集群统一分发给 <code>HBase</code> 集群。</p>
 <p>用 <code>Flume</code> ，主要用到的 <strong><code>Source</code></strong> 是 <code>spooldir source</code> 和 <code>http-json source</code>，<strong><code>Sink</code></strong> 就主要是 <code>Kafka Sink</code>，配置非常灵活、功能也很强大。但在使用的过程中踩了不少坑，撰文记录一下比较重要的几个。</p>
@@ -424,7 +424,7 @@
 <blockquote>
 <p>By default events are put as bytes onto the Kafka topic directly from the event body. Set to true to store events as the Flume Avro binary format. Used in conjunction with the same property on the KafkaSource or with the parseAsFlumeEvent property on the Kafka Channel this will preserve any Flume headers for the producing side.</p>
 </blockquote>
-<p>如果设置此项为 <code>true</code>，<code>Kafka Sink</code> 则会把数据按照标准的 Flume Event 格式（即<code>Headers</code>域和<code>body</code>域结合的数据结构）发送。Flume Event 中的 <code>Headers</code> 域通常是一些附加字段，可以是时间戳（比如时间戳拦截器指定的时间戳）、文件名（比如 <code>spooldir</code> Source 开启的 <code>fileHeader = true</code>）等信息。但是 <code>2.7.0</code> 版本的 Flume 一旦开启此配置，会导致 <code>Headers</code> 域里面的信息乱码，如下图所示：<br><img src="/imgs/1482809681554.png" alt="Alt text"></p>
+<p>如果设置此项为 <code>true</code>，<code>Kafka Sink</code> 则会把数据按照标准的 Flume Event 格式（即<code>Headers</code>域和<code>body</code>域结合的数据结构）发送。Flume Event 中的 <code>Headers</code> 域通常是一些附加字段，可以是时间戳（比如时间戳拦截器指定的时间戳）、文件名（比如 <code>spooldir</code> Source 开启的 <code>fileHeader = true</code>）等信息。但是 <code>1.7.0</code> 版本的 Flume 一旦开启此配置，会导致 <code>Headers</code> 域里面的信息乱码，如下图所示：<br><img src="/imgs/1482809681554.png" alt="Alt text"></p>
 <p>这可能是这个版本 Flume 的一个 Bug，原因未明，查各种资料也没查到，就剩翻源码了……</p>
 <h2 id="3-spooldir-Source-的配置技巧"><a href="#3-spooldir-Source-的配置技巧" class="headerlink" title="3. spooldir Source 的配置技巧"></a>3. <code>spooldir</code> Source 的配置技巧</h2><p><code>spooldir</code> Source 的作用，是监控一个特定目录下的文件，一旦有新文件放入这个特定的目录，Flume 的 Agent 就会把整个文件的内容 <strong>逐行</strong> 读取，通过指定的 <code>Channel</code> 发送到指定的 <code>Sink</code>，并把已处理过的文件默认以<code>.COMPLETED</code> 后缀标记为已处理，或者直接删除。</p>
 <p>早期版本的 Flume 中， <code>spooldir</code> Source 监控指定目录时，是不能监控子目录的，但我们用的 <code>1.7.0</code> 版本，提供了一个配置项可以监控指定目录下的子目录：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">recursiveDirectorySearch = true</div></pre></td></tr></table></figure></p>

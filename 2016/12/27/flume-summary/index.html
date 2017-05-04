@@ -104,7 +104,7 @@
 <meta property="og:image" content="http://jiayu0x.com/imgs/1482235307436.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/1482235288060.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/1482245906334.png">
-<meta property="og:updated_time" content="2017-04-04T12:05:49.000Z">
+<meta property="og:updated_time" content="2017-05-04T13:48:22.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flume 踩坑排雷记">
 <meta name="twitter:description" content="1. 背景最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 Hadoop+HBase+Flume+Kafka这套大数据分析的工具。在数据分析环境架构中，Flume-1.7.0 主要用来收集各种来源、形式的数据，并把数据传给 Kafka 集群，由 Kafka 集群统一分发给 HBase 集群。
@@ -419,7 +419,7 @@
 <blockquote>
 <p>By default events are put as bytes onto the Kafka topic directly from the event body. Set to true to store events as the Flume Avro binary format. Used in conjunction with the same property on the KafkaSource or with the parseAsFlumeEvent property on the Kafka Channel this will preserve any Flume headers for the producing side.</p>
 </blockquote>
-<p>如果设置此项为 <code>true</code>，<code>Kafka Sink</code> 则会把数据按照标准的 Flume Event 格式（即<code>Headers</code>域和<code>body</code>域结合的数据结构）发送。Flume Event 中的 <code>Headers</code> 域通常是一些附加字段，可以是时间戳（比如时间戳拦截器指定的时间戳）、文件名（比如 <code>spooldir</code> Source 开启的 <code>fileHeader = true</code>）等信息。但是 <code>2.7.0</code> 版本的 Flume 一旦开启此配置，会导致 <code>Headers</code> 域里面的信息乱码，如下图所示：<br><img src="/imgs/1482809681554.png" alt="Alt text"></p>
+<p>如果设置此项为 <code>true</code>，<code>Kafka Sink</code> 则会把数据按照标准的 Flume Event 格式（即<code>Headers</code>域和<code>body</code>域结合的数据结构）发送。Flume Event 中的 <code>Headers</code> 域通常是一些附加字段，可以是时间戳（比如时间戳拦截器指定的时间戳）、文件名（比如 <code>spooldir</code> Source 开启的 <code>fileHeader = true</code>）等信息。但是 <code>1.7.0</code> 版本的 Flume 一旦开启此配置，会导致 <code>Headers</code> 域里面的信息乱码，如下图所示：<br><img src="/imgs/1482809681554.png" alt="Alt text"></p>
 <p>这可能是这个版本 Flume 的一个 Bug，原因未明，查各种资料也没查到，就剩翻源码了……</p>
 <h2 id="3-spooldir-Source-的配置技巧"><a href="#3-spooldir-Source-的配置技巧" class="headerlink" title="3. spooldir Source 的配置技巧"></a>3. <code>spooldir</code> Source 的配置技巧</h2><p><code>spooldir</code> Source 的作用，是监控一个特定目录下的文件，一旦有新文件放入这个特定的目录，Flume 的 Agent 就会把整个文件的内容 <strong>逐行</strong> 读取，通过指定的 <code>Channel</code> 发送到指定的 <code>Sink</code>，并把已处理过的文件默认以<code>.COMPLETED</code> 后缀标记为已处理，或者直接删除。</p>
 <p>早期版本的 Flume 中， <code>spooldir</code> Source 监控指定目录时，是不能监控子目录的，但我们用的 <code>1.7.0</code> 版本，提供了一个配置项可以监控指定目录下的子目录：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">recursiveDirectorySearch = true</div></pre></td></tr></table></figure></p>
