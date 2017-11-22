@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2017-05-04T13:48:47.000Z</updated>
+  <updated>2017-11-22T13:44:33.915Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -14,6 +14,93 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SSH 公钥登录配置详解(iTerm2 为例)</title>
+    <link href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/"/>
+    <id>http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/</id>
+    <published>2017-11-21T16:00:00.000Z</published>
+    <updated>2017-11-22T13:44:33.915Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
+</blockquote>
+<p>配置单个主机的 SSH 公钥登录，步骤非常简单，三步即可：</p>
+<ol>
+<li>生成密钥对</li>
+<li>拷贝公钥文件到服务器</li>
+<li>SSH 直接公钥登录服务器</li>
+</ol>
+<a id="more"></a>
+<h2 id="步骤详解"><a href="#步骤详解" class="headerlink" title="步骤详解"></a>步骤详解</h2><h3 id="ssh-keygen-生成密钥对"><a href="#ssh-keygen-生成密钥对" class="headerlink" title="ssh-keygen 生成密钥对"></a>ssh-keygen 生成密钥对</h3><p><strong>ssh-keygen</strong> 命令可以按照指定的参数生成密钥对，其常用的参数有以下几个：</p>
+<blockquote>
+<p><strong>-t</strong> ： 加密算法，可选 [dsa | ecdsa | ed25519 | rsa]；<br><strong>-b</strong> ：密钥长度（256/512/1024/2048……）,建议至少1024；<br><strong>-f</strong> ： 输出的密钥对文件名；<br><strong>-N</strong> ：密钥口令。</p>
+</blockquote>
+<p>比如我要为 <strong>test</strong> 主机生成一对密钥文件，密钥长度 2048、加密算法 RSA，就可以用以下命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-keygen <span class="_">-f</span> <span class="built_in">test</span> -t rsa -b 2048</div></pre></td></tr></table></figure>
+<p>执行此命令会提示 <code>Enter passphrase (empty for no passphrase):</code>，如果需要密钥口令，就要填上并记下来，如果不需要就直接摁回车键直到结束。命令执行完成后，会在当前目录生成两个文件：私钥文件 <strong>test</strong> 和 公钥文件 <strong>test.pub</strong> 。如果不指定 <code>ssh-keygen</code> 命令的 <strong>-f</strong> 参数，则会默认生成 <strong>~/.ssh/id_ras</strong> 和 <strong>~/.ssh/id_ras.pub</strong> 两个文件 。</p>
+<h3 id="ssh-copyid-拷贝公钥到服务器"><a href="#ssh-copyid-拷贝公钥到服务器" class="headerlink" title="ssh-copyid 拷贝公钥到服务器"></a>ssh-copyid 拷贝公钥到服务器</h3><p><strong>ssh-copyid</strong> 命令负责把上述步骤生成的公钥文件内容拷贝到服务器，确切说，是把 <strong>xxx.pub</strong> 文件中的内容<strong>附加</strong>到服务器端的 <code>~/.ssh/authorized_keys</code> 文件中。</p>
+<p>ssh-copyid 命令使用方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copyid [-i &lt;identityfile&gt;] [-p &lt;port&gt;] [username@]hostname</div></pre></td></tr></table></figure>
+<p>其中 <code>-i</code> 即指定上述步骤生成的密钥对中的 <strong>公钥文件</strong>，意思是把公钥文件 <strong>xxx.pub</strong> 传到服务端 <code>hostname</code>，把 <strong>xxx.pub</strong> 中的内容附加到 <code>hostname:/home/username/.ssh/authorized_keys</code> 文件中。如果不用 <code>-i</code> 指定公钥文件，则默认指定 <strong>id_ras.pub</strong> 。</p>
+<p>举例来说，我想通过公钥登录我 <code>192.168.1.2</code> 上的 <code>jiayu</code> 账户，那么只需把上述步骤中生成的 <strong>test.pub</strong> 文件上传到该服务器即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copyid -i <span class="built_in">test</span> jiayu@192.168.1.2</div></pre></td></tr></table></figure>
+<p>运行这条命令会让输入一次账户密码，然后才能成功上传到服务端。</p>
+<p>另外，还有好多人在这一步会舍弃 <code>ssh-copyid</code> 命令，转而手动上传公钥文件到服务端，然后 <code>cat xxx.pub &gt;&gt; ~/.ssh/authorized_keys</code> ，个人不提倡这种做法， <code>ssh-copyid</code> 这条专用命令就是为了免去麻烦又容易失误的手动操作。</p>
+<h3 id="直接登录远程服务器"><a href="#直接登录远程服务器" class="headerlink" title="直接登录远程服务器"></a>直接登录远程服务器</h3><p>经过上面两步骤，没什么意外的话就可以用密钥登录远程服务器了。不过这里还有个小细节需要说一下，我们平时用密码 SSH 登录远程服务器，是用 <code>ssh username@host -p &lt;port&gt;</code> 命令然后输入密码。如果我们只有一台远程服务器需要用 SSH 公钥登录的方式，那么最初执行 ssh-keygen 命令的时候就可以不指定 <code>-f</code> 参数，默认生成密钥对文件 <strong>id_ras/id_isa.pub</strong> ，然后执行命令 <code>ssh username@host -p &lt;port&gt;</code> 不用输入密码即可登录，SSH 命令会默认调用 <strong>id_rsa</strong> 尝试连接。</p>
+<p>但如果执行 ssh-keygen 命令的时候指定了 <strong>-f test</strong> 参数，那么这时要登录远程服务器就要在 SSH 命令中也指定私钥文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh -i <span class="built_in">test</span> jiayu@192.168.1.2</div></pre></td></tr></table></figure>
+<p>成功登录，配置完成，即可删除本地的公钥文件 xxx.pub，只留下相应的私钥文件。</p>
+<h2 id="踩坑"><a href="#踩坑" class="headerlink" title="踩坑"></a>踩坑</h2><p>有的朋友会发现，严格按照上述步骤操作，也无法成功连接服务端。此处常见的坑有 2 个：</p>
+<ol>
+<li>服务端 <code>~/.ssh/</code> 目录和 <code>~/.ssh/authorized_keys</code> 文件的权限问题；</li>
+<li>服务端 <code>/.ssh/authorized_keys</code> 文件内容格式问题。</li>
+</ol>
+<h3 id="服务端相关目录和文件权限"><a href="#服务端相关目录和文件权限" class="headerlink" title="服务端相关目录和文件权限"></a>服务端相关目录和文件权限</h3><p>个人见过的情况，把服务端  <code>~/.ssh/</code>  目录权限设置为 <strong>700</strong> ，把  <code>~/.ssh/authorized_keys</code> 文件权限设置为 <strong>600</strong> 即可。</p>
+<h3 id="authorized-keys-中-pubkey-内容要换行"><a href="#authorized-keys-中-pubkey-内容要换行" class="headerlink" title="authorized_keys 中 pubkey 内容要换行"></a>authorized_keys 中 pubkey 内容要换行</h3><p>有时候，服务端 SSH 目录和文件权限都没问题，仍然连接失败。此时给 SSH 命令启用 <code>-v</code> 选项打出连接时的详细信息，会发现客户机已经把私钥发送到服务器端，但在服务器端没有验证成功。</p>
+<p>并且，在服务端的 SSH 服务日志 <code>/var/log/secure</code> 文件中可以查到类似以下内容的错误信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">error: key_read: uudecode AAAAB3N failed</div></pre></td></tr></table></figure>
+<p>此时就是服务端 <code>/.ssh/authorized_keys</code> 文件内容格式出了问题。根源在于 <code>ssh-copid</code> 命令默认把公钥文件内容直接附加到服务端 <code>authorized_keys</code> 末尾，而<strong>没有换行</strong>。</p>
+<p>解决方案也很简单：Vim 打开服务端 <code>/.ssh/authorized_keys</code> 文件，为每个 pubkey 内容手动隔开一行即可。</p>
+<h2 id="配置多服务器多公钥登录"><a href="#配置多服务器多公钥登录" class="headerlink" title="配置多服务器多公钥登录"></a>配置多服务器多公钥登录</h2><p>前面举的例子都是针对单一服务器 SSH 公钥登录配置，如果我有多台服务器都需要配置成 SSH 公钥登录，该怎么配置？</p>
+<p>这里有个便捷的方式，两步即可完成配置：</p>
+<ol>
+<li>为每台服务器按照上面的 <strong>三步走</strong> 生成密钥对文件，配置 SSH 公钥登录后，整理好本地所有的私钥文件，最好所有的私钥文件统一放到同一目录下，比如 <code>~/.ssh/priKeys/</code> ；</li>
+<li>编写本地 SSH 配置文件： <code>~/.ssh/config</code> </li>
+</ol>
+<p>假如我的服务端主机与<strong>主机别名</strong>（方便自己记忆而起的别名）列表如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">192.168.120.1    jiayu1</div><div class="line">192.168.120.2    jiayu2</div><div class="line">192.168.110.3    jiayu3</div><div class="line">192.168.110.4    jiayu4</div></pre></td></tr></table></figure>
+<p>那么我的本地 <code>~/.ssh/config</code> 文件配置如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">Host jiayu1                               #别名</div><div class="line">Hostname 192.168.120.1                    #服务器地址</div><div class="line">Port 22                                   #服务器 SSH 服务端口</div><div class="line">User root                                 #服务端的用户名</div><div class="line">IdentityFile ~/.ssh/priKeys/jiayutest1    #对应本地的私钥文件路径</div><div class="line"></div><div class="line">Host jiayu2</div><div class="line">Hostname 192.168.120.2</div><div class="line">Port 22</div><div class="line">User root</div><div class="line">IdentityFile ~/.ssh/priKeys/jiayutest2</div><div class="line"></div><div class="line">Host jiayu3</div><div class="line">Hostname 192.168.110.3</div><div class="line">Port 22</div><div class="line">User root</div><div class="line">IdentityFile ~/.ssh/priKeys/jiayutest3</div><div class="line"></div><div class="line">Host jiayu4</div><div class="line">Hostname 192.168.110.4</div><div class="line">Port 22</div><div class="line">User root</div><div class="line">IdentityFile ~/.ssh/priKeys/jiayutest4</div></pre></td></tr></table></figure>
+<p>各配置项的意义见上面的注释内容，这样一来，我就可以用 <strong>主机别名</strong> 直接登录远程服务器了。比如通过 SSH 公钥登录 <code>root@192.168.110.4</code> ，以下命令即可：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh jiayu4</div></pre></td></tr></table></figure>
+<p>这样，ssh 命令会自动根据 <code>~/.ssh/config</code> 中的配置项，寻找到 <code>jiayutest</code> 这一个私钥文件，然后拿它去登录 <code>root@192.168.110.4</code> 。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;SSH 服务的远程登录服务方式，通常有&lt;strong&gt;密码登录&lt;/strong&gt;和&lt;strong&gt;公钥登录&lt;/strong&gt;两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。&lt;br&gt;&lt;strong&gt;Note&lt;/strong&gt;：本文所有实验均在 Mac 下的 iTerm2 中操作。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;配置单个主机的 SSH 公钥登录，步骤非常简单，三步即可：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;生成密钥对&lt;/li&gt;
+&lt;li&gt;拷贝公钥文件到服务器&lt;/li&gt;
+&lt;li&gt;SSH 直接公钥登录服务器&lt;/li&gt;
+&lt;/ol&gt;
+    
+    </summary>
+    
+      <category term="system" scheme="http://jiayu0x.com/categories/system/"/>
+    
+    
+      <category term="ssh" scheme="http://jiayu0x.com/tags/ssh/"/>
+    
+      <category term="pubkey" scheme="http://jiayu0x.com/tags/pubkey/"/>
+    
+      <category term="公钥认证" scheme="http://jiayu0x.com/tags/%E5%85%AC%E9%92%A5%E8%AE%A4%E8%AF%81/"/>
+    
+  </entry>
   
   <entry>
     <title>(译)MSVC++ 逆向（二）—— 类、方法和 RTTI</title>
