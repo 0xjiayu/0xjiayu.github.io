@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2017-11-22T13:44:33.915Z</updated>
+  <updated>2017-11-25T13:43:37.350Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/"/>
     <id>http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/</id>
     <published>2017-11-21T16:00:00.000Z</published>
-    <updated>2017-11-22T13:44:33.915Z</updated>
+    <updated>2017-11-25T13:43:37.350Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
@@ -54,14 +54,14 @@
 <h2 id="踩坑"><a href="#踩坑" class="headerlink" title="踩坑"></a>踩坑</h2><p>有的朋友会发现，严格按照上述步骤操作，也无法成功连接服务端。此处常见的坑有 2 个：</p>
 <ol>
 <li>服务端 <code>~/.ssh/</code> 目录和 <code>~/.ssh/authorized_keys</code> 文件的权限问题；</li>
-<li>服务端 <code>/.ssh/authorized_keys</code> 文件内容格式问题。</li>
+<li>服务端 <code>~/.ssh/authorized_keys</code> 文件内容格式问题。</li>
 </ol>
 <h3 id="服务端相关目录和文件权限"><a href="#服务端相关目录和文件权限" class="headerlink" title="服务端相关目录和文件权限"></a>服务端相关目录和文件权限</h3><p>个人见过的情况，把服务端  <code>~/.ssh/</code>  目录权限设置为 <strong>700</strong> ，把  <code>~/.ssh/authorized_keys</code> 文件权限设置为 <strong>600</strong> 即可。</p>
 <h3 id="authorized-keys-中-pubkey-内容要换行"><a href="#authorized-keys-中-pubkey-内容要换行" class="headerlink" title="authorized_keys 中 pubkey 内容要换行"></a>authorized_keys 中 pubkey 内容要换行</h3><p>有时候，服务端 SSH 目录和文件权限都没问题，仍然连接失败。此时给 SSH 命令启用 <code>-v</code> 选项打出连接时的详细信息，会发现客户机已经把私钥发送到服务器端，但在服务器端没有验证成功。</p>
 <p>并且，在服务端的 SSH 服务日志 <code>/var/log/secure</code> 文件中可以查到类似以下内容的错误信息：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">error: key_read: uudecode AAAAB3N failed</div></pre></td></tr></table></figure>
-<p>此时就是服务端 <code>/.ssh/authorized_keys</code> 文件内容格式出了问题。根源在于 <code>ssh-copid</code> 命令默认把公钥文件内容直接附加到服务端 <code>authorized_keys</code> 末尾，而<strong>没有换行</strong>。</p>
-<p>解决方案也很简单：Vim 打开服务端 <code>/.ssh/authorized_keys</code> 文件，为每个 pubkey 内容手动隔开一行即可。</p>
+<p>此时就是服务端 <code>~/.ssh/authorized_keys</code> 文件内容格式出了问题。根源在于 <code>ssh-copid</code> 命令默认把公钥文件内容直接附加到服务端 <code>authorized_keys</code> 末尾，而<strong>没有换行</strong>。</p>
+<p>解决方案也很简单：Vim 打开服务端 <code>~/.ssh/authorized_keys</code> 文件，为每个 pubkey 内容手动隔开一行即可。</p>
 <h2 id="配置多服务器多公钥登录"><a href="#配置多服务器多公钥登录" class="headerlink" title="配置多服务器多公钥登录"></a>配置多服务器多公钥登录</h2><p>前面举的例子都是针对单一服务器 SSH 公钥登录配置，如果我有多台服务器都需要配置成 SSH 公钥登录，该怎么配置？</p>
 <p>这里有个便捷的方式，两步即可完成配置：</p>
 <ol>
