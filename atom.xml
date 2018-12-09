@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2017-11-25T13:43:37.350Z</updated>
+  <updated>2017-11-25T13:43:37.000Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/"/>
     <id>http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/</id>
     <published>2017-11-21T16:00:00.000Z</published>
-    <updated>2017-11-25T13:43:37.350Z</updated>
+    <updated>2017-11-25T13:43:37.000Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
@@ -825,9 +825,9 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
-      <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
-    
       <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
+    
+      <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
     
@@ -1052,9 +1052,9 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
-      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
-    
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
+    
+      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
     
       <category term="intranet" scheme="http://jiayu0x.com/tags/intranet/"/>
     
