@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2019-03-21T06:02:55.999Z</updated>
+  <updated>2019-03-21T09:58:30.201Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -16,11 +16,11 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>二种姿势批量解密恶意驱动中的上百条字串</title>
+    <title>两种姿势批量解密恶意驱动中的上百条字串</title>
     <link href="http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/"/>
     <id>http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/</id>
     <published>2019-03-16T16:00:00.000Z</published>
-    <updated>2019-03-21T06:02:55.999Z</updated>
+    <updated>2019-03-21T09:58:30.201Z</updated>
     
     <content type="html"><![CDATA[<h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>在 360Netlab 的旧文 《<a href="https://mp.weixin.qq.com/s/KHa5GyCvbZwXruv0uK6weA" target="_blank" rel="external">“双枪”木马的基础设施更新及相应传播方式的分析</a>》 中，提到了 <strong>双枪</strong> 木马传播过程中的一个恶意驱动程序 <strong>kemon.sys</strong> ，其中有经过自定义加密的 Ascii 字符串和 Unicode 字符串 100+ 条（说是 <strong>编码</strong> 也行，毕竟不是很复杂的算法，这里就不掰扯加密跟编码的区别了）：</p>
 <p><img src="/imgs/refer_content.jpg" alt=""></p>
