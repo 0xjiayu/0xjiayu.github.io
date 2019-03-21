@@ -452,6 +452,175 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="url">
+                  静态分析提取 WatchdogsMiner 木马中的矿机程序
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-24T00:00:00+08:00">
+                2019-02-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>这周末爆发的新型 Linux 挖矿木马 WatchdogsMiner，有两家厂商分析的挺详细，尤其是腾讯云鼎实验室的分析，全面而深入。看完他们的的分析很有收获，也才发现这个 WatchdogsMiner 比之前想象的复杂一些：</p>
+<ul>
+<li>腾讯云鼎： <a href="https://mp.weixin.qq.com/s/3V0HVEREZWU8SkRWLspaxg">事件分析 | Linux watchdogs 感染性隐藏挖矿病毒入侵还原录</a></li>
+<li>深信服： <a href="https://mp.weixin.qq.com/s/dwY--BLzcyeXqPUZlhb__Q">紧急预警！WatchDogsMiner挖矿蠕虫大量感染Linux服务器</a></li>
+</ul>
+<p>但是有一个参与此次木马应急响应的朋友指出：里面有个关键的挖矿模块 <code>/tmp/ksoftirqds</code> ，目前公开的分析文章中看他们并没有提到捕获的细节(当然，不是说他们没有搞定这一点，只是没在文中提及细节)。</p>
+<p>说的也是，既然是<strong>挖矿木马</strong>，个人认为分析的时候要重点关注 3 个要素：</p>
+<ol>
+<li>矿机程序(Hash 值、由什么开源矿机编译而来、版本等等）；</li>
+<li>挖矿配置（挖矿账号、矿池地址，有的还有自建挖矿代理服务器）；</li>
+<li>挖矿收益（可选，因为在某些情况下查不到）。</li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1751,167 +1920,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/24/Linux-authority-and-access-control-2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2014/12/24/Linux-authority-and-access-control-2/" itemprop="url">
-                  Linux 权限管理与访问控制详解(2)——MAC 和 SELinux
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-24T00:00:00+08:00">
-                2014-12-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2014/12/24/Linux-authority-and-access-control-2/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2014/12/24/Linux-authority-and-access-control-2/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本系列 <a href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">前一篇</a> 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。</p>
-<h2 id="1-强制访问控制-SELinux"><a href="#1-强制访问控制-SELinux" class="headerlink" title="1. 强制访问控制(SELinux)"></a>1. 强制访问控制(SELinux)</h2><p>前半部分讲解了Linux系统中实现的<strong>DAC</strong>(Discretionary Access Control,自主访问控制)机制，主要包括传统的<strong><code>UGO+RWX</code></strong>机制和 ACL 机制；下半部分开始讲解<strong>MAC(Mandatory Access Control，强制访问控制)</strong>，该部分主要讲 SELinux，因为 Linux 系统中的MAC机制，主要由 SELinux 来实现。</p>
-<h2 id="2-SELinux简介"><a href="#2-SELinux简介" class="headerlink" title="2. SELinux简介"></a>2. SELinux简介</h2><hr>
-<h3 id="2-1-起源"><a href="#2-1-起源" class="headerlink" title="2.1 起源"></a>2.1 起源</h3><p>NSA(美国国家安全局)一直非常关注计算机操作系统的安全领域，他们发现大部分操作系统的安全机制，包括Window和大部分*nix系统，都是以DAC机制为安全认证基础的。由于DAC机制的设计很不利于系统安全，NSA便一直致力于开发一套更安全的MAC操作系统安全认证机制。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2014/12/24/Linux-authority-and-access-control-2/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1961,7 +1969,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">14</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1983,7 +1991,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">21</span>
+                <span class="site-state-item-count">22</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>

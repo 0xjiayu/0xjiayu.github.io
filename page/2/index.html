@@ -293,6 +293,167 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/24/Linux-authority-and-access-control-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2014/12/24/Linux-authority-and-access-control-2/" itemprop="url">
+                  Linux 权限管理与访问控制详解(2)——MAC 和 SELinux
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-24T00:00:00+08:00">
+                2014-12-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/system/" itemprop="url" rel="index">
+                    <span itemprop="name">system</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2014/12/24/Linux-authority-and-access-control-2/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2014/12/24/Linux-authority-and-access-control-2/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本系列 <a href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">前一篇</a> 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。</p>
+<h2 id="1-强制访问控制-SELinux"><a href="#1-强制访问控制-SELinux" class="headerlink" title="1. 强制访问控制(SELinux)"></a>1. 强制访问控制(SELinux)</h2><p>前半部分讲解了Linux系统中实现的<strong>DAC</strong>(Discretionary Access Control,自主访问控制)机制，主要包括传统的<strong><code>UGO+RWX</code></strong>机制和 ACL 机制；下半部分开始讲解<strong>MAC(Mandatory Access Control，强制访问控制)</strong>，该部分主要讲 SELinux，因为 Linux 系统中的MAC机制，主要由 SELinux 来实现。</p>
+<h2 id="2-SELinux简介"><a href="#2-SELinux简介" class="headerlink" title="2. SELinux简介"></a>2. SELinux简介</h2><hr>
+<h3 id="2-1-起源"><a href="#2-1-起源" class="headerlink" title="2.1 起源"></a>2.1 起源</h3><p>NSA(美国国家安全局)一直非常关注计算机操作系统的安全领域，他们发现大部分操作系统的安全机制，包括Window和大部分*nix系统，都是以DAC机制为安全认证基础的。由于DAC机制的设计很不利于系统安全，NSA便一直致力于开发一套更安全的MAC操作系统安全认证机制。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/12/24/Linux-authority-and-access-control-2/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -820,7 +981,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">14</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -842,7 +1003,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">21</span>
+                <span class="site-state-item-count">22</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
