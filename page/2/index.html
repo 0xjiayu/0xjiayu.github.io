@@ -293,6 +293,169 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2014/12/23/Linux-authority-and-access-control/" itemprop="url">
+                  Linux 权限管理与访问控制详解(1)——基本概念和 DAC
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-23T00:00:00+08:00">
+                2014-12-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/system/" itemprop="url" rel="index">
+                    <span itemprop="name">system</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2014/12/23/Linux-authority-and-access-control/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2014/12/23/Linux-authority-and-access-control/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。<br>另，<strong>本文中所有例子均是在 <code>CentOS7</code> 中运行的，不同系统运行结果可能有所不同。</strong></p>
+</blockquote>
+<h2 id="1-安全模型概述"><a href="#1-安全模型概述" class="headerlink" title="1. 安全模型概述"></a>1. 安全模型概述</h2><p>操作系统的权限管理与访问控制机制，遵从一定的 <strong>安全模型</strong> 或者 <strong>安全机制</strong> ，常见的安全模型有 <strong>BLP安全模型</strong>， <strong>RBAC安全模型</strong> 和 <strong>多级别安全机制</strong> 。Linux 系统也不例外，其基础的权限管理与访问控制机制和加强的 ACL 机制、SELinux，都对这些安全模型与安全机制有所实现。</p>
+<h3 id="1-1-BLP安全模型"><a href="#1-1-BLP安全模型" class="headerlink" title="1.1 BLP安全模型"></a>1.1 BLP安全模型</h3><hr>
+<p><strong>BLP</strong>(Bell &amp; Lapadula)安全模型是由David Bell 和 Leonard La Padula 在1973年模拟军事安全策略创建的计算机系统安全模型, 74年改进, 76年首次实现于 <strong>Multics</strong> 操作系统。该安全模型是一个状态机模型，有一系列错综复杂的数学证明来保证其安全性的结果；它是定义多级安全性的基础，被视作<strong>基本安全公理</strong>。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/12/23/Linux-authority-and-access-control/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/02/iptables-essential-summary/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -657,7 +820,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-count">13</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -679,7 +842,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-count">21</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -734,7 +897,7 @@
         <div class="copyright" >
   
   &copy; 
-  <span itemprop="copyrightYear">2018</span>
+  <span itemprop="copyrightYear">2019</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

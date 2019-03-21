@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2017-11-25T13:43:37.000Z</updated>
+  <updated>2019-03-21T06:02:55.999Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -14,6 +14,114 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>二种姿势批量解密恶意驱动中的上百条字串</title>
+    <link href="http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/"/>
+    <id>http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/</id>
+    <published>2019-03-16T16:00:00.000Z</published>
+    <updated>2019-03-21T06:02:55.999Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>在 360Netlab 的旧文 《<a href="https://mp.weixin.qq.com/s/KHa5GyCvbZwXruv0uK6weA" target="_blank" rel="external">“双枪”木马的基础设施更新及相应传播方式的分析</a>》 中，提到了 <strong>双枪</strong> 木马传播过程中的一个恶意驱动程序 <strong>kemon.sys</strong> ，其中有经过自定义加密的 Ascii 字符串和 Unicode 字符串 100+ 条（说是 <strong>编码</strong> 也行，毕竟不是很复杂的算法，这里就不掰扯加密跟编码的区别了）：</p>
+<p><img src="/imgs/refer_content.jpg" alt=""></p>
+<a id="more"></a>
+<p>这在 <strong>双枪</strong> 木马的传播链条中只是一个很小的技术点，所以文中也没说具体是什么样的加密算法以及怎样解密，供分析员更方便地做样本分析工作。但这个技术点还算有点意思，尤其是对逆向入门阶段的朋友来说，可以参考一下解法。最近又碰到了这个驱动程序的最新变种，跟团队的老师傅讨教了一番，索性写篇短文记录一下。感谢老师傅们解惑(此处就不提名号了)。</p>
+<p>也欢迎各路老师傅不吝赐教，提一些更快准狠的解法。</p>
+<h2 id="2-样本概况"><a href="#2-样本概况" class="headerlink" title="2. 样本概况"></a>2. 样本概况</h2><blockquote>
+<p>MD5： b001c32571dd72dc28fd4dba20027a88</p>
+<p><strong>Note</strong>: 这是旧文中提到的旧样本，现在已经上传到 VT，想分析但下载不到的朋友可以留言，留下邮箱，我可以发到指定的邮箱。最新变种 VT 上暂时没有，我也不提供了。</p>
+</blockquote>
+<h3 id="2-1-字符串加密情况"><a href="#2-1-字符串加密情况" class="headerlink" title="2.1 字符串加密情况"></a>2.1 字符串加密情况</h3><p>驱动程序中用到的 100+ 条字符串都做了自定义加密处理，在设置完各 IRP 派遣函数和卸载例程之后，第一步操作就是依次解密这些字符串。IDA 中打开样本，部分解密过程如下：</p>
+<p><img src="/imgs/decrypt_main_graph.png" alt=""></p>
+<p>整个解密过程的函数是 <strong>sub_100038C4</strong> ，里面会多次调用两个具体的解密函数：<strong>sub10003871</strong> 和 <strong>sub_10003898</strong>，前者为解密 Ascii 字串，后者解密 Unicode 字串，都有两个参数：arg1–&gt;要解密的字符串地址；arg2–&gt;字符串长度。后面会把着两个函数分别命名为 <strong>DecryptAsciiStr</strong> 和 <strong>DecryptUnicodeStr</strong> 。这两个函数在 IDA 中看到的 xrefs 状况如下：</p>
+<p><img src="/imgs/xref2decrypt_ascii.png" alt=""></p>
+<p><img src="/imgs/xref2decrypt_unicode.png" alt=""></p>
+<h3 id="2-2-加密算法"><a href="#2-2-加密算法" class="headerlink" title="2.2 加密算法"></a>2.2 加密算法</h3><p>前面说了，算法不复杂。以 <strong>DecryptAsciiStr</strong> 函数为例：</p>
+<p><img src="/imgs/decrypt_ascii_graph.png" alt=""></p>
+<p>反编译看看：</p>
+<p><img src="/imgs/decrypt_ascii_decompiled.png" alt=""></p>
+<p><strong>DecryptUnicodeStr</strong> 算法其实相同，只是因为字节构成不同，所以是两个解密函数分开写：</p>
+<p><img src="/imgs/decrypt_unicode_decompiled.png" alt=""></p>
+<p>简单总结起来，这套解密过程其实就是：把当前字节后面特定偏移处的字节与 0xC 异或，然后替换掉当前字节，把解密后的字节写入到当前位置，即完成解密。本人对密码学不熟，不知道这是不是已有名号的加密算法，看起来像是 <a href="https://en.wikipedia.org/wiki/Caesar_cipher" title="凯撒密码" target="_blank" rel="external">凯撒密码</a> 的变形加强版？对密码学有了解的朋友欢迎指教。 </p>
+<h2 id="3-解密"><a href="#3-解密" class="headerlink" title="3. 解密"></a>3. 解密</h2><p>了解了上面的情况之后，就该着手解密这百十多条字符串了。既然是用 IDA 来分析这个样本，理想的状况应该是把这些字串批量解出来，直接在 IDA 中呈现，然后就可以进行后续分析了。既然是要自动化批量解密，写 IDAPython 应该算是最便捷的做法了。最终效果如图：</p>
+<p><img src="/imgs/decrypted_status.png" alt=""></p>
+<h3 id="3-1-姿势-1——自行实现解密算法"><a href="#3-1-姿势-1——自行实现解密算法" class="headerlink" title="3.1 姿势 1——自行实现解密算法"></a>3.1 姿势 1——自行实现解密算法</h3><p>首先想到的思路是：就两个解密算法，而且不复杂，不妨直接写个 IDAPython 脚本，实现这两个解密算法。解密之后把明文字串直接写到 IDB 文件中，在 IDA 中呈现。两个解密算法的 Python 版本分别如下(附带对 IDB 的 Patch 操作)：</p>
+<p><img src="/imgs/decrypt_ascii_py.png" alt=""></p>
+<p><img src="/imgs/decrypt_unicode_py.png" alt=""></p>
+<p>这里稍微解释一下 <strong>make unicode str</strong> 时的操作：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">old_type = idc.GetLongPrm(INF_STRTYPE)</div><div class="line">idc.SetLongPrm(idc.INF_STRTYPE, idc.ASCSTR_UNICODE)</div><div class="line">idc.MakeStr(argv[<span class="number">0</span>], argv[<span class="number">0</span>]+(argv[<span class="number">1</span>]*<span class="number">2</span>))</div><div class="line">idc.SetLongPrm(idc.INF_STRTYPE, old_type)</div></pre></td></tr></table></figure>
+<p>在 IDA 的 UI 界面中，可以选择生成的字符串的类型(如下图)，快捷键只有一个 <strong>A</strong>，对应的 idc 函数是 <strong>idc.MakeStr(0</strong>。然而 <strong>ida.MakeStr()</strong> 函数默认是生成 Ascii 字串的，要想生成 Unicode 字串，就需要调用  <strong>idc.SetLongPrm()</strong> 函数设置一下字符串的类型。<img src="/imgs/makestr.png" alt="1552795108347"></p>
+<p>IDA 中支持的字符串类型如上图，相应地，在 idc 库中的<a href="https://github.com/tmr232/idapython/blob/master/python/idc.py" title="idc lib" target="_blank" rel="external">定义</a>如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">ASCSTR_C       = idaapi.ASCSTR_TERMCHR # C-style ASCII string</div><div class="line">ASCSTR_PASCAL  = idaapi.ASCSTR_PASCAL  # Pascal-style ASCII string (length byte)</div><div class="line">ASCSTR_LEN2    = idaapi.ASCSTR_LEN2    # Pascal-style, length is 2 bytes</div><div class="line">ASCSTR_UNICODE = idaapi.ASCSTR_UNICODE # Unicode string</div><div class="line">ASCSTR_LEN4    = idaapi.ASCSTR_LEN4    # Pascal-style, length is 4 bytes</div><div class="line">ASCSTR_ULEN2   = idaapi.ASCSTR_ULEN2   # Pascal-style Unicode, length is 2 bytes</div><div class="line">ASCSTR_ULEN4   = idaapi.ASCSTR_ULEN4   # Pascal-style Unicode, length is 4 bytes</div><div class="line">ASCSTR_LAST    = idaapi.ASCSTR_LAST    # Last string type</div></pre></td></tr></table></figure>
+<p>所以，要生成 Unicode 格式的字串，需要先用 <strong>idc.SetLongPrm()</strong> 函数设置一下字符串类型。其中 <strong>idc.INF_STRTYPE</strong> 即代表字符串类型的常量，在 idc 库中的<a href="https://github.com/tmr232/idapython/blob/master/python/idc.py" title="idc lib" target="_blank" rel="external">定义</a>如下：</p>
+<p><img src="/imgs/INF_STRTYPE.png" alt=""></p>
+<p>用 Python 实现了解密函数之后，如何模拟这一波解密过程把这 100+ 条字串依次解密呢？这里可以结合 IDA 中的 xrefs 和 <strong>idc.PrevHead()</strong> 函数来实现：</p>
+<ol>
+<li>先通过 xrefs 找到调用两个解密函数的位置；</li>
+<li>再通过 <strong>idc.PrevHead()</strong> 定位到两个解密函数的参数地址，并解析出参数的值；</li>
+<li>执行解密函数，将解密后的明文字串写回 IDB 并 MakeStr。</li>
+</ol>
+<h3 id="3-2-姿势-2——指令模拟"><a href="#3-2-姿势-2——指令模拟" class="headerlink" title="3.2 姿势 2——指令模拟"></a>3.2 姿势 2——指令模拟</h3><p>这个样本中的字串解密算法并不复杂，所以可以轻松写出 Python 版本，并直接用 IDAPython 脚本在 IDA 中将其批量解密。那如果字串解密算法比较复杂，用 Python 实现一版显得吃力呢？</p>
+<p>这时不妨考虑一下指令模拟器。</p>
+<p>近几年，<a href="https://unicorn-engine.org" title="Unicorn" target="_blank" rel="external">Unicorn</a> 作为新一代指令模拟器在业界大火。基于 Unicorn 的 IDA 指令模拟插件也不断被开发出来，比如简捷的 <a href="https://github.com/36hours/idaemu" title="IdaEmu" target="_blank" rel="external">IdaEmu</a> 和 FireEye 开发的功能强大的 <a href="https://github.com/fireeye/flare-emu" title="Flare-Emu" target="_blank" rel="external">Flare-Emu</a>。指令模拟器可以模拟执行一段汇编指令，而 IDA 中的指令模拟插件可以在 IDA 中模拟执行指定的指令片段(需要手动指定起始指令地址和结束指令地址，并设置相关寄存器的初始状态)。这样一来，我们就可以在 IDA 中，利用指令模拟插件来模拟执行上面的批量解密指令，解密字串的汇编指令模拟执行结束，字串也就自然都给解密了。</p>
+<p>本文 Case 的指令模拟姿势基于 Flare-Emu。</p>
+<p>不过，这个姿势需要注意两点问题：</p>
+<ol>
+<li>指令模拟器无法模拟系统 API ，如果解密函数中有调用系统 API 的操作，那指令模拟这个姿势就要费老劲了。</li>
+<li>所谓模拟指令执行，真的只是<strong>模拟</strong>，而不会修改 IDA 中的任何数据。这样一来，需要自己把指令模拟器执行结束后的明文字串 Patch 到 IDB 文件中，这样才能在 IDA 中看到明文字串。</li>
+</ol>
+<h4 id="3-2-1-hook-api"><a href="#3-2-1-hook-api" class="headerlink" title="3.2.1 hook api"></a>3.2.1 hook api</h4><p>第 1 点问题，IdaEmu 中需要自己实现相关 API 的功能，并对指令片段中相应的 API 进行 Hook，才能顺利模拟。比如下图示例中，指令片段里调用了 <code>_printf</code> 函数，那么就需要我们手动实现 <code>_printf</code> 的功能并 Hook 掉指令片段中的 <code>_printf</code> 才行：</p>
+<p><img src="/imgs/idaemu_call_hook.png" alt=""></p>
+<p>而 Flare-Emu 就做的更方便了，他们直接在框架中实现了一些基础的系统 API，而不用自己手动实现并进行 Hook 操作：</p>
+<p><img src="/imgs/flareemu_apihook.png" alt=""></p>
+<p>之所以提这么个问题，是因为这个 kemon.sys 样本中的批量解密字串的过程中，涉及了对 <code>memcpy</code> 函数的调用：</p>
+<p><img src="/imgs/decrypt_main_memcpy.png" alt=""></p>
+<p>这样一来，直接用 Flare-Emu 来模拟执行应该是个更便捷的选项。</p>
+<h4 id="3-2-2-Patch-IDB"><a href="#3-2-2-Patch-IDB" class="headerlink" title="3.2.2 Patch IDB"></a>3.2.2 Patch IDB</h4><p>第 2 点问题，将模拟结果写回 IDB 文件，在 IDA 中显示。</p>
+<p>首要问题是如何获模拟执行成功后的结果——明文字符串。前面描述字串解密算法时说过，解密后的字节(Byte)会直接替换密文中的特定字节，把密文的前 <strong>dataLen</strong> 个字节解密出来，就是明文字串。这个字节替换的操作，其实对应 Unicorn 指令模拟器中定义的 <strong>MEM_WRITE</strong> 操作，即<strong>写内存</strong>，而且，字串解密过程中也只有这个字串替换操作会「写内存」。恰好，Flare-Emu 中提供了一个 <strong>memAccessHook()</strong> 接口(如下图)，可以 Hook 多种内存操作：</p>
+<blockquote>
+<p><strong>memAccessHook</strong> can be a function you define to be called whenever memory is accessed for reading or writing. It has the following prototype: <code>memAccessHook(unicornObject, accessType, memAccessAddress, memAccessSize, memValue, userData)</code>.</p>
+</blockquote>
+<p>Unicorn 支持 Hook 的的内存操作有<a href="https://github.com/unicorn-engine/unicorn/blob/master/bindings/python/unicorn/unicorn_const.py#L64" title="uc const" target="_blank" rel="external">以下几个</a>：</p>
+<p><img src="/imgs/uc_mem_op.png" alt=""></p>
+<p>于是，我们 Hook 掉指令模拟过程中的 <strong>UC_MEM_WRITE</strong> 操作，即可获取解密后的字节，并将这些字节手动 Patch 到 IDB 中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">mem_hook</span><span class="params">(unicornObject, accessType, memAccessAddress, memAccessSize, memValue, userData)</span>:</span></div><div class="line">    <span class="comment">#if accessType == UC.UC_MEM_READ:</span></div><div class="line">    <span class="comment">#    print("Read: ", hex(memAccessAddress), memAccessSize, hex(memValue))</span></div><div class="line">    <span class="keyword">if</span> accessType == UC.UC_MEM_WRITE:</div><div class="line">        <span class="comment">#print("Write: ", hex(memAccessAddress), memAccessSize, hex(memValue))</span></div><div class="line">        <span class="keyword">if</span> memAccessSize == <span class="number">1</span>:</div><div class="line">            idc.PatchByte(memAccessAddress, memValue)</div><div class="line">        <span class="keyword">elif</span> memAccessSize == <span class="number">2</span>:</div><div class="line">            idc.PatchWord(memAccessAddress, memValue)</div><div class="line">        <span class="keyword">elif</span> memAccessSize == <span class="number">4</span>:</div><div class="line">            idc.PatchDword(memAccessAddress, memValue)</div></pre></td></tr></table></figure>
+<p>Patch IDB 的基本操作当然是像前文中 IDAPython 脚本那样，调用 <strong>idc.PatchXXX</strong> 函数写入 IDB 文件。前面第一个姿势中，Patch IDB 文件，只调用了一个 <strong>idc.PatchByte()</strong> 函数。其实，idc 库中共有 4 个函数可以 Patch IDB：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">idc.PatchByte(): Patch 1 Byte;</div><div class="line">idc.PatchWord(): Patch 2 Bytes;</div><div class="line">idc.PatchDword(): Patch 4 Bytes;</div><div class="line">idc.PatchQword(): Patch 8 Bytes;</div></pre></td></tr></table></figure>
+<p>指令模拟器中执行 Patch 的操作，并不只有 <strong>PatchByte</strong> 这一项。根据我 print 出来的指令模拟过程中写内存操作的细节，可以看到共涉及 3 种 Patch 操作(如下图)：1 byte、2 Bytes 和 4 Bytes，所有才有了上面 <strong>mem_hook()</strong> 函数中的 3 种 <strong>memAccessSize</strong>。</p>
+<p><img src="/imgs/decrypt_mem_size.png" alt=""></p>
+<p>明确并解决了「系统 API Hook」和「捕获指令模拟结果并 Patch IDB」这两点问题，就可以写出准确无误的 IDAPython 脚本了。</p>
+<h3 id="3-2-3-Radare2-ESIL-模拟"><a href="#3-2-3-Radare2-ESIL-模拟" class="headerlink" title="3.2.3 Radare2 ESIL 模拟"></a>3.2.3 Radare2 ESIL 模拟</h3><p>r2 上也有强大的指令模拟器，名为 <strong>ESIL</strong>( <a href="https://radare.gitbooks.io/radare2book/content/esil.html" target="_blank" rel="external">Evaluable Strings Intermediate Language</a>)：</p>
+<p><img src="/imgs/r2_intro.png" alt=""></p>
+<p>在 r2 上用这个东西来模拟指令解密这一批字符串，就不用像 IDA 中那样还要自己动手写 IDAPython 脚本了，只需要通过 r2 指令配置好几个相关参数即可。下面两张图是在 r2 中通过指令模拟批量解密这些字符串的前后对比：</p>
+<p><img src="/imgs/r2_emu_origin.png" alt=""></p>
+<p><img src="/imgs/r2_emu.png" alt=""></p>
+<p>具体操作方法就不细说了，有兴趣的朋友可以自行探索。</p>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>文中介绍两种基本方法，在 IDA 中批量解密 <strong>双枪</strong> 木马传播中间环节的恶意驱动 kemon.sys 中的大量自定义加密字串：Python 实现解密函数和指令模拟解密函数。</p>
+<p>原理都很简单，介绍的有点啰嗦，希望把每个关键细节都描述清楚了。</p>
+<p>两种方法对应的 IDAPython 脚本，已上传到 Github，以供参考:</p>
+<p><a href="https://github.com/0xjiayu/decrypt_CypherStr_kemonsys" target="_blank" rel="external">https://github.com/0xjiayu/decrypt_CypherStr_kemonsys</a></p>
+<h2 id="5-参考资料："><a href="#5-参考资料：" class="headerlink" title="5. 参考资料："></a>5. 参考资料：</h2>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;1-前言&quot;&gt;&lt;a href=&quot;#1-前言&quot; class=&quot;headerlink&quot; title=&quot;1. 前言&quot;&gt;&lt;/a&gt;1. 前言&lt;/h2&gt;&lt;p&gt;在 360Netlab 的旧文 《&lt;a href=&quot;https://mp.weixin.qq.com/s/KHa5GyCvbZwXruv0uK6weA&quot;&gt;“双枪”木马的基础设施更新及相应传播方式的分析&lt;/a&gt;》 中，提到了 &lt;strong&gt;双枪&lt;/strong&gt; 木马传播过程中的一个恶意驱动程序 &lt;strong&gt;kemon.sys&lt;/strong&gt; ，其中有经过自定义加密的 Ascii 字符串和 Unicode 字符串 100+ 条（说是 &lt;strong&gt;编码&lt;/strong&gt; 也行，毕竟不是很复杂的算法，这里就不掰扯加密跟编码的区别了）：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/imgs/refer_content.jpg&quot; alt=&quot;&quot;&gt;&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
+    
+    
+      <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
+    
+      <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
+    
+      <category term="decrypt" scheme="http://jiayu0x.com/tags/decrypt/"/>
+    
+  </entry>
   
   <entry>
     <title>SSH 公钥登录配置详解(iTerm2 为例)</title>
