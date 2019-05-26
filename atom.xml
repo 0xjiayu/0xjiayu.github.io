@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2019-05-11T06:35:23.036Z</updated>
+  <updated>2019-05-26T15:00:55.432Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -14,6 +14,81 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>浅谈 Python3 中对二进制数据 XOR 编码的正确姿势</title>
+    <link href="http://jiayu0x.com/2019/05/26/The_right_way_to_xor_encoding_with_python3/"/>
+    <id>http://jiayu0x.com/2019/05/26/The_right_way_to_xor_encoding_with_python3/</id>
+    <published>2019-05-25T16:00:00.000Z</published>
+    <updated>2019-05-26T15:00:55.432Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>Python3 中的默认编码是 UTF-8，这给大家写 Python 代码带来了很大的便利，不用再像 Python2.x 那样为数据编码操碎了心。但是，由于全面转向 UTF-8 编码，Python3 里面会有一些小细节，稍有不慎容易栽坑。本文就对二进制数据 XOR 编码这一种操作，浅析 Py2/Py3 中默认编码相关的一个细节小差异而引起的小 Bug。</p>
+</blockquote>
+<p>XOR 编码是最简单有效的编码方法之一，虽然简单，但仍然应用广泛。在分析恶意样本时，经常会遇到样本内置的隐秘数据或者网络通信数据，用到了 XOR 编码。比如，一个典型就是 XOR.DDoS 家族，它样本内部关键字符串全用 XOR 编码过，而且其网络通信中 Bot 发给 C2 的上线数据包和 C2 给 Bot 下发的控制指令数据包中均涉及 XOR 编码/解码操作。</p>
+<a id="more"></a>
+<p>对于这类样本，分析的时候我们不免要写一些自动化的解析脚本，把其中的编码数据还原成名文以便分析。在其他开发场景中也偶尔会用 Python 写一些 XOR 编码/解码的程序。网上一搜 「Python XOR 编码 加密」或者「Python XOR encoding crypt」，都会搜出很多别人发出来的 Python XOR 编解码脚本，大多数情况下拿来直接用就行。比如我搜来的几个中文帖子中的相关脚本（本人不保证下面截图里代码的正确性）：</p>
+<p><img src="/imgs/py2_xorfunc_1.png" alt=""></p>
+<p><img src="/imgs/py2_xorfunc_2.png" alt=""></p>
+<p><img src="/imgs/py2_xorfunc_3.png" alt=""></p>
+<p><img src="/imgs/py2_xorfunc_4.png" alt=""></p>
+<p>这些脚本，在 Python2 环境下都没有问题，都可以正确进行 XOR 编解码，然而如果直接拿到 Python3 环境下去运行，却会发生一个不容易发现的小 Bug。来看一段在 ipthon3 里的操作记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line">In [1]: def xor_crypt(data, key):</div><div class="line">   ...:     cipher_data = []</div><div class="line">   ...:     len_data = len(data)</div><div class="line">   ...:     len_key = len(key)</div><div class="line">   ...:     for idx in range(len_data):</div><div class="line">   ...:         bias = key[idx % len_key]</div><div class="line">   ...:         curr_byte = data[idx]</div><div class="line">   ...:         cipher_data.append(chr(bias ^ curr_byte))</div><div class="line">   ...:     return bytearray(&quot;&quot;.join(cipher_data).encode())</div><div class="line">   ...:</div><div class="line"></div><div class="line">In [2]: xor_key = b&apos;0123456789&apos;</div><div class="line"></div><div class="line">In [3]: sam1 = b&apos;abcdefgh&apos;</div><div class="line"></div><div class="line">In [4]: sam2 = b&apos;abcdefghijklmnopqrstuvwxyz&apos;</div><div class="line"></div><div class="line">In [5]: print(xor_crypt(sam1,xor_key))</div><div class="line">bytearray(b&apos;QSQWQSQ_&apos;)</div><div class="line"></div><div class="line">In [6]: print(xor_crypt(xor_crypt(sam1,xor_key), xor_key))</div><div class="line">bytearray(b&apos;abcdefgh&apos;)</div><div class="line"></div><div class="line">In [7]: print(xor_crypt(sam2, xor_key))</div><div class="line">bytearray(b&apos;QSQWQSQ_QS[]_][EGEKMEGEKMO&apos;)</div><div class="line"></div><div class="line">In [8]: print(xor_crypt(xor_crypt(sam2,xor_key), xor_key))</div><div class="line">bytearray(b&apos;abcdefghijklmnopqrstuvwxyz&apos;)</div><div class="line"></div><div class="line">In [9]: sam3 = b&apos;\x7f\x80\x81\x90\x91\xA0\xA1\xB0\xB1\xC0\xC1\xD0\xD1\xE0\xE1\xF0\xF1\xFA&apos;</div><div class="line"></div><div class="line">In [10]: print(xor_crypt(sam3, xor_key))</div><div class="line">bytearray(b&apos;O\xc2\xb1\xc2\xb3\xc2\xa3\xc2\xa5\xc2\x95\xc2\x97\xc2\x87\xc2\x89\xc3\xb9\xc3\xb1\xc3\xa1\xc3\xa3\xc3\x93\xc3\x95\xc3\x85\xc3\x87\xc3\x8d&apos;)</div><div class="line"></div><div class="line">In [11]: print(xor_crypt(xor_crypt(sam3,xor_key), xor_key))</div><div class="line">bytearray(b&apos;\x7f\xc3\xb3\xc2\x83\xc3\xb1\xc2\x87\xc3\xb7\xc2\x95\xc3\xb5\xc2\x9d\xc3\xbb\xc2\xa5\xc3\xb3\xc2\xa5\xc3\xb1\xc2\xb3\xc3\xb7\xc2\xbf\xc3\xb4\xc2\x81\xc3\xba\xc2\x81\xc3\xb2\xc2\x93\xc3\xb0\xc2\x97\xc3\xb6\xc2\xa5\xc3\xb4\xc2\xad\xc3\xba\xc2\xb5\xc3\xb2\xc2\xb5\xc3\xb0\xc2\xb9&apos;)</div><div class="line"></div><div class="line">In [12]: print(len(sam3))</div><div class="line">18</div><div class="line"></div><div class="line">In [13]: print(len(xor_crypt(xor_crypt(sam3,xor_key), xor_key)))</div><div class="line">69</div></pre></td></tr></table></figure>
+<p>可以看到，仿照 Python2 环境下那些常用的 XOR 编码操作写的函数，在 Python3 环境下，偶尔会出现意料之外的结果：上面的操作记录中，对于 <strong>sam1</strong> 和 <strong>sam2</strong> 两个全都是可打印字符的字节串进行 XOR 编解码是没有问题的；但是对于 <strong>sam3</strong> ，一个内含大量 HEX 值大于 <strong>0x7F</strong> 的非可打印字符字节串，原本是 18 个字节，进行两次 XOR 操作之后竟然变成了 69 个字节。</p>
+<p>这就十分蹊跷了。问题出在哪个环节？是函数内部的字节列表 <strong>cipher_data</strong> 的问题，还是最后 <strong>bytearray()</strong> 操作出了问题，还是进行 XOR 计算的时候，<strong>chr()</strong> 函数的问题？</p>
+<p>经过一番排查，发现这是 <strong>chr()</strong> 函数的问题。先看这个函数在 Python2 和 Python3 中各有什么表现：</p>
+<p><img src="/imgs/python3_sample.png" alt=""></p>
+<p><img src="/imgs/python2_sample.png" alt=""></p>
+<p>在 Python2 版本中，除了 <strong>chr()</strong> 还有一个 <strong>unichr()</strong> ，可以看到 Py2 中的 <strong>unichr()</strong> 与Py3 中的 <strong>chr()</strong> 行为是一致的：对于 HEX 值大于 0x7F 的字符，返回值占 2 Bytes；对于 HEX 值小于或等于 0x7F 的字符，返回值占 1 Byte。</p>
+<p>为什么会出现这么个差异？刚开始一直以为 <strong>chr()</strong> 函数只会返回 1 Byte 的结果，对此感到很是不解。</p>
+<p>查阅一下 Py2 中 <strong>chr()</strong> 和 <strong>unichr()</strong> 的文档如下：</p>
+<p><img src="/imgs/py2_chr_doc.png" alt=""></p>
+<p><img src="/imgs/py2_unichr_doc.png" alt=""></p>
+<p>而 Py3 中 <strong>chr()</strong> 函数的文档说明如下：</p>
+<p><img src="/imgs/py3_chr_doc.png" alt=""></p>
+<p>从文档来看， Py3 中的 <strong>chr()</strong> 函数确实对应到了 Py2 中的 <strong>unichr()</strong> 函数，只返回 Unicode 编码的结果。在点破最后的一层窗户纸之前，我们再去 CPython 的源码里瞅一眼，以便把这个结论锤结实了。</p>
+<p>Py3 中的 <strong>chr()</strong> 函数，源码中是这样实现的：</p>
+<p><img src="/imgs/cpython_bltinmodule_pyobject_chr.png" alt=""></p>
+<p><img src="/imgs/cpython_builtin_chr_impl.png" alt=""></p>
+<p><img src="/imgs/cpython_objects_PyUnicode_FromOrdinal.png" alt=""></p>
+<p>至于其中的 <strong>unicode_char()</strong> 函数如何实现，我们就不深究了，知道它就是返回一个 Unicode 编码的字符即可。再看 Py2 中 <strong>unichr()</strong> 函数：</p>
+<p><img src="/imgs/cpython_27_unichr.png" alt="">   </p>
+<p>如出一辙有木有。</p>
+<p>那<strong>最后一层窗户纸</strong>到底是什么？就是 Py3 默认的 UTF-8 编码了。在  <a href="http://www.utf-8.com" target="_blank" rel="external">http://www.utf-8.com</a> 网站上有这么一段话：</p>
+<blockquote>
+<p>UTF-8 encodes each Unicode character as a <strong>variable number of 1 to 4 octets</strong>, where the number of octets depends on the integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that use mostly US-ASCII characters because <strong>it represents each character in the range U+0000 through U+007F as a single octet</strong>.</p>
+</blockquote>
+<p>注意上面加粗部分的重点：</p>
+<ol>
+<li>UTF-8 编码的字符占 1~4 个字节；</li>
+<li>字符 U+0000 到 U+007F 都用一个字节来表示，其它字符 1 个字节不够，就用 2~4 个字节来表示。</li>
+</ol>
+<p>这样就明确上面问题的原因了：Py3 中的 <strong>chr()</strong> 函数，只有在参数的 HEX 值位于 [0x00, 0x7F] 区间内的时候才返回 1 Byte 的结果，这个结果同于 Py2 中的 <strong>chr()</strong> 函数；当 HEX 值大于 0x7F ，其返回值占 2 Bytes，行为同于 Py2 中的 <strong>unichr()</strong> 函数。</p>
+<p>那么 Py3 中正确的 XOR 编解码姿势是什么？上面 ipython3 操作记录中的函数稍加改动即可：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">xor_crypt</span><span class="params">(data, key)</span>:</span></div><div class="line">    cipher_data = []</div><div class="line">    len_data = len(data)</div><div class="line">    len_key = len(key)</div><div class="line">    <span class="keyword">for</span> idx <span class="keyword">in</span> range(len_data):</div><div class="line">        bias = key[idx % len_key]</div><div class="line">        curr_byte = data[idx]</div><div class="line">        cipher_data.append(bias ^ curr_byte)</div><div class="line">    <span class="keyword">return</span> bytearray(cipher_data)</div></pre></td></tr></table></figure>
+<p>当然，还有更简洁的写法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">XORCrypt</span><span class="params">(data, key)</span>:</span></div><div class="line">    <span class="keyword">return</span> bytearray(a^b <span class="keyword">for</span> a, b <span class="keyword">in</span> zip(*map(bytearray, [data, key])))</div></pre></td></tr></table></figure>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;Python3 中的默认编码是 UTF-8，这给大家写 Python 代码带来了很大的便利，不用再像 Python2.x 那样为数据编码操碎了心。但是，由于全面转向 UTF-8 编码，Python3 里面会有一些小细节，稍有不慎容易栽坑。本文就对二进制数据 XOR 编码这一种操作，浅析 Py2/Py3 中默认编码相关的一个细节小差异而引起的小 Bug。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;XOR 编码是最简单有效的编码方法之一，虽然简单，但仍然应用广泛。在分析恶意样本时，经常会遇到样本内置的隐秘数据或者网络通信数据，用到了 XOR 编码。比如，一个典型就是 XOR.DDoS 家族，它样本内部关键字符串全用 XOR 编码过，而且其网络通信中 Bot 发给 C2 的上线数据包和 C2 给 Bot 下发的控制指令数据包中均涉及 XOR 编码/解码操作。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="dev" scheme="http://jiayu0x.com/categories/dev/"/>
+    
+    
+      <category term="dev" scheme="http://jiayu0x.com/tags/dev/"/>
+    
+      <category term="python" scheme="http://jiayu0x.com/tags/python/"/>
+    
+      <category term="xor" scheme="http://jiayu0x.com/tags/xor/"/>
+    
+  </entry>
   
   <entry>
     <title>以 P2P 的方式追踪 DDG 僵尸网络</title>
@@ -1380,9 +1455,9 @@
     
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
-      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
-    
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
     
       <category term="sandbox" scheme="http://jiayu0x.com/tags/sandbox/"/>
     
@@ -1605,9 +1680,9 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
-      <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
-    
       <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
+    
+      <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
       <category term="intranet" scheme="http://jiayu0x.com/tags/intranet/"/>
     

@@ -293,6 +293,167 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/05/26/The_right_way_to_xor_encoding_with_python3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2019/05/26/The_right_way_to_xor_encoding_with_python3/" itemprop="url">
+                  浅谈 Python3 中对二进制数据 XOR 编码的正确姿势
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-26T00:00:00+08:00">
+                2019-05-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dev/" itemprop="url" rel="index">
+                    <span itemprop="name">dev</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/05/26/The_right_way_to_xor_encoding_with_python3/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/05/26/The_right_way_to_xor_encoding_with_python3/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>Python3 中的默认编码是 UTF-8，这给大家写 Python 代码带来了很大的便利，不用再像 Python2.x 那样为数据编码操碎了心。但是，由于全面转向 UTF-8 编码，Python3 里面会有一些小细节，稍有不慎容易栽坑。本文就对二进制数据 XOR 编码这一种操作，浅析 Py2/Py3 中默认编码相关的一个细节小差异而引起的小 Bug。</p>
+</blockquote>
+<p>XOR 编码是最简单有效的编码方法之一，虽然简单，但仍然应用广泛。在分析恶意样本时，经常会遇到样本内置的隐秘数据或者网络通信数据，用到了 XOR 编码。比如，一个典型就是 XOR.DDoS 家族，它样本内部关键字符串全用 XOR 编码过，而且其网络通信中 Bot 发给 C2 的上线数据包和 C2 给 Bot 下发的控制指令数据包中均涉及 XOR 编码/解码操作。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/05/26/The_right_way_to_xor_encoding_with_python3/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/04/11/track-ddg-botnet-by-p2p-protocol/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1755,173 +1916,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/07/07/Cuckoo-install-config/" itemprop="url">
-                  Cuckoo 安装、配置详解
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-07-07T00:00:00+08:00">
-                2016-07-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2016/07/07/Cuckoo-install-config/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2016/07/07/Cuckoo-install-config/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="0x00-简述"><a href="#0x00-简述" class="headerlink" title="0x00 简述"></a>0x00 简述</h2><p><strong>沙盒</strong>(<strong>Sanbox</strong>) 是一种将未知、不可信的软件隔离执行的安全机制。恶意软件分析沙盒一般用来将不可信软件放在隔离环境中自动地动态执行，然后提取其运行过程中的进程行为、网络行为、文件行为等动态行为，安全研究员可以根据这些行为分析结果对恶意软件进行更深入地分析。</p>
-<p>Cuckoo 是一款用 <strong>Python</strong> 编写的开源的自动化恶意软件分析系统，它的主要功能有：</p>
-<ul>
-<li>跟踪记录恶意软件所有的调用状况；</li>
-<li>恶意软件文件行为：恶意软件执行过程中创建新文件、修改文件、删除文件、读取文件或下载文件的行为；</li>
-<li>获取恶意软件的内存镜像；</li>
-<li>以 PCAP 格式记录恶意软件的网络流量；</li>
-<li>获取恶意软件执行过程中的屏幕截图；</li>
-<li>获取执行恶意软件的客户机的完整内存镜像</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2016/07/07/Cuckoo-install-config/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1971,7 +1965,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">16</span>
+                <span class="site-state-item-count">17</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1982,7 +1976,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-count">5</span>
                 <span class="site-state-item-name">categories</span>
               </a>
             </div>
@@ -1993,7 +1987,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-count">29</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
