@@ -648,7 +648,7 @@
     <link href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/"/>
     <id>http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/</id>
     <published>2017-11-21T16:00:00.000Z</published>
-    <updated>2017-11-25T13:43:37.000Z</updated>
+    <updated>2019-11-15T02:02:41.244Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
@@ -667,14 +667,14 @@
 <p>比如我要为 <strong>test</strong> 主机生成一对密钥文件，密钥长度 2048、加密算法 RSA，就可以用以下命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-keygen <span class="_">-f</span> <span class="built_in">test</span> -t rsa -b 2048</div></pre></td></tr></table></figure>
 <p>执行此命令会提示 <code>Enter passphrase (empty for no passphrase):</code>，如果需要密钥口令，就要填上并记下来，如果不需要就直接摁回车键直到结束。命令执行完成后，会在当前目录生成两个文件：私钥文件 <strong>test</strong> 和 公钥文件 <strong>test.pub</strong> 。如果不指定 <code>ssh-keygen</code> 命令的 <strong>-f</strong> 参数，则会默认生成 <strong>~/.ssh/id_ras</strong> 和 <strong>~/.ssh/id_ras.pub</strong> 两个文件 。</p>
-<h3 id="ssh-copyid-拷贝公钥到服务器"><a href="#ssh-copyid-拷贝公钥到服务器" class="headerlink" title="ssh-copyid 拷贝公钥到服务器"></a>ssh-copyid 拷贝公钥到服务器</h3><p><strong>ssh-copyid</strong> 命令负责把上述步骤生成的公钥文件内容拷贝到服务器，确切说，是把 <strong>xxx.pub</strong> 文件中的内容<strong>附加</strong>到服务器端的 <code>~/.ssh/authorized_keys</code> 文件中。</p>
-<p>ssh-copyid 命令使用方式如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copyid [-i &lt;identityfile&gt;] [-p &lt;port&gt;] [username@]hostname</div></pre></td></tr></table></figure>
+<h3 id="ssh-copy-id-拷贝公钥到服务器"><a href="#ssh-copy-id-拷贝公钥到服务器" class="headerlink" title="ssh-copy-id 拷贝公钥到服务器"></a>ssh-copy-id 拷贝公钥到服务器</h3><p><strong>ssh-copy-id</strong> 命令负责把上述步骤生成的公钥文件内容拷贝到服务器，确切说，是把 <strong>xxx.pub</strong> 文件中的内容<strong>附加</strong>到服务器端的 <code>~/.ssh/authorized_keys</code> 文件中。</p>
+<p>ssh-copy-id 命令使用方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copy-id [-i &lt;identityfile&gt;] [-p &lt;port&gt;] [username@]hostname</div></pre></td></tr></table></figure>
 <p>其中 <code>-i</code> 即指定上述步骤生成的密钥对中的 <strong>公钥文件</strong>，意思是把公钥文件 <strong>xxx.pub</strong> 传到服务端 <code>hostname</code>，把 <strong>xxx.pub</strong> 中的内容附加到 <code>hostname:/home/username/.ssh/authorized_keys</code> 文件中。如果不用 <code>-i</code> 指定公钥文件，则默认指定 <strong>id_ras.pub</strong> 。</p>
 <p>举例来说，我想通过公钥登录我 <code>192.168.1.2</code> 上的 <code>jiayu</code> 账户，那么只需把上述步骤中生成的 <strong>test.pub</strong> 文件上传到该服务器即可：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copyid -i <span class="built_in">test</span> jiayu@192.168.1.2</div></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh-copy-id -i <span class="built_in">test</span> jiayu@192.168.1.2</div></pre></td></tr></table></figure>
 <p>运行这条命令会让输入一次账户密码，然后才能成功上传到服务端。</p>
-<p>另外，还有好多人在这一步会舍弃 <code>ssh-copyid</code> 命令，转而手动上传公钥文件到服务端，然后 <code>cat xxx.pub &gt;&gt; ~/.ssh/authorized_keys</code> ，个人不提倡这种做法， <code>ssh-copyid</code> 这条专用命令就是为了免去麻烦又容易失误的手动操作。</p>
+<p>另外，还有好多人在这一步会舍弃 <code>ssh-copy-id</code> 命令，转而手动上传公钥文件到服务端，然后 <code>cat xxx.pub &gt;&gt; ~/.ssh/authorized_keys</code> ，个人不提倡这种做法， <code>ssh-copy-id</code> 这条专用命令就是为了免去麻烦又容易失误的手动操作。</p>
 <h3 id="直接登录远程服务器"><a href="#直接登录远程服务器" class="headerlink" title="直接登录远程服务器"></a>直接登录远程服务器</h3><p>经过上面两步骤，没什么意外的话就可以用密钥登录远程服务器了。不过这里还有个小细节需要说一下，我们平时用密码 SSH 登录远程服务器，是用 <code>ssh username@host -p &lt;port&gt;</code> 命令然后输入密码。如果我们只有一台远程服务器需要用 SSH 公钥登录的方式，那么最初执行 ssh-keygen 命令的时候就可以不指定 <code>-f</code> 参数，默认生成密钥对文件 <strong>id_ras/id_isa.pub</strong> ，然后执行命令 <code>ssh username@host -p &lt;port&gt;</code> 不用输入密码即可登录，SSH 命令会默认调用 <strong>id_rsa</strong> 尝试连接。</p>
 <p>但如果执行 ssh-keygen 命令的时候指定了 <strong>-f test</strong> 参数，那么这时要登录远程服务器就要在 SSH 命令中也指定私钥文件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">~ ➜ ssh -i <span class="built_in">test</span> jiayu@192.168.1.2</div></pre></td></tr></table></figure>
