@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2019-05-26T15:00:55.432Z</updated>
+  <updated>2019-11-21T12:59:11.073Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -14,6 +14,290 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据</title>
+    <link href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/"/>
+    <id>http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/</id>
+    <published>2019-11-21T16:00:00.000Z</published>
+    <updated>2019-11-21T12:59:11.073Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p><strong>本文首发于安全客，原文链接：</strong><br><a href="https://www.anquanke.com/post/id/193116" target="_blank" rel="external">https://www.anquanke.com/post/id/193116</a></p>
+</blockquote>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;"></p>
+<p>Anomali 的 Blog： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect" target="_blank" rel="external">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
+<p>跟 <a href="https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">以前的版本</a> 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：</p>
+<ul>
+<li>放弃了使用 Pastebin 作为恶意 Shell 脚本的下发通道，转而使用自己维护的 CC 服务器( <code>*.systemten.org</code> )来承载相关恶意活动；</li>
+<li>集成了多个漏洞 Exp，增强传播能力，详见 Anomali 的 Blog；</li>
+<li>利用 DNS TXT 记录下发多种经过 AES 加密的数据，这些加密数据有以下几种：<ul>
+<li>最新的恶意 Cron 任务用到的恶意 Shell 脚本下载 URL，可以写入失陷主机的 Cron 任务；</li>
+<li>最新的恶意样本版本号，失陷主机上已有的恶意样本会对比自己的版本号以决定是否 Update；</li>
+<li>最新的恶意 Shell 脚本；</li>
+<li>一系列最新二进制样本的下载 URL。</li>
+</ul>
+</li>
+</ul>
+<p>其他恶意行为按照常规的逆向分析方法按部就班分析即可，而关于加密的 DNS TXT 数据的逆向与解密过程，Anomali 的 Blog 中描述一带而过，并没详述，按照他们 Blog 中简单的描述，并不足以解密这些数据。本文就以上述样本为例，解析一下如何通过逆向样本一步一步解密这些数据。</p>
+<a id="more"></a>
+<h2 id="2-恶意样本执行流程"><a href="#2-恶意样本执行流程" class="headerlink" title="2. 恶意样本执行流程"></a>2. 恶意样本执行流程</h2><p>恶意样本总体的执行流程分为 3 步：</p>
+<ol>
+<li>通过 DNS TXT 通道获取用来篡改失陷主机 Cron 任务的恶意 URL，被篡改后的 Cron 任务会定期访问恶意 URL 获取最新的恶意 Shell 脚本；</li>
+<li>扫描当前 B 段网络，存活的  IP 尝试利用 4 种方式入侵并植入，4 种方式有：<ul>
+<li>SSH 爆破；</li>
+<li>Redis 未授权访问；</li>
+<li>Jenkins RCE 漏洞(CVE-2019-1003000)利用；</li>
+<li>ActiveMQ RCE 漏洞(CVE-2016-3088)利用</li>
+</ul>
+</li>
+<li>持久驻留失陷主机、释放矿机程序挖矿。</li>
+</ol>
+<p>在最后第 3 步，也会通过 DNS TXT 通道获取最新恶意 Shell 脚本以及二进制样本的下载 URL。本文重点分析 DNS TXT 通道数据的获取以及解密。</p>
+<p>先看一下恶意样本通过 DNS TXT 通道获取最新的用来篡改失陷主机 Cron 任务的恶意 URL 的整体流程：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/lookup_and_dec_dnstxt.png" alt=""></p>
+<p>可以看到样本首先从<code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code> 获取数据，然后用 AES-128bit 算法将其解密。再看一下从 <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code> 获取的加密数据：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/dns_txt_rec.png" alt=""></p>
+<p>DNS TXT 响应是一串字符，而且是经过 Base64 编码的字符串 <em>A7PZtADnYAEMEArGhmA9xQihPq9TRz4QigssjeOmUnQ</em> 。函数 <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong> 中的处理流程可以证实这一点：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/func_aescipher128_decrypt.png" style="zoom:60%;"></p>
+<p>到这里可以看出，要用 Go 语言编程解密这些数据，需要 3 步走：</p>
+<ol>
+<li>Base64 解码 DNS TXT 的响应字串，得到待解密的二进制数据；</li>
+<li>初始化 Go AES-128bit 解密句柄；</li>
+<li>解密 Base64 解码过的二进制数据。</li>
+</ol>
+<h2 id="3-Base64-解码"><a href="#3-Base64-解码" class="headerlink" title="3. Base64 解码"></a>3. Base64 解码</h2><p>先用 Linux 自带的命令行工具 <strong>base64</strong> 尝试解码：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_fail.png" alt=""></p>
+<p>有点蹊跷，不能用 base64 命令直接解码，看来用的并不是标准的 Base64 编码。这里先补充一下关于 Base64 编码的两点背景知识：</p>
+<ol>
+<li>参考: <a href="https://tools.ietf.org/html/rfc4648" target="_blank" rel="external">RFC4648</a> ，Base64 编码主要有两种：<strong>标准编码(StdEncoding)</strong> 和 <strong>URL 安全的编码(URLEncoding)</strong>。标准 Base64 编码的编码字符表是 <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/</em> ，而 URLEncoding 的编码字符表则把 StdEncoding 编码字符表中的 <strong>+</strong> 替换为 <strong>-</strong>，把 <strong>/</strong> 替换为 <strong>_</strong> ，即 <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_</em> ；</li>
+<li>Base64 两种编码的默认填充字符都是 <strong>=</strong> ，但也可以选择不填充任何字符。</li>
+</ol>
+<p>上述两个知识点，在 <a href="https://golang.org/pkg/encoding/base64/?m=all" target="_blank" rel="external">Go 的 Base64 标准库文档</a> 开头就有说明：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/base64_godoc.png" alt=""></p>
+<p>两个知识点各自分为两种情况，这样组合起来就有 4 种细分的 Base64 Encoding：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/different_type_encodings.png" alt=""></p>
+<p>那 LSDMiner 样本中具体是用什么样的 Base64 解码呢？需要先看一下样本中 Base64 解码的 Encoding 句柄是如何生成的。在函数 <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong> 中，是先拿到 Base64 解码的 Encoding 句柄再进行解码：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_b64encodingobj.png" alt=""></p>
+<p>通过上面的 xrefs 信息，可知这个 <strong>b64EncodingObj</strong> 是在函数 <strong>encoding_base64_init()</strong> 中生成的。进入这个 init 函数，<strong>b64EncodingObj</strong> 生成过程如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64encoding_init.png" alt=""></p>
+<p>可以看到这样两点：</p>
+<ol>
+<li>调用 base64.NewEncoding() 函数时，传入的参数是 URLEncoding 的编码字符表，即样本中用的是 URLEncoding 形式的 Base64 编码；</li>
+<li>调用 base64.URLEncoding.WithPadding() 函数时传入的参数是 <strong>-1</strong> ，即 <strong>base64.NoPadding</strong> ，不带填充字符，即 <strong>base64.RawURLEncoding</strong>。</li>
+</ol>
+<p>至此就可以解码 DNS TXT 响应的字符串了。测试代码与结果如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_test.png" alt=""></p>
+<h2 id="4-AES-解密二进制数据"><a href="#4-AES-解密二进制数据" class="headerlink" title="4. AES 解密二进制数据"></a>4. AES 解密二进制数据</h2><p>通过前面粗略的逆向分析，我们仅知道样本中用了 AES-128bit 算法来解密数据，但这些知识远不足以解密上面用 Base64 解码得到的二进制数据。AES 加密算法此处不详述，可以自行搜索相关资料，本文只关注如何用算法来解密数据。要想正确解密数据，还需要确定以下 AES 解密算法相关的几个要素：</p>
+<ul>
+<li>AES 密钥；</li>
+<li>AES 解密用到的 IV 向量；</li>
+<li>AES 解密算法的分组密码模式；</li>
+<li>AES 解密算法的 Padding 方式。</li>
+</ul>
+<p>上面的逆向分析过程中，我们注意到样本中调用了函数 <strong>crypto_cipher_NewCBCDecrypter()</strong> ，可以确认样本中用到的分组密码模式是 <strong>CBC</strong>。</p>
+<p>在分析确认其他几个要素之前，我们先捋一下两个关键函数的逻辑：初始化 AES 解密句柄的 <strong>NewAesCipher128()</strong> 和 执行 AES 解密操作的 <strong>AesCipher128_Decrypt()</strong>。</p>
+<h3 id="4-1-NewAesCipher128"><a href="#4-1-NewAesCipher128" class="headerlink" title="4.1 NewAesCipher128"></a>4.1 NewAesCipher128</h3><p>首先，样本调用该函数的时候传入一个参数，即待查询 DNS TXT 记录的域名字符串 <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code>：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_newaescipher128.png" style="zoom:50%;"></p>
+<p>在函数内部先初始化一个 <strong>crypto/md5</strong> 句柄（代码片段对照左边标准库函数 <strong>crypto_md5_New()</strong> 即可理解)：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_init.png" alt=""></p>
+<p>然后将传入的域名字符串由 string 类型转成字符切片并写入 MD5 digest 对象，再通过 <strong>md5.digest.Sum()</strong> 函数做一次 MD5 Hash 计算(注意 Sum 函数传入的参数为 <strong>nil</strong> )：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/first_round_md5_hash.png" style="zoom:55%;"></p>
+<p>再把这轮 MD5 计算的值通过 <strong>hex.EncodeToString()</strong> 转成 32-bytes 的字符串，即常规的字符串形式的 MD5 值。然后取出再取出这个 MD5 值的<strong>前 16 字节</strong>，保存到变量(<strong>r1HashStr_16bytes</strong>)中备用：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/slice_r1hashstr.png" style="zoom:60%;"></p>
+<p>接下来，样本又做了一次 MD5 计算，并且取出这一次 MD5 值的<strong>后 16 字节</strong>，保存到变量中备用(注意，这一次 MD5 计算之前没有调用 md5.dgest.Write() 来写入新字节，并且调用 md5.digest.Sum() 函数时依然传入参数 <strong>nil</strong> ):</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/r2_md5_hash.png" style="zoom:60%;"></p>
+<p>后面可以看到，第一次 MD5 计算后取出的 <strong>前 16 字节</strong> 数据，被作为 <strong>AES 密钥</strong>传入 <strong>aes.NewCipher()</strong> 函数来初始化 AES 解密句柄：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/init_aes_cipher.png" style="zoom:80%;"></p>
+<p>而第二次 MD5 计算后取出的 <strong>后 16 字节</strong> 数据被保存起来，作为本函数返回值的一部分返回，接下来作为 <strong>AES 的 IV 向量</strong>传给后面函数 <strong>AesCipher128_Decrypt()</strong> 中调用的 <strong>crypto_cipher_NewCBCDecrypter()</strong> 函数。</p>
+<h3 id="4-2-AES-的-Padding-方式"><a href="#4-2-AES-的-Padding-方式" class="headerlink" title="4.2 AES 的 Padding 方式"></a>4.2 AES 的 Padding 方式</h3><p>前面内容分析确认了 AES 的 Key、IV 以及分组密码模式，还需最后确认 AES 算法所用的 Padding 方式，即可正确解密数据。这一个点需要逆向分析函数 <strong>AesCipher128_Decrypt()</strong> 才能确认。</p>
+<p>AES 加密算法用到的常见的 Padding 方式有以下几种(参考： <a href="https://www.jianshu.com/p/b63095c59361" target="_blank" rel="external">对称加密算法和分组密码的模式</a>)：</p>
+<ul>
+<li><p>ANSI X.923：也叫 <strong>ZeroPadding</strong>，填充序列的最后一个字节填<code>paddingSize</code>，其它填0。</p>
+</li>
+<li><p>ISO 10126：填充序列的最后一个字节填<code>paddingSize</code>， 其它填随机数。</p>
+</li>
+<li><p>PKCS7：填充序列的每个字节都填<code>paddingSize</code> 。</p>
+</li>
+</ul>
+<p>LSDMiner 中用到的 Padding 方式就是简单的 ZeroPadding，通过函数 <strong>AesCipher128_Decrypt()</strong> 中解密操作后的 <strong>byte.Trim()</strong> 函数即可确认：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/unpadding.png" style="zoom:50%;"></p>
+<h3 id="4-3-补充说明——关于二轮-MD5-值计算"><a href="#4-3-补充说明——关于二轮-MD5-值计算" class="headerlink" title="4.3 补充说明——关于二轮 MD5 值计算"></a>4.3 补充说明——关于二轮 MD5 值计算</h3><p>上述分析过程中描述过，恶意样本为生成 AES 解密用到的 Key 和 IV 向量，对相应域名字符串连续做了 2 轮 MD5 Hash 计算，这一点 Anomali 的 Blog 中也提到了，只是他们没提到 Key 和 IV 具体的生成过程。</p>
+<p>然而样本中连续两轮的 MD5 计算的值其实是相同的——这是 Go 语言特有的 MD5 计算方式，参考 <a href="https://codeday.me/bug/20190214/636073.html" target="_blank" rel="external">hash – Golang md5 Sum()函数</a> ，演示代码如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_test.png" style="zoom:60%;"></p>
+<p>这一点不知道是恶意软件作者的失误，还是有意为之。倒是容易给逆向分析造成困扰，因为乍一看“两轮 MD5 计算”，很可能直观认为应该得出两个不同的 MD5 值，并分别截取一段做 AES 解密的 Key 和 IV 向量，没想到两次 MD5 计算得出相同的值。</p>
+<h2 id="5-完成解密"><a href="#5-完成解密" class="headerlink" title="5. 完成解密"></a>5. 完成解密</h2><p>基于以上分析，就可以编写程序完成我们想要的解密工作了。完整的 Go 语言代码已上传到 Github：</p>
+<p> <a href="https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt" target="_blank" rel="external">https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt</a> </p>
+<p>运行结果如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/aes_decrypt.png" alt=""></p>
+<p>当前解密出来的 Cron URL 是 <strong><code>lsd.systemten.org</code></strong> ，在样本中如果整个 DNS TXT 数据通道操作过程有任何异常而无法解密出最新的 Cron URL，备用的默认值也是这个 <strong><code>lsd.systemten.org</code></strong> :</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/return_decryption_result.png" style="zoom:80%;"></p>
+<h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>文章开头的截图中已经显示过，如果样本用 <strong>net.LookupTXT()</strong> 函数检索 DNS TXT 记录失败，还会跳转到另外一个代码分支，去用 DoH(DNS over HTTPS) 向 CloudFlare 的 DoH 服务器请求相应的 DNS TXT 记录：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_req_1.png" alt=""></p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_via_cloudflare.png" alt=""></p>
+<p>我们用命令行工具测试一下，可以看到这种方式也有效：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_test.png" alt=""></p>
+<p>利用 DNS TXT 记录和 DoH 下发恶意数据来辅助恶意样本的运行，可以进一步提升整个 Botnet 基础设施的健壮性和运营的灵活性，鉴于这个 Botnet 存活已久并不断更新，应该引起业界的持续关注。</p>
+<p>前文说过，恶意样本中利用 DNS TXT 通道传输的数据还有其他几种，方式都是一样：检索 DNS TXT 数据，用 base64.RawURLEncoding 解码得到二进制数据；然后对域名进行 MD5 计算得出 AES 解密用到的 Key 和 IV，然后用 CBC 模式、ZeroPadding 的 AES-128bit 算法对 Base64 解码后的二进制数据进行解密。对应的域名还有以下几个，均可以用以上 Go 程序来解密：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">&quot;update.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;shell.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div></pre></td></tr></table></figure>
+<p>另外，LSDMiner 涉及的二进制恶意样本，都用变形 UPX 加了壳，而且壳的特征很不明显，难以用固定的特征直接检测加壳的样本。并且，相关加壳二进制样本的 UPX 壳幻数(Magic Number)还经常变化，比如本文分析的 MD5 为 <strong>114d76b774185b826830cb6b015cb56f</strong> 的 UPX 壳幻数为 <strong>0x2124922A</strong>；最新的 x86_64 架构的样本(MD5: <strong>78e3582c42824f17aba17feefb87ea5f</strong>) 的 UPX 壳幻数则变成了<strong>0x215E77F2</strong> 。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;本文首发于安全客，原文链接：&lt;/strong&gt;&lt;br&gt;&lt;a href=&quot;https://www.anquanke.com/post/id/193116&quot;&gt;https://www.anquanke.com/post/id/193116&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;1-概述&quot;&gt;&lt;a href=&quot;#1-概述&quot; class=&quot;headerlink&quot; title=&quot;1. 概述&quot;&gt;&lt;/a&gt;1. 概述&lt;/h2&gt;&lt;p&gt;10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 &lt;strong&gt;Watchdogsminer&lt;/strong&gt;) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 &lt;strong&gt;NewAesCipher128()&lt;/strong&gt; ，发现国外安全公司 &lt;strong&gt;Anomali&lt;/strong&gt; 已经分析过这个 Case ：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/imgs/lsdminer_dnstxt_decrept/google_search.png&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Anomali 的 Blog： &lt;a href=&quot;https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect&quot;&gt;Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;跟 &lt;a href=&quot;https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/&quot;&gt;以前的版本&lt;/a&gt; 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;放弃了使用 Pastebin 作为恶意 Shell 脚本的下发通道，转而使用自己维护的 CC 服务器( &lt;code&gt;*.systemten.org&lt;/code&gt; )来承载相关恶意活动；&lt;/li&gt;
+&lt;li&gt;集成了多个漏洞 Exp，增强传播能力，详见 Anomali 的 Blog；&lt;/li&gt;
+&lt;li&gt;利用 DNS TXT 记录下发多种经过 AES 加密的数据，这些加密数据有以下几种：&lt;ul&gt;
+&lt;li&gt;最新的恶意 Cron 任务用到的恶意 Shell 脚本下载 URL，可以写入失陷主机的 Cron 任务；&lt;/li&gt;
+&lt;li&gt;最新的恶意样本版本号，失陷主机上已有的恶意样本会对比自己的版本号以决定是否 Update；&lt;/li&gt;
+&lt;li&gt;最新的恶意 Shell 脚本；&lt;/li&gt;
+&lt;li&gt;一系列最新二进制样本的下载 URL。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其他恶意行为按照常规的逆向分析方法按部就班分析即可，而关于加密的 DNS TXT 数据的逆向与解密过程，Anomali 的 Blog 中描述一带而过，并没详述，按照他们 Blog 中简单的描述，并不足以解密这些数据。本文就以上述样本为例，解析一下如何通过逆向样本一步一步解密这些数据。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
+    
+    
+      <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
+    
+      <category term="lsdminer" scheme="http://jiayu0x.com/tags/lsdminer/"/>
+    
+      <category term="aes" scheme="http://jiayu0x.com/tags/aes/"/>
+    
+      <category term="decrypt" scheme="http://jiayu0x.com/tags/decrypt/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>以 DDG v4005 样本为例浅谈 Golang gob 序列化数据的逆向解码</title>
+    <link href="http://jiayu0x.com/2019/11/19/decode-gob-data-in-ddg-v4005/"/>
+    <id>http://jiayu0x.com/2019/11/19/decode-gob-data-in-ddg-v4005/</id>
+    <published>2019-11-18T16:00:00.000Z</published>
+    <updated>2019-11-21T12:55:08.136Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p><strong>本文首发于安全客，原文链接：</strong><br><a href="https://www.anquanke.com/post/id/192948" target="_blank" rel="external">https://www.anquanke.com/post/id/192948</a></p>
+</blockquote>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>DDG 是一个 一直活跃的挖矿僵尸网络，其主样本由 Go 语言编写。它最新活跃的版本中用基于 Gossip 协议实现集群管理的第三方库 <strong><a href="https://github.com/hashicorp/memberlist" target="_blank" rel="external">Memberlist</a></strong> 把整个僵尸网络构建成了一个非典型的 P2P 结构。关于其 P2P 网络结构以及如何基于 P2P 特性追踪该僵尸网络，我在以前的两篇文章中有详细描述：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/177665" target="_blank" rel="external">以P2P的方式追踪 DDG 僵尸网络(上)</a></li>
+<li><a href="https://www.anquanke.com/post/id/177742" target="_blank" rel="external">以P2P的方式追踪 DDG 僵尸网络(下)</a></li>
+</ol>
+<p>11.6 日晚上，我的 DDG 挖矿僵尸网络追踪程序检测到 DDG 家族更新到了版本 4005，IoC 如下：</p>
+<blockquote>
+<p><strong>MD5:</strong></p>
+<ul>
+<li>64c6692496110c0bdce7be1bc7cffd47  ddgs.i686</li>
+<li>638061d2a06ebdfc82a189cf027d8136  ddgs.x86_64 </li>
+</ul>
+<p><strong>CC</strong>:</p>
+<ul>
+<li>67.207.95[.]103:8000</li>
+<li>103.219.112[.]66:8000 </li>
+</ul>
+</blockquote>
+<p>经过简单的分析，新版恶意样本的关键行为与旧版本差异不大，以前部署的追踪程序依然能持续追踪。不过其中一个小的技术点引起了我的注意。</p>
+<p>以前说过，DDG 样本为了通过 Memberlist 库加入 P2P 网络(函数 <code>Memberlist.join()</code>)，需要一批初始的 P2P Nodes ，新的样本代表的 P2P 节点会通过这些初始的 P2P Nodes 加入 P2P 网络。在旧版样本中，这些初始的 P2P Nodes 被称为 <strong>Hub List</strong>，其中约有 200 个 节点 IP 地址，这一份 IP 列表以 Hex 数组形式硬编码保存在样本中。而新版 DDG 样本中则把这些 P2P Nodes 称为 <strong>Seeds</strong>(Memberlist 库 <code>Join()</code> 函数的 ”种子“)，这些 Seeds 用 <a href="https://blog.golang.org/gobs-of-data" target="_blank" rel="external">Golang gob</a> 序列化编码后再硬编码保存在样本中，样本里还用一组 <code>ddgs_network__mlUtils_*</code> 函数来处理这些 Seeds：</p>
+<a id="more"></a>
+<p><img src="/imgs/decrypt_gob/mlutils_funcs.png" style="zoom:60%;"></p>
+<p>对于旧版样本的做法，定位到 Hub List 数据后，在 IDAPro 中逆向分析样本时直接用 IDAPython 脚本将 Hex 形式的 IP 地址转成点分十进制表示即可一目了然把这些 IP 提取出来，但新版样本中这些数据被 gob 序列化编码过，该怎么提取？</p>
+<h2 id="2-gob-序列化编码"><a href="#2-gob-序列化编码" class="headerlink" title="2. gob 序列化编码"></a>2. gob 序列化编码</h2><p>gob(<strong>Go Binary</strong> 的简称)，是 Go 语言自带的序列化编码方案，用法简洁，灵活性和效率很高，也有一定的扩展性。可以类比 Python 的 Pickle，用来对结构化数据进行序列化编解码以方便数据传输。由于 gob 是 Go 独有的，并没有现成的 Python 接口，所以想用 Python 在 IDAPro 中直接解码不太现实，就只好手动把编码过的二进制数据从样本中 Dump 出来，然后写 Go 程序来解码。</p>
+<p>使用 gob 对数据编码，一般是发送端针对已定义好结构的数据进行编码后发送；接收端收到二进制数据后，按照与发送端<strong>兼容</strong>的数据结构进行解码(不一定是完全相同的结构定义，但数据类型以及数量要兼容发送端的数据结构定义，这个 <strong>兼容</strong> 则体现了 gob 的灵活性)。一个简单的数据结构如下所示：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> S <span class="keyword">struct</span> &#123;</div><div class="line">	X, Y, Z <span class="keyword">int</span></div><div class="line">	Name    <span class="keyword">string</span></div><div class="line">    L       []<span class="keyword">string</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>所以，要逆向分析经 gob 序列化编码过的数据，对数据进行精准解码，最大的难点在于逆向出 Go 语言形式的数据结构定义。</p>
+<p>gob 的用法不是本文重点，可以参考<a href="https://blog.golang.org/gobs-of-data" target="_blank" rel="external">官方介绍</a> 与这一篇<a href="https://www.bitlogs.tech/2019/08/go-encoding/gob/" target="_blank" rel="external">中文详解</a> 。</p>
+<h2 id="3-恶意样本中的数据解码过程"><a href="#3-恶意样本中的数据解码过程" class="headerlink" title="3. 恶意样本中的数据解码过程"></a>3. 恶意样本中的数据解码过程</h2><p>以样本 ddgs.x86_64(MD5: <strong>638061d2a06ebdfc82a189cf027d8136</strong>) 为例，在函数 <code>ddgs_network__mlUtils_JoinAll()</code> 中，通过对 <code>Memberlist.Join()</code> 函数的调用，即可顺藤摸瓜找到数据解码以及转换的函数：</p>
+<p><img src="/imgs/decrypt_gob/process_of_data_dec.png" alt=""></p>
+<p>最上面的 <code>ddgs_network__mlUtils_Seeds()</code> 函数中，可以看到样本中经 gob 序列化编码的数据地址与长度，样本先是读取这一段数据，然后用 gob 进行解码：</p>
+<p><img src="/imgs/decrypt_gob/decode_raw_data.png" alt=""></p>
+<p>在 IDAPro 中逆向分析样本，无法还原数据的结构定义。我们把这段数据手动 Dump 出来看看：</p>
+<p><img src="/imgs/decrypt_gob/hexdump_of_raw_data.png" alt=""></p>
+<p>可以看到高亮的两个字段名：<strong>IP</strong> 和 <strong>Port</strong>。到这里就有点灵感了，我们再看看解密后的数据是如何使用的，就能看出这些数据到底是什么结构了。在函数 <code>ddgs_network__mlUtils_Seeds()</code> 中继续往下看，会发现样本为了把这些 Seed Nodes 列表输出到日志中，用 <code>ddgs_network__mlUtils_Seeds_func1()</code> 函数把解密后的数据做了解析、重组：</p>
+<p><img src="/imgs/decrypt_gob/logprint_plain_data.png" style="zoom:60%;"></p>
+<p>在函数<code>ddgs_network__mlUtils_Seeds_func1()</code> 中，样本内部把解密后的数据以循环处理的方式，依次调用 <code>ddgs_network__seedNode_Address()</code> 函数来解析成字符串，并把每个代表 Seed Node 的字符串用竖线 <strong>|</strong> 连接起来：</p>
+<p><img src="/imgs/decrypt_gob/convert_seed_node.png" style="zoom:50%;"></p>
+<p>看来逆向出数据结构定义的关键就是 <code>ddgs_network__seedNode_Address()</code> 函数函数了：</p>
+<p><img src="/imgs/decrypt_gob/convert_seed_node_do.png" style="zoom:50%;"></p>
+<p>可以看到 <code>ddgs_network__seedNode_Address()</code> 函数中，对每一个 Seed Node 对象都做两部分处理：第一个成员是用 Go 标准库 <code>net.IP.String()</code> 函数将 <code>net.IP</code> 对象转化为 String 类型；第二个成员是直接转化为 64bit 整型值。最后将 String 类型的 IP 地址与整型的 Port 值串成一个 <code>IP:Port</code> 结构的字符串来代表一个 Seed Node。</p>
+<p>这正好跟前文用 Hexdump 查看 Raw 二进制数据里的两个字段 <strong>IP</strong> 和 <strong>Port</strong> 对上了。</p>
+<p>至此，我们就可以断定，这些 gob 编码数据的<strong>基础结构定义</strong>应该如下所示：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> <span class="string">"net"</span></div><div class="line"></div><div class="line"><span class="keyword">type</span> SeedNode <span class="keyword">struct</span> &#123;</div><div class="line">	IP   net.IP</div><div class="line">	Port <span class="keyword">int64</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="4-完成数据解码"><a href="#4-完成数据解码" class="headerlink" title="4. 完成数据解码"></a>4. 完成数据解码</h2><p>上面我们分析出了编码数据原始的<strong>基础结构定义</strong>，之所以说是<strong>基础</strong>，是因为这个结构定义只代表<strong>单个 Seed Node</strong>，而这些数据是<strong>一批 Seed Node</strong> 的列表。要想写程序完成最终的数据解码，还需要用 Go 的数组或切片把上面的数据结构定义封装一下。最终的数据解码代码关键部分示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> SeedNode <span class="keyword">struct</span> &#123;</div><div class="line">	IP   net.IP</div><div class="line">	Port <span class="keyword">int64</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Open the dumped raw data file</span></div><div class="line">fd, fdErr := os.OpenFile(<span class="string">"raw_data.dump"</span>, os.O_RDONLY, <span class="number">0644</span>)</div><div class="line">br := bufio.NewReader(fd)</div><div class="line"></div><div class="line">dec := gob.NewDecoder(br)</div><div class="line"></div><div class="line"><span class="comment">// make Seed Node slice</span></div><div class="line"><span class="keyword">var</span> d []SeedNode</div><div class="line">decErr := dec.Decode(&amp;d)</div><div class="line"></div><div class="line"><span class="keyword">for</span> _, seedNode := <span class="keyword">range</span> d &#123;</div><div class="line">	fmt.Printf(<span class="string">"%s:%d\n"</span>, seedNode.IP, seedNode.Port)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>完整代码链接： <a href="https://github.com/0xjiayu/decode_gob_in_ddgs_v4005/blob/master/hubs_dump.go" target="_blank" rel="external">https://github.com/0xjiayu/decode_gob_in_ddgs_v4005/blob/master/hubs_dump.go</a> </p>
+<h2 id="5-辅助工具——degob"><a href="#5-辅助工具——degob" class="headerlink" title="5. 辅助工具——degob"></a>5. 辅助工具——degob</h2><p>DDG v4005 的样本中涉及的 gob 数据编码，原始数据结构简单，逆向难度不高。如果遇到结构更复杂的数据经 gob 序列化编码，逆向难度肯定要增加。如果有一款工具可以自动化把任意 gob 序列化后的数据还原，最好不过了。</p>
+<p>Google 一番，我找到了一个还算理想的工具，degob，专为逆向分析 gob 编码数据而生： <a href="https://gitlab.com/drosseau/degob" target="_blank" rel="external">https://gitlab.com/drosseau/degob</a> </p>
+<p>不过 degob 并不完美，它只能解析出 Go 最底层的数据类型。比如本文中用到的 <code>net.IP</code>，定义为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> IP []<span class="keyword">byte</span></div></pre></td></tr></table></figure>
+<p>那么 degob 解析数据的时候，就会把 <code>net.IP</code> 这一个成员表示为 <code>[]byte</code>，至于这个 <code>[]byte</code> 的<strong>高层结构类型</strong>代表什么，还需要结合样本逆向来确认。比如我逆向时发现样本中用 <code>net.IP.String()</code> 函数来解析这个数据成员，那么就可以确定，degob 解析出来的 <code>[]byte</code> ，其实就是 <code>net.IP</code>。degob 解析上述 Raw Data，得出的数据结构定义为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// []Anon65_5e8660ee</span></div><div class="line"></div><div class="line"><span class="comment">// type ID: 65</span></div><div class="line"><span class="keyword">type</span> Anon65_5e8660ee <span class="keyword">struct</span> &#123;</div><div class="line">        IP []<span class="keyword">byte</span></div><div class="line">        Port <span class="keyword">int64</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后就是 degob 解出来的部分数据(不完美解析，需要结合样本逆向才能确认 IP 的真实结构类型)：</p>
+<p><img src="/imgs/decrypt_gob/degob_output.png" style="zoom:60%;"></p>
+<p>不过，这个 degob 两年没更新了，作者可能也不维护了，在它的 <strong>cmds/degob/main.go</strong> 文件中还有一个 Bug，命令行参数把 <strong>inFile</strong> 误写成了 <strong>outFile</strong> ：</p>
+<p><img src="/imgs/decrypt_gob/bug_of_degob.png" alt=""></p>
+<h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>DDG 的恶意样本中还有另外一个序列化数据的解码，即用 <a href="https://msgpack.org/" target="_blank" rel="external">msgPack</a> 编码的云端配置数据。如果要用 msgPack 的 Go 语言 SDK 去解码这个配置文件，需要逆向分析出更复杂的配置数据结构定义(在 <a href="https://www.anquanke.com/post/id/177742" target="_blank" rel="external">以P2P的方式追踪 DDG 僵尸网络(下)</a> 一文中有详细阐述)。不过好在 msgPack 是个通用的序列化编码方案，除了 Go，还支持其他语言，比如 Python。更方便的是，用 msgPack for Python 来对序列化数据进行解码并不需要预先知道数据结构定义即可直接解码，这就大大降低了逆向工作的难度。</p>
+<p>然而 gob 序列化只属于 Go 语言自有，并没有其他语言的 SDK，要想逆向解码 gob 序列化编码过的二进制数据数据，就必须分析出原始的数据结构定义。这样来看， gob 序列化数据逆向解码并没有万全之策，即使有 degob 这种工具的加持，也得结合样本逆向分析才能精准解析、还原明文数据。</p>
+<p>本文用到的 Go 语言程序、从样本中提取的 gob 编码的原始二进制数据以及样本运行时的 debug 日志，都上传到 Github，感兴趣的师傅自取：</p>
+<p> <a href="https://github.com/0xjiayu/decode_gob_in_ddgs_v4005" target="_blank" rel="external">https://github.com/0xjiayu/decode_gob_in_ddgs_v4005</a> </p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;本文首发于安全客，原文链接：&lt;/strong&gt;&lt;br&gt;&lt;a href=&quot;https://www.anquanke.com/post/id/192948&quot;&gt;https://www.anquanke.com/post/id/192948&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;1-概述&quot;&gt;&lt;a href=&quot;#1-概述&quot; class=&quot;headerlink&quot; title=&quot;1. 概述&quot;&gt;&lt;/a&gt;1. 概述&lt;/h2&gt;&lt;p&gt;DDG 是一个 一直活跃的挖矿僵尸网络，其主样本由 Go 语言编写。它最新活跃的版本中用基于 Gossip 协议实现集群管理的第三方库 &lt;strong&gt;&lt;a href=&quot;https://github.com/hashicorp/memberlist&quot;&gt;Memberlist&lt;/a&gt;&lt;/strong&gt; 把整个僵尸网络构建成了一个非典型的 P2P 结构。关于其 P2P 网络结构以及如何基于 P2P 特性追踪该僵尸网络，我在以前的两篇文章中有详细描述：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.anquanke.com/post/id/177665&quot;&gt;以P2P的方式追踪 DDG 僵尸网络(上)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.anquanke.com/post/id/177742&quot;&gt;以P2P的方式追踪 DDG 僵尸网络(下)&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;11.6 日晚上，我的 DDG 挖矿僵尸网络追踪程序检测到 DDG 家族更新到了版本 4005，IoC 如下：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;MD5:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;64c6692496110c0bdce7be1bc7cffd47  ddgs.i686&lt;/li&gt;
+&lt;li&gt;638061d2a06ebdfc82a189cf027d8136  ddgs.x86_64 &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;CC&lt;/strong&gt;:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;67.207.95[.]103:8000&lt;/li&gt;
+&lt;li&gt;103.219.112[.]66:8000 &lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;经过简单的分析，新版恶意样本的关键行为与旧版本差异不大，以前部署的追踪程序依然能持续追踪。不过其中一个小的技术点引起了我的注意。&lt;/p&gt;
+&lt;p&gt;以前说过，DDG 样本为了通过 Memberlist 库加入 P2P 网络(函数 &lt;code&gt;Memberlist.join()&lt;/code&gt;)，需要一批初始的 P2P Nodes ，新的样本代表的 P2P 节点会通过这些初始的 P2P Nodes 加入 P2P 网络。在旧版样本中，这些初始的 P2P Nodes 被称为 &lt;strong&gt;Hub List&lt;/strong&gt;，其中约有 200 个 节点 IP 地址，这一份 IP 列表以 Hex 数组形式硬编码保存在样本中。而新版 DDG 样本中则把这些 P2P Nodes 称为 &lt;strong&gt;Seeds&lt;/strong&gt;(Memberlist 库 &lt;code&gt;Join()&lt;/code&gt; 函数的 ”种子“)，这些 Seeds 用 &lt;a href=&quot;https://blog.golang.org/gobs-of-data&quot;&gt;Golang gob&lt;/a&gt; 序列化编码后再硬编码保存在样本中，样本里还用一组 &lt;code&gt;ddgs_network__mlUtils_*&lt;/code&gt; 函数来处理这些 Seeds：&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
+    
+    
+      <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
+    
+      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
+    
+      <category term="gob" scheme="http://jiayu0x.com/tags/gob/"/>
+    
+      <category term="decode" scheme="http://jiayu0x.com/tags/decode/"/>
+    
+  </entry>
   
   <entry>
     <title>浅谈 Python3 中对二进制数据 XOR 编码的正确姿势</title>
@@ -291,11 +575,11 @@
     
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
+      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
+    
       <category term="p2p" scheme="http://jiayu0x.com/tags/p2p/"/>
     
       <category term="botnet" scheme="http://jiayu0x.com/tags/botnet/"/>
-    
-      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
     
   </entry>
   
@@ -430,9 +714,9 @@
     
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
-      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
-    
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
     
       <category term="deobfuscation" scheme="http://jiayu0x.com/tags/deobfuscation/"/>
     
@@ -538,9 +822,9 @@
     
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
-      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
-    
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
     
       <category term="decrypt" scheme="http://jiayu0x.com/tags/decrypt/"/>
     
@@ -1453,11 +1737,11 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
+      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
+    
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
-    
-      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
     
       <category term="sandbox" scheme="http://jiayu0x.com/tags/sandbox/"/>
     
@@ -1680,9 +1964,9 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
-      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
-    
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
+    
+      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
     
       <category term="intranet" scheme="http://jiayu0x.com/tags/intranet/"/>
     

@@ -293,6 +293,331 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2016/12/27/flume-summary/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/12/27/flume-summary/" itemprop="url">
+                  Flume 踩坑排雷记
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-12-27T00:00:00+08:00">
+                2016-12-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/bigdata/" itemprop="url" rel="index">
+                    <span itemprop="name">bigdata</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/12/27/flume-summary/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/12/27/flume-summary/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1. 背景"></a>1. 背景</h2><p>最近一段时间在做安全大数据分析环境搭建以及初步的数据采集、录入工作，这个过程中用到了 <code>Hadoop+HBase+Flume+Kafka</code>这套大数据分析的工具。在数据分析环境架构中，<code>Flume-1.7.0</code> 主要用来收集各种来源、形式的数据，并把数据传给 <code>Kafka</code> 集群，由 <code>Kafka</code> 集群统一分发给 <code>HBase</code> 集群。</p>
+<p>用 <code>Flume</code> ，主要用到的 <strong><code>Source</code></strong> 是 <code>spooldir source</code> 和 <code>http-json source</code>，<strong><code>Sink</code></strong> 就主要是 <code>Kafka Sink</code>，配置非常灵活、功能也很强大。但在使用的过程中踩了不少坑，撰文记录一下比较重要的几个。</p>
+<blockquote>
+<p><strong>NOTE:</strong><br><code>Flume-ng</code> 的<code>Agent</code> 由三部分组成：<code>Source</code>/<code>Channel</code>/<code>Sink</code>，<code>Source</code> 相当于数据录入源，是 <strong>生产者</strong> 的角色； <code>Channel</code> 相当于数据传输通道；<code>Sink</code> 相当于数据接收端，是<strong>消费者</strong>的角色。在 <code>Flume-ng</code> 中，数据流向是 <code>Source--&gt;Channel--&gt;Sink</code>。</p>
+</blockquote>
+<h2 id="2-kafka-Sink-配置坑"><a href="#2-kafka-Sink-配置坑" class="headerlink" title="2. kafka Sink 配置坑"></a>2. <code>kafka</code> Sink 配置坑</h2><h3 id="2-1-LEADER-NOT-AVAILABLE-Error"><a href="#2-1-LEADER-NOT-AVAILABLE-Error" class="headerlink" title="2.1 LEADER_NOT_AVAILABLE Error"></a>2.1 <code>LEADER_NOT_AVAILABLE</code> Error</h3>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2016/12/27/flume-summary/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2016/11/21/hbase-notice/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/11/21/hbase-notice/" itemprop="url">
+                  HBase 一些需要注意的点
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-11-21T00:00:00+08:00">
+                2016-11-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/bigdata/" itemprop="url" rel="index">
+                    <span itemprop="name">bigdata</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/11/21/hbase-notice/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/11/21/hbase-notice/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h3 id="同时打开的文件和进程数量限制-ulimit"><a href="#同时打开的文件和进程数量限制-ulimit" class="headerlink" title="同时打开的文件和进程数量限制 (ulimit)"></a>同时打开的文件和进程数量限制 (ulimit)</h3><blockquote>
+<p><strong>参考</strong>:<br><a href="http://hbase.apache.org/book.html#basic.prerequisites">http://hbase.apache.org/book.html#basic.prerequisites</a></p>
+</blockquote>
+<p>Linux 系统默认的 <code>ulimit -n</code> 结果为 <code>1024</code> ，这个数量对 HBase 来说有点低，如果 HBase 打开的文件句柄数量超过这个限制，会报以下形式的错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">2010-04-06 03:04:37,542 INFO org.apache.hadoop.hdfs.DFSClient: Exception increateBlockOutputStream java.io.EOFException</div><div class="line">2010-04-06 03:04:37,542 INFO org.apache.hadoop.hdfs.DFSClient: Abandoning block blk_-6935524980745310745_1391901</div></pre></td></tr></table></figure></p>
+<p>官方建议这个数值最少 <code>10000</code>，不过最好是 2 幂或可以跟 2 的幂有简单的换算关系，比如 <code>10240</code>。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2016/11/21/hbase-notice/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2016/07/07/Cuckoo-install-config/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1475,7 +1800,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">17</span>
+                <span class="site-state-item-count">19</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1497,7 +1822,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-count">33</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>

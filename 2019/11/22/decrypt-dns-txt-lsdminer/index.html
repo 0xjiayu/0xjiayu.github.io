@@ -1,0 +1,987 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="malwr,re,lsdminer,aes,decrypt," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文首发于安全客，原文链接：https://www.anquanke.com/post/id/193116
+
+1. 概述10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 Watchdogsminer) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over">
+<meta property="og:type" content="article">
+<meta property="og:title" content="逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据">
+<meta property="og:url" content="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本文首发于安全客，原文链接：https://www.anquanke.com/post/id/193116
+
+1. 概述10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 Watchdogsminer) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/google_search.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/lookup_and_dec_dnstxt.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/dns_txt_rec.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/func_aescipher128_decrypt.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/b64_decode_fail.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/base64_godoc.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/different_type_encodings.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/call_b64encodingobj.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/b64encoding_init.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/b64_decode_test.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/call_newaescipher128.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/md5_init.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/first_round_md5_hash.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/slice_r1hashstr.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/r2_md5_hash.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/init_aes_cipher.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/unpadding.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/md5_test.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/aes_decrypt.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/return_decryption_result.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/doh_req_1.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/doh_via_cloudflare.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/doh_test.png">
+<meta property="og:updated_time" content="2019-11-21T12:59:11.073Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据">
+<meta name="twitter:description" content="本文首发于安全客，原文链接：https://www.anquanke.com/post/id/193116
+
+1. 概述10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 Watchdogsminer) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/lsdminer_dnstxt_decrept/google_search.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/"/>
+
+
+
+
+
+  <title> 逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-22T00:00:00+08:00">
+                2019-11-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/11/22/decrypt-dns-txt-lsdminer/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/11/22/decrypt-dns-txt-lsdminer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p><strong>本文首发于安全客，原文链接：</strong><br><a href="https://www.anquanke.com/post/id/193116" target="_blank" rel="external">https://www.anquanke.com/post/id/193116</a></p>
+</blockquote>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;"></p>
+<p>Anomali 的 Blog： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect" target="_blank" rel="external">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
+<p>跟 <a href="https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">以前的版本</a> 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：</p>
+<ul>
+<li>放弃了使用 Pastebin 作为恶意 Shell 脚本的下发通道，转而使用自己维护的 CC 服务器( <code>*.systemten.org</code> )来承载相关恶意活动；</li>
+<li>集成了多个漏洞 Exp，增强传播能力，详见 Anomali 的 Blog；</li>
+<li>利用 DNS TXT 记录下发多种经过 AES 加密的数据，这些加密数据有以下几种：<ul>
+<li>最新的恶意 Cron 任务用到的恶意 Shell 脚本下载 URL，可以写入失陷主机的 Cron 任务；</li>
+<li>最新的恶意样本版本号，失陷主机上已有的恶意样本会对比自己的版本号以决定是否 Update；</li>
+<li>最新的恶意 Shell 脚本；</li>
+<li>一系列最新二进制样本的下载 URL。</li>
+</ul>
+</li>
+</ul>
+<p>其他恶意行为按照常规的逆向分析方法按部就班分析即可，而关于加密的 DNS TXT 数据的逆向与解密过程，Anomali 的 Blog 中描述一带而过，并没详述，按照他们 Blog 中简单的描述，并不足以解密这些数据。本文就以上述样本为例，解析一下如何通过逆向样本一步一步解密这些数据。</p>
+<a id="more"></a>
+<h2 id="2-恶意样本执行流程"><a href="#2-恶意样本执行流程" class="headerlink" title="2. 恶意样本执行流程"></a>2. 恶意样本执行流程</h2><p>恶意样本总体的执行流程分为 3 步：</p>
+<ol>
+<li>通过 DNS TXT 通道获取用来篡改失陷主机 Cron 任务的恶意 URL，被篡改后的 Cron 任务会定期访问恶意 URL 获取最新的恶意 Shell 脚本；</li>
+<li>扫描当前 B 段网络，存活的  IP 尝试利用 4 种方式入侵并植入，4 种方式有：<ul>
+<li>SSH 爆破；</li>
+<li>Redis 未授权访问；</li>
+<li>Jenkins RCE 漏洞(CVE-2019-1003000)利用；</li>
+<li>ActiveMQ RCE 漏洞(CVE-2016-3088)利用</li>
+</ul>
+</li>
+<li>持久驻留失陷主机、释放矿机程序挖矿。</li>
+</ol>
+<p>在最后第 3 步，也会通过 DNS TXT 通道获取最新恶意 Shell 脚本以及二进制样本的下载 URL。本文重点分析 DNS TXT 通道数据的获取以及解密。</p>
+<p>先看一下恶意样本通过 DNS TXT 通道获取最新的用来篡改失陷主机 Cron 任务的恶意 URL 的整体流程：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/lookup_and_dec_dnstxt.png" alt=""></p>
+<p>可以看到样本首先从<code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code> 获取数据，然后用 AES-128bit 算法将其解密。再看一下从 <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code> 获取的加密数据：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/dns_txt_rec.png" alt=""></p>
+<p>DNS TXT 响应是一串字符，而且是经过 Base64 编码的字符串 <em>A7PZtADnYAEMEArGhmA9xQihPq9TRz4QigssjeOmUnQ</em> 。函数 <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong> 中的处理流程可以证实这一点：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/func_aescipher128_decrypt.png" style="zoom:60%;"></p>
+<p>到这里可以看出，要用 Go 语言编程解密这些数据，需要 3 步走：</p>
+<ol>
+<li>Base64 解码 DNS TXT 的响应字串，得到待解密的二进制数据；</li>
+<li>初始化 Go AES-128bit 解密句柄；</li>
+<li>解密 Base64 解码过的二进制数据。</li>
+</ol>
+<h2 id="3-Base64-解码"><a href="#3-Base64-解码" class="headerlink" title="3. Base64 解码"></a>3. Base64 解码</h2><p>先用 Linux 自带的命令行工具 <strong>base64</strong> 尝试解码：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_fail.png" alt=""></p>
+<p>有点蹊跷，不能用 base64 命令直接解码，看来用的并不是标准的 Base64 编码。这里先补充一下关于 Base64 编码的两点背景知识：</p>
+<ol>
+<li>参考: <a href="https://tools.ietf.org/html/rfc4648" target="_blank" rel="external">RFC4648</a> ，Base64 编码主要有两种：<strong>标准编码(StdEncoding)</strong> 和 <strong>URL 安全的编码(URLEncoding)</strong>。标准 Base64 编码的编码字符表是 <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/</em> ，而 URLEncoding 的编码字符表则把 StdEncoding 编码字符表中的 <strong>+</strong> 替换为 <strong>-</strong>，把 <strong>/</strong> 替换为 <strong>_</strong> ，即 <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_</em> ；</li>
+<li>Base64 两种编码的默认填充字符都是 <strong>=</strong> ，但也可以选择不填充任何字符。</li>
+</ol>
+<p>上述两个知识点，在 <a href="https://golang.org/pkg/encoding/base64/?m=all" target="_blank" rel="external">Go 的 Base64 标准库文档</a> 开头就有说明：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/base64_godoc.png" alt=""></p>
+<p>两个知识点各自分为两种情况，这样组合起来就有 4 种细分的 Base64 Encoding：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/different_type_encodings.png" alt=""></p>
+<p>那 LSDMiner 样本中具体是用什么样的 Base64 解码呢？需要先看一下样本中 Base64 解码的 Encoding 句柄是如何生成的。在函数 <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong> 中，是先拿到 Base64 解码的 Encoding 句柄再进行解码：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_b64encodingobj.png" alt=""></p>
+<p>通过上面的 xrefs 信息，可知这个 <strong>b64EncodingObj</strong> 是在函数 <strong>encoding_base64_init()</strong> 中生成的。进入这个 init 函数，<strong>b64EncodingObj</strong> 生成过程如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64encoding_init.png" alt=""></p>
+<p>可以看到这样两点：</p>
+<ol>
+<li>调用 base64.NewEncoding() 函数时，传入的参数是 URLEncoding 的编码字符表，即样本中用的是 URLEncoding 形式的 Base64 编码；</li>
+<li>调用 base64.URLEncoding.WithPadding() 函数时传入的参数是 <strong>-1</strong> ，即 <strong>base64.NoPadding</strong> ，不带填充字符，即 <strong>base64.RawURLEncoding</strong>。</li>
+</ol>
+<p>至此就可以解码 DNS TXT 响应的字符串了。测试代码与结果如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_test.png" alt=""></p>
+<h2 id="4-AES-解密二进制数据"><a href="#4-AES-解密二进制数据" class="headerlink" title="4. AES 解密二进制数据"></a>4. AES 解密二进制数据</h2><p>通过前面粗略的逆向分析，我们仅知道样本中用了 AES-128bit 算法来解密数据，但这些知识远不足以解密上面用 Base64 解码得到的二进制数据。AES 加密算法此处不详述，可以自行搜索相关资料，本文只关注如何用算法来解密数据。要想正确解密数据，还需要确定以下 AES 解密算法相关的几个要素：</p>
+<ul>
+<li>AES 密钥；</li>
+<li>AES 解密用到的 IV 向量；</li>
+<li>AES 解密算法的分组密码模式；</li>
+<li>AES 解密算法的 Padding 方式。</li>
+</ul>
+<p>上面的逆向分析过程中，我们注意到样本中调用了函数 <strong>crypto_cipher_NewCBCDecrypter()</strong> ，可以确认样本中用到的分组密码模式是 <strong>CBC</strong>。</p>
+<p>在分析确认其他几个要素之前，我们先捋一下两个关键函数的逻辑：初始化 AES 解密句柄的 <strong>NewAesCipher128()</strong> 和 执行 AES 解密操作的 <strong>AesCipher128_Decrypt()</strong>。</p>
+<h3 id="4-1-NewAesCipher128"><a href="#4-1-NewAesCipher128" class="headerlink" title="4.1 NewAesCipher128"></a>4.1 NewAesCipher128</h3><p>首先，样本调用该函数的时候传入一个参数，即待查询 DNS TXT 记录的域名字符串 <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code>：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_newaescipher128.png" style="zoom:50%;"></p>
+<p>在函数内部先初始化一个 <strong>crypto/md5</strong> 句柄（代码片段对照左边标准库函数 <strong>crypto_md5_New()</strong> 即可理解)：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_init.png" alt=""></p>
+<p>然后将传入的域名字符串由 string 类型转成字符切片并写入 MD5 digest 对象，再通过 <strong>md5.digest.Sum()</strong> 函数做一次 MD5 Hash 计算(注意 Sum 函数传入的参数为 <strong>nil</strong> )：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/first_round_md5_hash.png" style="zoom:55%;"></p>
+<p>再把这轮 MD5 计算的值通过 <strong>hex.EncodeToString()</strong> 转成 32-bytes 的字符串，即常规的字符串形式的 MD5 值。然后取出再取出这个 MD5 值的<strong>前 16 字节</strong>，保存到变量(<strong>r1HashStr_16bytes</strong>)中备用：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/slice_r1hashstr.png" style="zoom:60%;"></p>
+<p>接下来，样本又做了一次 MD5 计算，并且取出这一次 MD5 值的<strong>后 16 字节</strong>，保存到变量中备用(注意，这一次 MD5 计算之前没有调用 md5.dgest.Write() 来写入新字节，并且调用 md5.digest.Sum() 函数时依然传入参数 <strong>nil</strong> ):</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/r2_md5_hash.png" style="zoom:60%;"></p>
+<p>后面可以看到，第一次 MD5 计算后取出的 <strong>前 16 字节</strong> 数据，被作为 <strong>AES 密钥</strong>传入 <strong>aes.NewCipher()</strong> 函数来初始化 AES 解密句柄：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/init_aes_cipher.png" style="zoom:80%;"></p>
+<p>而第二次 MD5 计算后取出的 <strong>后 16 字节</strong> 数据被保存起来，作为本函数返回值的一部分返回，接下来作为 <strong>AES 的 IV 向量</strong>传给后面函数 <strong>AesCipher128_Decrypt()</strong> 中调用的 <strong>crypto_cipher_NewCBCDecrypter()</strong> 函数。</p>
+<h3 id="4-2-AES-的-Padding-方式"><a href="#4-2-AES-的-Padding-方式" class="headerlink" title="4.2 AES 的 Padding 方式"></a>4.2 AES 的 Padding 方式</h3><p>前面内容分析确认了 AES 的 Key、IV 以及分组密码模式，还需最后确认 AES 算法所用的 Padding 方式，即可正确解密数据。这一个点需要逆向分析函数 <strong>AesCipher128_Decrypt()</strong> 才能确认。</p>
+<p>AES 加密算法用到的常见的 Padding 方式有以下几种(参考： <a href="https://www.jianshu.com/p/b63095c59361" target="_blank" rel="external">对称加密算法和分组密码的模式</a>)：</p>
+<ul>
+<li><p>ANSI X.923：也叫 <strong>ZeroPadding</strong>，填充序列的最后一个字节填<code>paddingSize</code>，其它填0。</p>
+</li>
+<li><p>ISO 10126：填充序列的最后一个字节填<code>paddingSize</code>， 其它填随机数。</p>
+</li>
+<li><p>PKCS7：填充序列的每个字节都填<code>paddingSize</code> 。</p>
+</li>
+</ul>
+<p>LSDMiner 中用到的 Padding 方式就是简单的 ZeroPadding，通过函数 <strong>AesCipher128_Decrypt()</strong> 中解密操作后的 <strong>byte.Trim()</strong> 函数即可确认：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/unpadding.png" style="zoom:50%;"></p>
+<h3 id="4-3-补充说明——关于二轮-MD5-值计算"><a href="#4-3-补充说明——关于二轮-MD5-值计算" class="headerlink" title="4.3 补充说明——关于二轮 MD5 值计算"></a>4.3 补充说明——关于二轮 MD5 值计算</h3><p>上述分析过程中描述过，恶意样本为生成 AES 解密用到的 Key 和 IV 向量，对相应域名字符串连续做了 2 轮 MD5 Hash 计算，这一点 Anomali 的 Blog 中也提到了，只是他们没提到 Key 和 IV 具体的生成过程。</p>
+<p>然而样本中连续两轮的 MD5 计算的值其实是相同的——这是 Go 语言特有的 MD5 计算方式，参考 <a href="https://codeday.me/bug/20190214/636073.html" target="_blank" rel="external">hash – Golang md5 Sum()函数</a> ，演示代码如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_test.png" style="zoom:60%;"></p>
+<p>这一点不知道是恶意软件作者的失误，还是有意为之。倒是容易给逆向分析造成困扰，因为乍一看“两轮 MD5 计算”，很可能直观认为应该得出两个不同的 MD5 值，并分别截取一段做 AES 解密的 Key 和 IV 向量，没想到两次 MD5 计算得出相同的值。</p>
+<h2 id="5-完成解密"><a href="#5-完成解密" class="headerlink" title="5. 完成解密"></a>5. 完成解密</h2><p>基于以上分析，就可以编写程序完成我们想要的解密工作了。完整的 Go 语言代码已上传到 Github：</p>
+<p> <a href="https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt" target="_blank" rel="external">https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt</a> </p>
+<p>运行结果如下：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/aes_decrypt.png" alt=""></p>
+<p>当前解密出来的 Cron URL 是 <strong><code>lsd.systemten.org</code></strong> ，在样本中如果整个 DNS TXT 数据通道操作过程有任何异常而无法解密出最新的 Cron URL，备用的默认值也是这个 <strong><code>lsd.systemten.org</code></strong> :</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/return_decryption_result.png" style="zoom:80%;"></p>
+<h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>文章开头的截图中已经显示过，如果样本用 <strong>net.LookupTXT()</strong> 函数检索 DNS TXT 记录失败，还会跳转到另外一个代码分支，去用 DoH(DNS over HTTPS) 向 CloudFlare 的 DoH 服务器请求相应的 DNS TXT 记录：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_req_1.png" alt=""></p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_via_cloudflare.png" alt=""></p>
+<p>我们用命令行工具测试一下，可以看到这种方式也有效：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_test.png" alt=""></p>
+<p>利用 DNS TXT 记录和 DoH 下发恶意数据来辅助恶意样本的运行，可以进一步提升整个 Botnet 基础设施的健壮性和运营的灵活性，鉴于这个 Botnet 存活已久并不断更新，应该引起业界的持续关注。</p>
+<p>前文说过，恶意样本中利用 DNS TXT 通道传输的数据还有其他几种，方式都是一样：检索 DNS TXT 数据，用 base64.RawURLEncoding 解码得到二进制数据；然后对域名进行 MD5 计算得出 AES 解密用到的 Key 和 IV，然后用 CBC 模式、ZeroPadding 的 AES-128bit 算法对 Base64 解码后的二进制数据进行解密。对应的域名还有以下几个，均可以用以上 Go 程序来解密：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">&quot;update.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;shell.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div></pre></td></tr></table></figure>
+<p>另外，LSDMiner 涉及的二进制恶意样本，都用变形 UPX 加了壳，而且壳的特征很不明显，难以用固定的特征直接检测加壳的样本。并且，相关加壳二进制样本的 UPX 壳幻数(Magic Number)还经常变化，比如本文分析的 MD5 为 <strong>114d76b774185b826830cb6b015cb56f</strong> 的 UPX 壳幻数为 <strong>0x2124922A</strong>；最新的 x86_64 架构的样本(MD5: <strong>78e3582c42824f17aba17feefb87ea5f</strong>) 的 UPX 壳幻数则变成了<strong>0x215E77F2</strong> 。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+<!--
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+ -->
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/" title="逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据">http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/malwr/" rel="tag"># malwr</a>
+          
+            <a href="/tags/re/" rel="tag"># re</a>
+          
+            <a href="/tags/lsdminer/" rel="tag"># lsdminer</a>
+          
+            <a href="/tags/aes/" rel="tag"># aes</a>
+          
+            <a href="/tags/decrypt/" rel="tag"># decrypt</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/11/19/decode-gob-data-in-ddg-v4005/" rel="next" title="以 DDG v4005 样本为例浅谈 Golang gob 序列化数据的逆向解码">
+                <i class="fa fa-chevron-left"></i> 以 DDG v4005 样本为例浅谈 Golang gob 序列化数据的逆向解码
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-概述"><span class="nav-number">1.</span> <span class="nav-text">1. 概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-恶意样本执行流程"><span class="nav-number">2.</span> <span class="nav-text">2. 恶意样本执行流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Base64-解码"><span class="nav-number">3.</span> <span class="nav-text">3. Base64 解码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-AES-解密二进制数据"><span class="nav-number">4.</span> <span class="nav-text">4. AES 解密二进制数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-NewAesCipher128"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 NewAesCipher128</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-AES-的-Padding-方式"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 AES 的 Padding 方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-补充说明——关于二轮-MD5-值计算"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 补充说明——关于二轮 MD5 值计算</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-完成解密"><span class="nav-number">5.</span> <span class="nav-text">5. 完成解密</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-总结"><span class="nav-number">6.</span> <span class="nav-text">6. 总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/';
+          this.page.identifier = '2019/11/22/decrypt-dns-txt-lsdminer/';
+          this.page.title = '逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
