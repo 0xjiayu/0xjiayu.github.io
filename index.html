@@ -293,6 +293,170 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/11/26/lsdminer_dnstxt_decrypt_en/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2019/11/26/lsdminer_dnstxt_decrypt_en/" itemprop="url">
+                  Decrypt DNS TXT record data lookuped by latest LSDMiner sample
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-26T00:00:00+08:00">
+                2019-11-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/11/26/lsdminer_dnstxt_decrypt_en/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/11/26/lsdminer_dnstxt_decrypt_en/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>中文版： <a href="https://www.anquanke.com/post/id/193116">逆向解密 LSDMiner 新样本利用 DNS TXT 通道传输的数据</a></p>
+</blockquote>
+<h2 id="1-Abstract"><a href="#1-Abstract" class="headerlink" title="1. Abstract"></a>1. Abstract</h2><p>My colleague sended me a latest LSDMiner sample(MD5:  <strong>114d76b774185b826830cb6b015cb56f</strong>) in mid-October. I noticed a DNS TXT and DoH(DNS over HTTPS) module with AES decryption by simple reverse engineering analysis. Then I moved on to something else without deep analysis. I got start to deal with this sample in the last few days, and found that Anomali has published a blog post about this case by Googling a function name used in the sample as <strong>NewAesCipher128()</strong> :</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;" /></p>
+<p>Anomali’s blog post： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
+<p>But Anomali Labs didn’t detail the process of DNS TXT record data decryption, that’s why I write this blog post.</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/11/26/lsdminer_dnstxt_decrypt_en/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -405,7 +569,7 @@
           <blockquote>
 <p><strong>本文首发于安全客，原文链接：</strong><br><a href="https://www.anquanke.com/post/id/193116">https://www.anquanke.com/post/id/193116</a></p>
 </blockquote>
-<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，部门老司机发给我一个 LSDMine(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
 <p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;" /></p>
 <p>Anomali 的 Blog： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
 <p>跟 <a href="https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">以前的版本</a> 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：</p>
@@ -1785,168 +1949,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/25/reversing-msvcxx-exception-handling/" itemprop="url">
-                  (译)MSVC++ 逆向(一) —— 异常处理
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-04-25T00:00:00+08:00">
-                2017-04-25
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/04/25/reversing-msvcxx-exception-handling/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2017/04/25/reversing-msvcxx-exception-handling/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>原文： <a href="http://www.openrce.org/articles/full_view/21">http://www.openrce.org/articles/full_view/21</a>  </p>
-</blockquote>
-<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p><strong>MSVC++</strong> 是编写 Win32 应用程序最常用的编译器，所以在 Win32 平台的逆向工作中，懂得其底层工作原理，对逆向工程师来说至关重要。掌握 VC++ 程序的底层原理之后，便能在逆向过程中精准、快速识别编译器生成的<strong>胶水代码</strong>（Glue Code），这样可以让逆向工程师快速聚焦于二进制文件背后的真实程序和真实逻辑。另外，这对还原程序中高层次的结构（<strong><code>译注</code></strong>：面向对象的数据结构和程序组织结构、异常相关数据结构等）也有莫大帮助。  </p>
-<p>本文只是系列文章的上半部分（下半部分见： <a href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/">(译)MSVC++ 逆向（二）—— 类、方法和 RTTI</a>），主要讲栈展开、异常处理以及 MSVC 编译生成相关的数据结构。阅读本文需要有汇编、寄存器和调用约定相关的知识储备，当然，MSVC++ 的编程基础知识也是必要的。  </p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/25/reversing-msvcxx-exception-handling/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1996,7 +1998,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-count">20</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>

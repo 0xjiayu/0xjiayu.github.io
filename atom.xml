@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://jiayu0x.com/"/>
-  <updated>2019-11-21T12:59:11.073Z</updated>
+  <updated>2019-11-26T15:39:09.447Z</updated>
   <id>http://jiayu0x.com/</id>
   
   <author>
@@ -16,16 +16,164 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Decrypt DNS TXT record data lookuped by latest LSDMiner sample</title>
+    <link href="http://jiayu0x.com/2019/11/26/lsdminer_dnstxt_decrypt_en/"/>
+    <id>http://jiayu0x.com/2019/11/26/lsdminer_dnstxt_decrypt_en/</id>
+    <published>2019-11-25T16:00:00.000Z</published>
+    <updated>2019-11-26T15:39:09.447Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>中文版： <a href="https://www.anquanke.com/post/id/193116" target="_blank" rel="external">逆向解密 LSDMiner 新样本利用 DNS TXT 通道传输的数据</a></p>
+</blockquote>
+<h2 id="1-Abstract"><a href="#1-Abstract" class="headerlink" title="1. Abstract"></a>1. Abstract</h2><p>My colleague sended me a latest LSDMiner sample(MD5:  <strong>114d76b774185b826830cb6b015cb56f</strong>) in mid-October. I noticed a DNS TXT and DoH(DNS over HTTPS) module with AES decryption by simple reverse engineering analysis. Then I moved on to something else without deep analysis. I got start to deal with this sample in the last few days, and found that Anomali has published a blog post about this case by Googling a function name used in the sample as <strong>NewAesCipher128()</strong> :</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;"></p>
+<p>Anomali’s blog post： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect" target="_blank" rel="external">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
+<p>But Anomali Labs didn’t detail the process of DNS TXT record data decryption, that’s why I write this blog post.</p>
+<a id="more"></a>
+<p>This sample is still written in Go language as same as <a href="https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">it’s old version</a>. But the coding architecture and functianlity internally has changed a lot, significant differences sumerized as below:</p>
+<ul>
+<li>Moves it’s malicious shell script from Pastebin to it’s own CC servers( <code>*.systemten.org</code> )</li>
+<li>Integrates multiple exploits to speed and broaden it’s propagation</li>
+<li>Transports multiple kinds of malicious encrypted data via DNS TXT record:<ul>
+<li>Latest malicious shell script downloading URL for Cron job</li>
+<li>Lastet version info</li>
+<li>Latest malicious shell script</li>
+<li>A group of downloading URLs of malicious binary files</li>
+</ul>
+</li>
+</ul>
+<p>Analysis of main aspects of this threat actor could be done by general approaches of threat analysis, and was covered by Anomali’s blog post. I will take <strong>114d76b774185b826830cb6b015cb56f</strong> as example to decribe details of decryption of DNS TXT record data received by this threat actor in this post.</p>
+<h2 id="2-Overall-execution-flow"><a href="#2-Overall-execution-flow" class="headerlink" title="2. Overall execution flow"></a>2. Overall execution flow</h2><p>The overall execution flow could be sumeraized as 3 steps：</p>
+<ol>
+<li>Lookups DNS TXT record via DNS request or DoH, and decrypts the data with AES128bit to extract malicious URL for Cron job.</li>
+<li>Scan current <em>/16</em> IP Block, and compromise alive hosts via 4 methods:<ul>
+<li>SSH brute</li>
+<li>Redis Unauthorized Access</li>
+<li>Jekins RCE CVE-2019-1003000 Exploit</li>
+<li>ActiveMQ RCE CVE-2016-3088 Exploit</li>
+</ul>
+</li>
+<li>Release cryptomining program and  achieve persistence on the exploited machines</li>
+</ol>
+<p>By the way, the sample will also lookup the DNS TXT records to get malicious shell script and URL to download binary file at the 3rd step.</p>
+<p>Firstly, let’s look at the overall process of lookuping DNS TXT record and tampering cron job:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/lookup_and_dec_dnstxt.png" alt=""></p>
+<p>We can see that the sample lookups DNS TXT record from <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code> and then decrypts the record data with AES-128bit. I lookuped this DNS TXT record with command <strong>dig</strong> as below:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/dns_txt_rec.png" alt=""></p>
+<p>The response of DNS TXT request is a Base64 encoded string <em>A7PZtADnYAEMEArGhmA9xQihPq9TRz4QigssjeOmUnQ</em> , the codes in function <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong> is responsible for decoding this string:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/func_aescipher128_decrypt.png" style="zoom:60%;"></p>
+<p>Taking all the factors above, we could come to conclusion that there’re 3 steps to accomplish the decryption task:</p>
+<ol>
+<li>Decodes the raw DNS TXT response string with Base64</li>
+<li>Initialize the AES-128bit decryption handle</li>
+<li>Decrypts the binary bytes generated by Base64 decoding with AES-128bit</li>
+</ol>
+<h2 id="3-Base64-Decoding"><a href="#3-Base64-Decoding" class="headerlink" title="3. Base64 Decoding"></a>3. Base64 Decoding</h2><p>Now I use command <strong>base64</strong> within Linux to decode the raw DNS TXT record response:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_fail.png" alt=""></p>
+<p>It’s a bit odd that decoding failed. So I guess it’s not encoded by the <strong>standard</strong> Base64 encoding. Here are 2 points of background knowledge of Base64 encoding:</p>
+<ol>
+<li>There’re 2 encoding types for Base64: <strong>Standard Encoding</strong> and <strong>URL Encoding</strong>. The alphabet for Standard Encoding is <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/</em> and <em>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_</em> for URL Encoding. (refer: <a href="https://tools.ietf.org/html/rfc4648" target="_blank" rel="external">RFC4648</a>)</li>
+<li>The 2 types of Base64 encoding share the same default padding character, that is <strong>=</strong>. However they all could padd nothing.</li>
+</ol>
+<p>These 2 points has been shown at <a href="https://golang.org/pkg/encoding/base64/?m=all" target="_blank" rel="external">Go doc for Base64</a>:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/base64_godoc.png" alt=""></p>
+<p>So, 2 kinds of padding style and 2 types of encoding, then there’re 4  subdivision types of Base64 encoding:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/different_type_encodings.png" alt=""></p>
+<p>Then which kind of Base64 encoding dose LSDMiner use? We should check how the Base64 handler is initialized in this sample. As the screenshot picture shows below, the sample implements the decoding operation with Base64 encoding handler <strong>b64EncodingObj</strong> in function <strong>github_com_hippies_LSD_LSDC__AesCipher128_Decrypt()</strong>.</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_b64encodingobj.png" alt=""></p>
+<p>And the Base64 encoding handler is initialized in function <strong>encoding_base64_init()</strong> as IDAPro xrefs demonstrates. Here is the detail of function <strong>encoding_base64_init()</strong> :</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64encoding_init.png" alt=""></p>
+<p>Two key points：</p>
+<ol>
+<li>The sample passes URLEncodings alphabet to function <strong>base64.NewEncoding()</strong>, thus it uses URLEncoding style base64 encoding;</li>
+<li>The samples passes <strong>-1</strong> to function <strong>base64.URLEncoding.WithPadding()</strong>, aka <strong>base64.NoPadding</strong>, thus <strong>base64.RawURLEncoding</strong>.</li>
+</ol>
+<p>Now I can decoding the DNS TXT record response string with these testing codes:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/b64_decode_test.png" alt=""></p>
+<h2 id="4-AES-Decrytion"><a href="#4-AES-Decrytion" class="headerlink" title="4. AES Decrytion"></a>4. AES Decrytion</h2><p>We know that the sample will decrypt those binary data with AES-128bit decoded by Base64 encoding as metioned above. Then we should make 4 points clear at first to leverage AES algorithm correctly:</p>
+<ul>
+<li>AES Key</li>
+<li>AES Initialization Vector(IV)</li>
+<li>Encryption mode(CBC/ECB etc.)</li>
+<li>Padding method</li>
+</ul>
+<p>According to analysis above, we can notice that the sample calls a function related to AES decryption named <strong>crypto_cipher_NewCBCDecrypter()</strong>, so we can confirm that the AES encryption mode is <strong><a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_(CBC" target="_blank" rel="external">CBC</a>)</strong>.</p>
+<p>Now we confirm other 3 points next by analyzing function <strong>NewAesCipher128()</strong> which initializes the AES decryption handler and  <strong>AesCipher128_Decrypt()</strong> which takes the decryption operation.</p>
+<h3 id="4-1-function-NewAesCipher128"><a href="#4-1-function-NewAesCipher128" class="headerlink" title="4.1 function NewAesCipher128()"></a>4.1 function NewAesCipher128()</h3><p>Firstly, this function is passed to an argument, which is the domain name string that will be lookuped DNS TXT record. The domain name string for malicious cron job is <code>cron.iap5u1rbety6vifaxsi9vovnc9jjay2l.com</code>:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/call_newaescipher128.png" style="zoom:50%;"></p>
+<p>Then this function initializes a <strong>crypto/md5</strong> digest handler, we can confirm this by comparing the standard Go library function <strong>crypto_md5_New()</strong> at the right side of the screenshot below:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_init.png" alt=""></p>
+<p>And the domain name string will be converted to byte slice and written to <strong>MD5 digest</strong> handler, then the sample executes the <strong>1rst round</strong> of MD5 hash calculation with <strong>md5.degets.Sum(nil)</strong>:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/first_round_md5_hash.png" style="zoom:55%;"></p>
+<p>When the 1rst round MD5 hash value is calculated, it will be converted to 32-Bytes string by <strong>hex.EncodeToString()</strong>, that’s the normal MD5 hash string. And this MD5 value string is cut to two halves, the first half(16-Bytes) will be saved to variable which I name it as <strong>r1HashStr_16bytes</strong>:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/slice_r1hashstr.png" style="zoom:60%;"></p>
+<p>The next step is the <strong>2nd round</strong> of MD5 hash calculation also by calling <strong>md5.degets.Sum(nil)</strong> without writing any bytes to the <strong>MD5 digest</strong>. This 2nd MD5 hash value will also be cut to two halves, but this time the 2nd half will be save to anather variable which I name it as <strong>r2HashStr_16bytes</strong>.</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/r2_md5_hash.png" style="zoom:60%;"></p>
+<p>At last, we will see that the <strong>r1HashStr_16bytes</strong> is passed to function <strong>aes.NewCipher()</strong> as AES Key, to initialize AES decryption handler:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/init_aes_cipher.png" style="zoom:80%;"></p>
+<p>And the <strong>r2HashStr_16bytes</strong> will be return by this function, and passed to later function <strong>AesCipher128_Decrypt()</strong>. <strong>AesCipher128_Decrypt()</strong> will call <strong>crypto_cipher_NewCBCDecrypter()</strong> , with this <strong>r2HashStr_16bytes</strong> as AES IV.</p>
+<h3 id="4-2-AES-Padding-method"><a href="#4-2-AES-Padding-method" class="headerlink" title="4.2 AES Padding method"></a>4.2 AES Padding method</h3><p>After analyzing the AES encryption mode, AES Key and AES IV, we have the last key point left to decrypt the DNS TXT record correctly, that’s the <strong><a href="https://en.wikipedia.org/wiki/Padding_(cryptography" target="_blank" rel="external">Padding method</a>)</strong>. </p>
+<p>And we can confirm that this sample uses simple ZeroPadding from function <strong>AesCipher128_Decrypt()</strong> , because it calls <strong>byte.Trim()</strong> after data decryption:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/unpadding.png" style="zoom:50%;"></p>
+<h3 id="4-3-Additional-specification–-2-rounds-MD5-hash-calculation"><a href="#4-3-Additional-specification–-2-rounds-MD5-hash-calculation" class="headerlink" title="4.3 Additional specification– 2 rounds MD5 hash calculation"></a>4.3 Additional specification– 2 rounds MD5 hash calculation</h3><p>As metioned above, the sample takes <strong>2 Rounds of MD5 Calculation</strong> operation to generate AES Key and AES IV  separately. Anomali’s blog post metioned this process too. But there’s a unexpected problem due to Go programming language’s standard MD5 <strong>Sum()</strong> function: the two MD5 hash values of two rounds of calculation are equal.</p>
+<p>I show this problem by this piece of codes:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/md5_test.png" style="zoom:60%;"></p>
+<p>I’m not sure about this but whether by design or just due to the malware author’s misunderstanding about Go crypto/md5 libary. But this acctually could confuse malware researcher to consider two different MD5 hash values by two rounds of calculation.</p>
+<h2 id="5-Complete-decryption"><a href="#5-Complete-decryption" class="headerlink" title="5. Complete decryption"></a>5. Complete decryption</h2><p>Based on the above analysis, we could write some code to complete the decryption work. My Go program has been uploaded to Github:</p>
+<p> <a href="https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt" target="_blank" rel="external">https://github.com/0xjiayu/LSDMiner_DNS_TXT_Decrypt</a> </p>
+<p>And that’s the show case：</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/aes_decrypt.png" alt=""></p>
+<p>The current decrypted text is a domain name string: <strong><code>lsd.systemten.org</code></strong>, which is also the default value if the sample failed to lookup the DNS TXT record or failed to decrypt these data:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/return_decryption_result.png" style="zoom:80%;"></p>
+<h2 id="6-Conclusion"><a href="#6-Conclusion" class="headerlink" title="6. Conclusion"></a>6. Conclusion</h2><p>The screenshot in the head of this blog post shows that the sample will jump to another code branch to get DNS TXT record from CloudFlare’s DNS Server via DoH(<a href="https://en.wikipedia.org/wiki/DNS_over_HTTPS" target="_blank" rel="external">DNS over HTTPS</a>), when  <strong>net.LookupTXT()</strong> failed.</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_req_1.png" alt=""></p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_via_cloudflare.png" alt=""></p>
+<p>We can confirm this method also works correctly:</p>
+<p><img src="/imgs/lsdminer_dnstxt_decrept/doh_test.png" alt=""></p>
+<p>It will make this botnet more robust and flexible with the assistance of encrypted DNS TXT record and DoH. In view of the facts that the botnet has existed for a long time and updates continuesly, I think it should cause community’s attention.</p>
+<p>I’ve metioned above that the sample transports other kinds of malicious encrypted data via DNS TXT record except for malicious cron URL. The process of lookuping DNS TXT record, decoding data with Base64 and decrypting data with AES-128bit are all the same. There’re more domain names and they all have been covered by my Go program uploaded to Github before:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">&quot;update.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;shell.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x32.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;1x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;2x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div><div class="line">&quot;3x64.iap5u1rbety6vifaxsi9vovnc9jjay2l.com&quot;</div></pre></td></tr></table></figure>
+<p>At last, I would add more details aboud the Packer of this LSDMiner family’s malicious binary files. Almost all of it’s binary files are packed by malformed UPX Packer, and the packer’s feature is not so distinctive to wirte detection rules easily. Besides, it’s packer’s Magic Number has always been changed. For example, the sample I analyze in this blog post(MD5: <strong>114d76b774185b826830cb6b015cb56f</strong>) gets packed with Magic Number <strong>0x2124922A</strong>, while another sample (MD5: <strong>78e3582c42824f17aba17feefb87ea5f</strong>) gets packed with Magic Number <strong>0x215E77F2</strong>.</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;中文版： &lt;a href=&quot;https://www.anquanke.com/post/id/193116&quot;&gt;逆向解密 LSDMiner 新样本利用 DNS TXT 通道传输的数据&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;1-Abstract&quot;&gt;&lt;a href=&quot;#1-Abstract&quot; class=&quot;headerlink&quot; title=&quot;1. Abstract&quot;&gt;&lt;/a&gt;1. Abstract&lt;/h2&gt;&lt;p&gt;My colleague sended me a latest LSDMiner sample(MD5:  &lt;strong&gt;114d76b774185b826830cb6b015cb56f&lt;/strong&gt;) in mid-October. I noticed a DNS TXT and DoH(DNS over HTTPS) module with AES decryption by simple reverse engineering analysis. Then I moved on to something else without deep analysis. I got start to deal with this sample in the last few days, and found that Anomali has published a blog post about this case by Googling a function name used in the sample as &lt;strong&gt;NewAesCipher128()&lt;/strong&gt; :&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/imgs/lsdminer_dnstxt_decrept/google_search.png&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Anomali’s blog post： &lt;a href=&quot;https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect&quot;&gt;Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;But Anomali Labs didn’t detail the process of DNS TXT record data decryption, that’s why I write this blog post.&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
+    
+    
+      <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
+    
+      <category term="lsdminer" scheme="http://jiayu0x.com/tags/lsdminer/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
+    
+      <category term="aes" scheme="http://jiayu0x.com/tags/aes/"/>
+    
+      <category term="decrypt" scheme="http://jiayu0x.com/tags/decrypt/"/>
+    
+  </entry>
+  
+  <entry>
     <title>逆向解密 LSDMiner 新样本中 DNS TXT 通道传输的数据</title>
     <link href="http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/"/>
     <id>http://jiayu0x.com/2019/11/22/decrypt-dns-txt-lsdminer/</id>
     <published>2019-11-21T16:00:00.000Z</published>
-    <updated>2019-11-21T12:59:11.073Z</updated>
+    <updated>2019-11-26T15:30:46.178Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p><strong>本文首发于安全客，原文链接：</strong><br><a href="https://www.anquanke.com/post/id/193116" target="_blank" rel="external">https://www.anquanke.com/post/id/193116</a></p>
 </blockquote>
-<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>10 月中旬，部门老司机发给我一个 LSDMine(旧称 <strong>Watchdogsminer</strong>) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 <strong>NewAesCipher128()</strong> ，发现国外安全公司 <strong>Anomali</strong> 已经分析过这个 Case ：</p>
 <p><img src="/imgs/lsdminer_dnstxt_decrept/google_search.png" style="zoom:50%;"></p>
 <p>Anomali 的 Blog： <a href="https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect" target="_blank" rel="external">Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect</a></p>
 <p>跟 <a href="https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">以前的版本</a> 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：</p>
@@ -149,7 +297,7 @@
       &lt;blockquote&gt;
 &lt;p&gt;&lt;strong&gt;本文首发于安全客，原文链接：&lt;/strong&gt;&lt;br&gt;&lt;a href=&quot;https://www.anquanke.com/post/id/193116&quot;&gt;https://www.anquanke.com/post/id/193116&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;h2 id=&quot;1-概述&quot;&gt;&lt;a href=&quot;#1-概述&quot; class=&quot;headerlink&quot; title=&quot;1. 概述&quot;&gt;&lt;/a&gt;1. 概述&lt;/h2&gt;&lt;p&gt;10 月中旬，我们的威胁跟踪系统捕获到 LSDMiner(旧称 &lt;strong&gt;Watchdogsminer&lt;/strong&gt;) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 &lt;strong&gt;NewAesCipher128()&lt;/strong&gt; ，发现国外安全公司 &lt;strong&gt;Anomali&lt;/strong&gt; 已经分析过这个 Case ：&lt;/p&gt;
+&lt;h2 id=&quot;1-概述&quot;&gt;&lt;a href=&quot;#1-概述&quot; class=&quot;headerlink&quot; title=&quot;1. 概述&quot;&gt;&lt;/a&gt;1. 概述&lt;/h2&gt;&lt;p&gt;10 月中旬，部门老司机发给我一个 LSDMine(旧称 &lt;strong&gt;Watchdogsminer&lt;/strong&gt;) 最新活动中的一个样本(MD5:  114d76b774185b826830cb6b015cb56f)。当时大概看了一眼，里面用到了 DNS TXT 记录和 DoH(DNS over HTTPS) 来传输经过 AES 加密的数据，手头忙别的事，就先搁下了。近来捡起来分析，Google 搜索样本中用到的一个函数 &lt;strong&gt;NewAesCipher128()&lt;/strong&gt; ，发现国外安全公司 &lt;strong&gt;Anomali&lt;/strong&gt; 已经分析过这个 Case ：&lt;/p&gt;
 &lt;p&gt;&lt;img src=&quot;/imgs/lsdminer_dnstxt_decrept/google_search.png&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
 &lt;p&gt;Anomali 的 Blog： &lt;a href=&quot;https://www.anomali.com/blog/illicit-cryptomining-threat-actor-rocke-changes-tactics-now-more-difficult-to-detect&quot;&gt;Illicit Cryptomining Threat Actor Rocke Changes Tactics, Now More Difficult to Detect&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;跟 &lt;a href=&quot;https://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/&quot;&gt;以前的版本&lt;/a&gt; 一样，LSDMiner 的样本仍然是用 Go 编写，但是内部代码结构以及具体功能已经跟旧版本有很大差异。明显的差异至少有以下 3 点：&lt;/p&gt;
@@ -173,9 +321,9 @@
     
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
     
-      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
-    
       <category term="lsdminer" scheme="http://jiayu0x.com/tags/lsdminer/"/>
+    
+      <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
     
       <category term="aes" scheme="http://jiayu0x.com/tags/aes/"/>
     
@@ -289,9 +437,9 @@
     
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
     
-      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
-    
       <category term="re" scheme="http://jiayu0x.com/tags/re/"/>
+    
+      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
     
       <category term="gob" scheme="http://jiayu0x.com/tags/gob/"/>
     
@@ -575,11 +723,11 @@
     
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
-      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
-    
       <category term="p2p" scheme="http://jiayu0x.com/tags/p2p/"/>
     
       <category term="botnet" scheme="http://jiayu0x.com/tags/botnet/"/>
+    
+      <category term="ddg" scheme="http://jiayu0x.com/tags/ddg/"/>
     
   </entry>
   
@@ -1488,9 +1636,9 @@
       <category term="bigdata" scheme="http://jiayu0x.com/categories/bigdata/"/>
     
     
-      <category term="flume" scheme="http://jiayu0x.com/tags/flume/"/>
-    
       <category term="bigdata" scheme="http://jiayu0x.com/tags/bigdata/"/>
+    
+      <category term="flume" scheme="http://jiayu0x.com/tags/flume/"/>
     
   </entry>
   
@@ -1737,11 +1885,11 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
+      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
+    
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
     
       <category term="malwr" scheme="http://jiayu0x.com/tags/malwr/"/>
-    
-      <category term="cuckoo" scheme="http://jiayu0x.com/tags/cuckoo/"/>
     
       <category term="sandbox" scheme="http://jiayu0x.com/tags/sandbox/"/>
     
@@ -1964,9 +2112,9 @@
       <category term="security" scheme="http://jiayu0x.com/categories/security/"/>
     
     
-      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
-    
       <category term="security" scheme="http://jiayu0x.com/tags/security/"/>
+    
+      <category term="dhcp" scheme="http://jiayu0x.com/tags/dhcp/"/>
     
       <category term="intranet" scheme="http://jiayu0x.com/tags/intranet/"/>
     
