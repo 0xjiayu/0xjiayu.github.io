@@ -1,0 +1,968 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="security,malwr,re,golang," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文首发于安全客: https://www.anquanke.com/post/id/218377
+书接前文，本文介绍 Go 语言二进制文件中的 &amp;lt;Interface, type&amp;gt; 映射表和字符串信息，以及如何定位并解析它们。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+Go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go二进制文件逆向分析从基础到进阶(4)——itab与strings">
+<meta property="og:url" content="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本文首发于安全客: https://www.anquanke.com/post/id/218377
+书接前文，本文介绍 Go 语言二进制文件中的 &amp;lt;Interface, type&amp;gt; 映射表和字符串信息，以及如何定位并解析它们。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+Go">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/itab_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/net_Addr_iface_in_netpkg.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/net_addr_iface_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/net_tcpAddr_in_netpkg.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/net_tcpAddr_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/itablink_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/un_analyzed_str.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/analyzed_str.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/str_ptr_analyzed.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/str_ptr.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/str_ptr_srccode.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/str_ptr_field.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/str_arr.png">
+<meta property="og:updated_time" content="2020-09-25T09:58:52.117Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Go二进制文件逆向分析从基础到进阶(4)——itab与strings">
+<meta name="twitter:description" content="本文首发于安全客: https://www.anquanke.com/post/id/218377
+书接前文，本文介绍 Go 语言二进制文件中的 &amp;lt;Interface, type&amp;gt; 映射表和字符串信息，以及如何定位并解析它们。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+Go">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/go_re/itab_in_ida.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/"/>
+
+
+
+
+
+  <title> Go二进制文件逆向分析从基础到进阶(4)——itab与strings | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Go二进制文件逆向分析从基础到进阶(4)——itab与strings
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-09-25T00:00:00+08:00">
+                2020-09-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/09/25/go-binary-reverse-engineering-itab-and-strings/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/09/25/go-binary-reverse-engineering-itab-and-strings/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/218377" target="_blank" rel="external">https://www.anquanke.com/post/id/218377</a></p>
+<p>书接前文，本文介绍 Go 语言二进制文件中的 <code>&lt;Interface, type&gt;</code> 映射表和字符串信息，以及如何定位并解析它们。</p>
+</blockquote>
+<p><strong>传送门</strong>：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(1)——综述</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表</a></li>
+<li><a href="https://www.anquanke.com/post/id/215820" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(3)——数据类型</a></li>
+</ol>
+<h2 id="9-Interface-映射表-itab-link"><a href="#9-Interface-映射表-itab-link" class="headerlink" title="9. Interface 映射表(itab_link)"></a>9. Interface 映射表(itab_link)</h2><h3 id="9-1-概念介绍"><a href="#9-1-概念介绍" class="headerlink" title="9.1 概念介绍"></a>9.1 概念介绍</h3><p>在 Go 语言的规范中，Interface(接口) 用来定义一组行为(Interface Methods)，所有实现了这一组行为的其他类型，都可称之为<strong>实现了这个接口</strong>。Go 语言中 Interface 的用法还算是有些难点的，比如<strong>空接口</strong>的用法、以及更复杂一些的基于 Interface 实现的面向对象的<strong>多态</strong>特性。</p>
+<p>前文《<a href="https://www.anquanke.com/post/id/215820" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——数据类型</a>》中已经阐述过 Interface 类型的底层定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> interfaceType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name      <span class="comment">// import path</span></div><div class="line">    methods []imethod <span class="comment">// sorted by hash</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">type</span> imethod <span class="keyword">struct</span> &#123;</div><div class="line">    name nameOff <span class="comment">// name of method</span></div><div class="line">    typ  typeOff <span class="comment">// .(*FuncType) underneath</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其实，在 Go 二进制文件中，还保留了 Interface 与实现 Interface 的其他类型之间的映射关系。每一组映射关系，叫 <strong>itab</strong>(Interface Table)，<strong>itab</strong> 的结构如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Interface table</span></div><div class="line"><span class="comment">// Refer: https://golang.org/src/runtime/runtime2.go</span></div><div class="line"></div><div class="line"><span class="keyword">type</span> itab <span class="keyword">struct</span> &#123;</div><div class="line">    inter *interfacetype</div><div class="line">    _type *_type</div><div class="line">    hash  <span class="keyword">uint32</span> <span class="comment">// copy of _type.hash. Used for type switches.</span></div><div class="line">    _     [<span class="number">4</span>]<span class="keyword">byte</span></div><div class="line">    fun   [<span class="number">1</span>]<span class="keyword">uintptr</span> <span class="comment">// variable sized. fun[0]==0 means _type does not implement inter.</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>其中有 3 个关键字段：</p>
+<ol>
+<li>第 1 个 <strong>inter</strong>，指向一个 Interface 类型的定义；</li>
+<li>第 2 个 <strong>_type</strong>，指向一个普通数据类型的定义信息，这个 <strong>_type</strong> 实现了上面指定的 Interface；</li>
+<li>第 5 个 <strong>fun</strong>，指向一组方法，是上面第 2 个字段 <strong>_type</strong> 中具体实现的 Interface 中定义的方法。</li>
+</ol>
+<h3 id="9-2-itab-实例"><a href="#9-2-itab-实例" class="headerlink" title="9.2 itab 实例"></a>9.2 itab 实例</h3><p>在 IDAPro 中，<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  解析好的一个 itab 项如下：</p>
+<p><img src="/imgs/go_re/itab_in_ida.png" alt=""></p>
+<p>上图表明，<strong><a href="https://golang.org/pkg/net/?m=all#Addr" target="_blank" rel="external">package net</a></strong> 中定义了一个 <strong>Addr Interface</strong>，其中包含 2 个方法：<code>Addr.Network()</code> 和 <code>Addr.String()</code>：</p>
+<p><img src="/imgs/go_re/net_Addr_iface_in_netpkg.png" style="zoom:80%;"></p>
+<p>在 IDAPro 中，<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  解析好的 <strong>Addr Interface</strong> 定义如下：</p>
+<p><img src="/imgs/go_re/net_addr_iface_in_ida.png" alt=""></p>
+<p>相应地，<strong><a href="https://golang.org/pkg/net/?m=all#TCPAddr" target="_blank" rel="external">package net</a></strong> 中另一个数据结构 <strong>TCPAddr</strong> 实现了上述 <strong>Addr Interface</strong>。官方文档如下：</p>
+<p><img src="/imgs/go_re/net_tcpAddr_in_netpkg.png" alt=""></p>
+<p>在 IDAPro 中，<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  解析好的 <code>net.TCPAddr</code> 类型定义如下：</p>
+<p><img src="/imgs/go_re/net_tcpAddr_in_ida.png" alt=""></p>
+<p>可以看到，<code>net.TCPAddr</code> 这个数据类型绑定了 7 个方法，其中 2 个可导出的方法分别是 <code>Network()</code> 和 <code>String()</code> ，正是这两个方法实现了 <code>net.Addr</code> Interface。</p>
+<p>至于 <strong>itab</strong> 在 Go 二进制文件中是如何使用的？既然有了具体类型的定义，直接用具体类型不就可以了吗，为什么还要绕一圈映射一下实现的 Interface？如果有这类疑问，建议在 IDAPro 中打开一个 Go 二进制文件，找到某个 <strong>itab</strong> 结构的定义，以及通过交叉引用在 IDAPro 中这个 <strong>itab</strong> 是如何被调用的，再结合 Go 源码对照着看一下，应该能有所收获。</p>
+<h3 id="9-3-查找并解析-itab"><a href="#9-3-查找并解析-itab" class="headerlink" title="9.3 查找并解析 itab"></a>9.3 查找并解析 itab</h3><p>上文介绍了单个 itab 的概念与结构解析，而一个 Go 二进制文件中可能存在几百甚至上千组 Interface 与具体数据类型的映射关系，即几百甚至上千个 itab 结构，如何把它们都找出来并一一解析呢？</p>
+<p>首先需要说明的是，解析 itab 这个工作，依赖于前文介绍的解析所有数据类型定义的结果。解析了每一个数据类型的定义之后，才能知道每个 itab 结构中的 Interface 和具体数据类型的定义。</p>
+<p>在本系列第二篇 《<a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——MetaInfo、函数符号和源码文件路径列表</a>》中介绍 <strong>firstmoduledata</strong> 这个结构时，提到过这个结构里的一个字段： <strong>itab_link</strong>，并解释说 <strong>itab_link</strong> 指向 Go 二进制文件中的 Interface 映射表。分析过 Go 二进制文件的师傅可能注意过，<strong>itab_link</strong> 这个结构通常会在 ELF 文件中一个单独的 Section，就叫 <strong><code>.itablink</code></strong> 。然而我前文也说过，通过文件头中的 Section 来定位 Go 二进制文件中的关键数据并不靠谱，尤其是面对 ELF/PE/MachO 以及 PIE 这些不同文件类型的复杂情况，甚至 Section 信息被篡改甚至抹除时，更是如此。最靠谱的方式就是通过 <strong>firstmoduledata</strong> 中的字段来按图索骥，定位到各个关键数据结构的位置。</p>
+<p>从 <strong>firstmoduledata</strong> 结构中 <strong>itab_link</strong> 字段定位到的 <strong>itablink</strong>，其实就是一个 itab 结构的地址列表，<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  解析好的 <strong>itablink</strong> 如下(一部分)：</p>
+<p><img src="/imgs/go_re/itablink_in_ida.png" alt=""></p>
+<p>其中每一项，都是一个 <strong>itab</strong> 结构的地址。每个 itab 结构体的命名规则，都是 <strong>(前缀)go_itab + 实际类型名 + Interface 名</strong>。最后， <strong>firstmoduledata</strong> 中也标明了 <strong>itablink</strong> 结构中 <strong>itab</strong> 地址的数量，所以根据 <strong>itablink</strong> 的起始地址和数量，依次解析相应的 <strong>itab</strong> 即可。</p>
+<h2 id="10-字符串"><a href="#10-字符串" class="headerlink" title="10. 字符串"></a>10. 字符串</h2><h3 id="10-1-字符串简介"><a href="#10-1-字符串简介" class="headerlink" title="10.1 字符串简介"></a>10.1 字符串简介</h3><p>Go 语言中，string 类型是 <strong>值类型</strong>(相对于 <strong>引用类型</strong>)，是 Go 支持的基础类型之一。一个字符串是一个不可改变的字节序列，字符串可以包含任意的数据，但是通常是用来包含可读的文本，字符串是 UTF-8 字符的一个序列（当字符为 ASCII 码表上的字符时则占用 1 个字节，其它字符根据需要占用 2-4 个字节）。</p>
+<p>Go 中字符串底层由两个元素来定义：<strong>字节序列的地址</strong> 和 <strong>字节序列的长度</strong>，而不是像 C 语言那样以一个起始地址和 <code>0x00</code> 结尾就能表示一个字符串。在 Go 二进制文件中，操作一个字符串也要同时引用这两个元素。比如某函数需要一个字符串类型的参数，传参时就要在栈上的参数空间留两个位置，一个位置把相应字节序列的地址传进去，另一个位置把字节序列的长度传进去。字符串类型的返回值操作同理。</p>
+<p>在静态逆向分析 Go 二进制文件时，把 Go 二进制文件加载到 IDAPro 中查看反汇编出来的代码时，在操作字符串的汇编代码片段中，最多只能看到目标字符串的长度，而字符串还是处于未分析的原始字节序列的状态。大量的字符串处于这种状态时，会使逆向分析变得很费劲，很大程度上拉低逆向分析的效率。所以我们要想办法把这些字符串尽量都解析出来，然后在引用这个字符串的汇编代码处打 Comment 或者加上 Data Reference，就会让逆向工作的效率提升一个台阶。</p>
+<p>刚加载进 IDAPro 中的 Go 二进制文件，引用未解析的<strong>字符串字面量</strong>的汇编代码片段如下：</p>
+<p><img src="/imgs/go_re/un_analyzed_str.png" alt=""></p>
+<p>经过 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  的解析，效果就会很直观了：</p>
+<p><img src="/imgs/go_re/analyzed_str.png" alt=""></p>
+<p>在 Go 二进制文件中，字符串整体上是按照长度依次存放在一个特定区域的。然而这个区域的起始地址、长度等属性没有固定的索引，所以无法像定位其他结构一样定位到所有字符串并一一解析。能用的办法，就是<strong>分析调用、操作字符串的的汇编指令片段的 Pattern，然后从所有汇编指令中暴力检索可能操作字符串的位置，提取到相应字符串的地址与长度进而解析能够查找到的字符串</strong>。</p>
+<p>Go 二进制文件中的字符串，按照存放和引用方式，可以分为三种：</p>
+<ul>
+<li>字符串字面量，通常来说字符串常量(包括命名常量和未命名的字面常量)都会用这种形式；</li>
+<li>字符串指针，字符串变量和一部分字符串常量会用这种形式。</li>
+<li>字符串数组/切片</li>
+</ul>
+<p>这三种类型的字符串存取方式，从操作字符串的汇编代码片段来看，Pattern 不同，解析方法也不同，下文一一介绍。</p>
+<h3 id="10-2-字符串字面量"><a href="#10-2-字符串字面量" class="headerlink" title="10.2 字符串字面量"></a>10.2 字符串字面量</h3><p>上面 10.1 小节的截图中介绍的例子，就是<strong>字符串字面常量</strong>。操作字符串字面量的汇编代码，会直接引用字节序列的地址，然后把字符串的长度当作汇编指令的一个立即数来使用。不过，根据不同的 CPU 位数、目标寄存器的不同，这样的汇编代码片段的 Pattern 有多种。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  中可以解析的 x86 汇编指令 Pattern 如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">mov     ebx, offset aWire ; &quot;wire&quot; # Get string</div><div class="line">mov     [esp], ebx</div><div class="line">mov     dword ptr [esp+4], 4 # String length</div><div class="line"></div><div class="line">mov     ebx, offset unk_8608FD5 # Get string</div><div class="line">mov     [esp+8], ebx</div><div class="line">mov     dword ptr [esp+0Ch], 0Eh # String length</div><div class="line"></div><div class="line">mov     ebx, offset unk_86006E6 # Get string</div><div class="line">mov     [esp+10h], ebx</div><div class="line">mov     dword ptr [esp+14h], 5 # String length</div><div class="line"></div><div class="line">mov     ebx, 861143Ch</div><div class="line">mov     dword ptr [esp+0F0h+var_E8+4], ebx</div><div class="line">mov     [esp+0F0h+var_E0], 19h</div><div class="line"></div><div class="line"># Found in newer versions of golang binaries</div><div class="line"></div><div class="line">lea     rax, unk_8FC736 ; str bytes addr</div><div class="line">mov     [rsp+38h+var_18], rax</div><div class="line">mov     [rsp+38h+var_10], 1Dh ;str len</div><div class="line"></div><div class="line">lea     rdx, unk_8F6E82 ; str bytes addr</div><div class="line">mov     [rsp+40h+var_38], rdx</div><div class="line">mov     [rsp+40h+var_30], 13h ; str len</div><div class="line"></div><div class="line">lea     eax, unk_82410F0 ; str bytes addr</div><div class="line">mov     [esp+94h+var_8C], eax</div><div class="line">mov     [esp+94h+var_88], 2 ; str len</div></pre></td></tr></table></figure>
+<p>如此一来，就看一参考如上代码片段的 Pattern，暴力搜索所有代码中符合以上 Pattern 的代码片段，并尝试解析字符串信息。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  的 string 解析模块，大部分代码从  <strong><a href="https://github.com/strazzere/golang_loader_assist" target="_blank" rel="external">golang_loader_assist</a></strong> 移植而来，目前只支持 x86 架构的二进制文件。如果有师傅有兴趣实现一下 ARM/MIPS/PPC 等架构二进制文件的字符串解析功能，欢迎提 PR。</p>
+<h3 id="10-3-字符串指针"><a href="#10-3-字符串指针" class="headerlink" title="10.3 字符串指针"></a>10.3 字符串指针</h3><p>Go 二进制文件中的字符串指针则是另一种形式，在 IDAPro 中看，主要有 3 点特征：</p>
+<ol>
+<li>汇编代码中引用字符串时，不会直接引用字符序列的地址，而是会引用存放字符串地址的地址（字符串指针）；</li>
+<li>汇编代码中可能会用到字符串的长度，但不会把字符串的长度作为汇编指令的立即数，而是把字符串长度的数值存到一个位置，汇编代码只引用存放字符串长度的地址；</li>
+<li>字符串长度的地址，紧挨着字符串指针后面存放。</li>
+</ol>
+<p>下面是 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong>  解析好的一个字符串指针的用法：</p>
+<p><img src="/imgs/go_re/str_ptr_analyzed.png" alt=""></p>
+<p>上面那种形式，可以用 IDAPython 在 IDAPro 中暴力搜索并解析如下 Pattern 的汇编指令片段来解析：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">mov     rcx, cs:qword_BC2908 ; str len</div><div class="line">mov     rdx, cs:off_BC2900 ; str pointer</div><div class="line">mov     [rsp+0A8h+var_90], rdx</div><div class="line">mov     [rsp+0A8h+var_88], rcx</div><div class="line">call    func</div></pre></td></tr></table></figure>
+<p>而还有一种方式，Pattern 不明显，不便自动化解析。举个例子，如下是 <code>package bufio</code> 中 Reader 的 <code>fill()</code> 方法：</p>
+<p><img src="/imgs/go_re/str_ptr.png" alt=""></p>
+<p>可以发现 <code>runtime_gopanic()</code> 函数调用字符串的时候传入了一个 <strong>string</strong> 类型，和字符序列的地址，并未指定字符串的长度。对应的<a href="https://golang.org/src/bufio/bufio.go?s=2408:2431#L96" target="_blank" rel="external">源码实现</a>如下，可以对比着看一下 ：</p>
+<p><img src="/imgs/go_re/str_ptr_srccode.png" alt=""></p>
+<p>对于这种形式的字符串指针，只好另寻他法。好在 Go 二进制文件中的字符串指针也是集中存放在一个固定区域中的。如下，是这一块区域的开头部分：</p>
+<p><img src="/imgs/go_re/str_ptr_field.png" alt=""></p>
+<p>我们可以手动在 IDAPro 中找到这一块区域的起始地址、终止地址，然后手动执行以下 IDAPython 脚本，即可批量把所有字符串指针解析出来。如果是用 IDAPro v7.2 及以上版本，那么 IDAPro 会自动为这些字符串指针引用的指令加上 Data Reference。IDAPython 脚本如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/env python</span></div><div class="line"><span class="comment"># -*- coding: UTF-8 -*-</span></div><div class="line"><span class="string">'''</span></div><div class="line">go_parser.py:</div><div class="line">IDA Plugin for Golang Executable file parsing.</div><div class="line">'''</div><div class="line"></div><div class="line">__author__ = <span class="string">"JiaYu"</span></div><div class="line">__license__ = <span class="string">"MIT"</span></div><div class="line">__version__ = <span class="string">"1.0"</span></div><div class="line">__email__ = [<span class="string">"jiayu0x@gmail.com"</span>]</div><div class="line"></div><div class="line"><span class="keyword">import</span> idc, idaapi</div><div class="line">idaapi.require(<span class="string">"common"</span>) <span class="comment"># common module in go_parser</span></div><div class="line"></div><div class="line">START_EA = <span class="number">0x98C710</span></div><div class="line">END_EA = <span class="number">0x990F58</span></div><div class="line"></div><div class="line">curr_addr = START_EA</div><div class="line"><span class="keyword">while</span> curr_addr &lt;= END_EA:</div><div class="line">    curr_str_addr = common.read_mem(curr_addr)</div><div class="line">    curr_str_len = common.read_mem(curr_addr + common.ADDR_SZ)</div><div class="line">    <span class="keyword">if</span> curr_str_addr &gt; <span class="number">0</span> <span class="keyword">and</span> curr_str_addr != idc.BADADDR <span class="keyword">and</span> curr_str_len &gt; <span class="number">1</span>:</div><div class="line">        <span class="keyword">if</span> idc.MakeStr(curr_str_addr, curr_str_addr + curr_str_len):</div><div class="line">            idaapi.autoWait()</div><div class="line"></div><div class="line">            curr_str = str(idc.GetManyBytes(curr_str_addr, curr_str_len))</div><div class="line">            print(<span class="string">"@ 0x%x: %s"</span> % (curr_str_addr, curr_str))</div><div class="line"></div><div class="line">    curr_addr += <span class="number">2</span> * common.ADDR_SZ</div></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p>上面这段代码已同步到 <strong>go_parser</strong> 的 Github Repo:<br><a href="https://github.com/0xjiayu/go_parser/blob/master/str_ptr.py" target="_blank" rel="external">https://github.com/0xjiayu/go_parser/blob/master/str_ptr.py</a></p>
+</blockquote>
+<p>另外一个可以考虑的思路，是遍历上面提到的 <code>string</code> 类型定义的交叉引用，然后看看有没有如上的汇编指令片段的 Pattern。如果一段汇编代码中拿 <code>string</code> 类型定义去解析一个字符串，那么就可以顺藤摸瓜找到字符串指针，字符串指针的地址后面紧挨着就是字符串的长度，这样也可以把字符串解析出来。感兴趣的师傅可以验证一下。</p>
+<h3 id="10-4-字符串数组"><a href="#10-4-字符串数组" class="headerlink" title="10.4 字符串数组"></a>10.4 字符串数组</h3><p>字符串数组，在 Go 二进制文件里的展示方式，比上面的情况要再多“跳转”一步：整个数组用<strong>元素起始地址</strong>和<strong>数组长度</strong> 两个元素来表示，而元素的起始地址处则依次存放了每一个字符串的地址和长度。语言描述不易理解，且看实例。以 <code>package mime</code> 中的 <code>initMimeUnix()</code> 函数为例，<a href="https://golang.org/src/mime/type_unix.go?s=910:929#L41" target="_blank" rel="external">源代码</a>如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> typeFiles = []<span class="keyword">string</span>&#123;</div><div class="line">	<span class="string">"/etc/mime.types"</span>,</div><div class="line">	<span class="string">"/etc/apache2/mime.types"</span>,</div><div class="line">	<span class="string">"/etc/apache/mime.types"</span>,</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">initMimeUnix</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="keyword">for</span> _, filename := <span class="keyword">range</span> typeFiles &#123;</div><div class="line">		loadMimeFile(filename)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>而在 IDAPro 中来看，就是如下的样子：</p>
+<p><img src="/imgs/go_re/str_arr.png" alt=""></p>
+<p>Go 语言二进制文件中，所有的数组，无论数组中元素是什么类型，都是集中存放的，很难从这些存放数组元素的数据块中区分出哪些书字符串数组，哪些是别的类型的数组（比如 int 类型的数组）。而汇编代码中引用字符串数组的代码片段又没有很强的 Pattern，所以难以自动化地把这些字符串数组都解析好并在 IDAPro 中友好地展示出来。</p>
+<p>可以考虑上面<strong>半自动化</strong>解析<strong>字符串指针</strong>的做法，在 IDAPro 中手动定位到一批字符串数组的位置，然后写几行 IDAPython 脚本将这些字符串数组批量解析。有兴趣的师傅不妨动手试一试。</p>
+<p>至此，我们就可以把 Go 二进制文件中的字符串，在 IDAPro 中部分自动化的解析、部分半自动化地解析出来。之后再去看汇编代码，涉及字符串的操作就会一目了然。</p>
+<h2 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h2><ol>
+<li><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">https://github.com/0xjiayu/go_parser</a></li>
+<li><a href="https://golang.org/src/mime/type_unix.go" target="_blank" rel="external">https://golang.org/src/mime/type_unix.go</a></li>
+<li><a href="https://golang.org/src/bufio/bufio.go" target="_blank" rel="external">https://golang.org/src/bufio/bufio.go</a></li>
+<li><a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">https://www.anquanke.com/post/id/214940</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">https://www.anquanke.com/post/id/215419</a></li>
+<li><a href="https://www.anquanke.com/post/id/215820" target="_blank" rel="external">https://www.anquanke.com/post/id/215820</a></li>
+<li><a href="https://golang.org/pkg/net/" target="_blank" rel="external">https://golang.org/pkg/net/</a></li>
+<li><a href="https://github.com/strazzere/golang_loader_assist" target="_blank" rel="external">https://github.com/strazzere/golang_loader_assist</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+<!--
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+ -->
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/" title="Go二进制文件逆向分析从基础到进阶(4)——itab与strings">http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/malwr/" rel="tag"># malwr</a>
+          
+            <a href="/tags/re/" rel="tag"># re</a>
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/09/02/go-binary-reverse-engineering-types/" rel="next" title="Go二进制文件逆向分析从基础到进阶(3)——数据类型">
+                <i class="fa fa-chevron-left"></i> Go二进制文件逆向分析从基础到进阶(3)——数据类型
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">24</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">34</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#9-Interface-映射表-itab-link"><span class="nav-number">1.</span> <span class="nav-text">9. Interface 映射表(itab_link)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-概念介绍"><span class="nav-number">1.1.</span> <span class="nav-text">9.1 概念介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-itab-实例"><span class="nav-number">1.2.</span> <span class="nav-text">9.2 itab 实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-查找并解析-itab"><span class="nav-number">1.3.</span> <span class="nav-text">9.3 查找并解析 itab</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-字符串"><span class="nav-number">2.</span> <span class="nav-text">10. 字符串</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-字符串简介"><span class="nav-number">2.1.</span> <span class="nav-text">10.1 字符串简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-字符串字面量"><span class="nav-number">2.2.</span> <span class="nav-text">10.2 字符串字面量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-3-字符串指针"><span class="nav-number">2.3.</span> <span class="nav-text">10.3 字符串指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-4-字符串数组"><span class="nav-number">2.4.</span> <span class="nav-text">10.4 字符串数组</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料："><span class="nav-number">3.</span> <span class="nav-text">参考资料：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/';
+          this.page.identifier = '2020/09/25/go-binary-reverse-engineering-itab-and-strings/';
+          this.page.title = 'Go二进制文件逆向分析从基础到进阶(4)——itab与strings';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

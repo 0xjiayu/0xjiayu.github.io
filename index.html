@@ -293,6 +293,679 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2020/09/25/go-binary-reverse-engineering-itab-and-strings/" itemprop="url">
+                  Go二进制文件逆向分析从基础到进阶(4)——itab与strings
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-09-25T00:00:00+08:00">
+                2020-09-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/09/25/go-binary-reverse-engineering-itab-and-strings/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/09/25/go-binary-reverse-engineering-itab-and-strings/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/218377">https://www.anquanke.com/post/id/218377</a></p>
+<p>书接前文，本文介绍 Go 语言二进制文件中的 <code>&lt;Interface, type&gt;</code> 映射表和字符串信息，以及如何定位并解析它们。</p>
+</blockquote>
+<p><strong>传送门</strong>：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶(1)——综述</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419">Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表</a></li>
+<li><a href="https://www.anquanke.com/post/id/215820">Go二进制文件逆向分析从基础到进阶(3)——数据类型</a></li>
+</ol>
+<h2 id="9-Interface-映射表-itab-link"><a href="#9-Interface-映射表-itab-link" class="headerlink" title="9. Interface 映射表(itab_link)"></a>9. Interface 映射表(itab_link)</h2><h3 id="9-1-概念介绍"><a href="#9-1-概念介绍" class="headerlink" title="9.1 概念介绍"></a>9.1 概念介绍</h3><p>在 Go 语言的规范中，Interface(接口) 用来定义一组行为(Interface Methods)，所有实现了这一组行为的其他类型，都可称之为<strong>实现了这个接口</strong>。Go 语言中 Interface 的用法还算是有些难点的，比如<strong>空接口</strong>的用法、以及更复杂一些的基于 Interface 实现的面向对象的<strong>多态</strong>特性。</p>
+<p>前文《<a href="https://www.anquanke.com/post/id/215820">Go二进制文件逆向分析从基础到进阶——数据类型</a>》中已经阐述过 Interface 类型的底层定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> interfaceType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name      <span class="comment">// import path</span></div><div class="line">    methods []imethod <span class="comment">// sorted by hash</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">type</span> imethod <span class="keyword">struct</span> &#123;</div><div class="line">    name nameOff <span class="comment">// name of method</span></div><div class="line">    typ  typeOff <span class="comment">// .(*FuncType) underneath</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其实，在 Go 二进制文件中，还保留了 Interface 与实现 Interface 的其他类型之间的映射关系。每一组映射关系，叫 <strong>itab</strong>(Interface Table)，<strong>itab</strong> 的结构如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Interface table</span></div><div class="line"><span class="comment">// Refer: https://golang.org/src/runtime/runtime2.go</span></div><div class="line"></div><div class="line"><span class="keyword">type</span> itab <span class="keyword">struct</span> &#123;</div><div class="line">    inter *interfacetype</div><div class="line">    _type *_type</div><div class="line">    hash  <span class="keyword">uint32</span> <span class="comment">// copy of _type.hash. Used for type switches.</span></div><div class="line">    _     [<span class="number">4</span>]<span class="keyword">byte</span></div><div class="line">    fun   [<span class="number">1</span>]<span class="keyword">uintptr</span> <span class="comment">// variable sized. fun[0]==0 means _type does not implement inter.</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/09/25/go-binary-reverse-engineering-itab-and-strings/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2020/09/02/go-binary-reverse-engineering-types/" itemprop="url">
+                  Go二进制文件逆向分析从基础到进阶(3)——数据类型
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-09-02T00:00:00+08:00">
+                2020-09-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/09/02/go-binary-reverse-engineering-types/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/09/02/go-binary-reverse-engineering-types/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/215820">https://www.anquanke.com/post/id/215820</a></p>
+<p>书接前文，本文详细介绍 Go 二进制文件中的数据类型信息，如何定位并解析所有数据类型的定义。</p>
+</blockquote>
+<p><strong>传送门</strong>：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶(1)——综述</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419">Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表</a></li>
+</ol>
+<h2 id="8-types"><a href="#8-types" class="headerlink" title="8. types"></a>8. types</h2><h3 id="8-1-简介"><a href="#8-1-简介" class="headerlink" title="8.1 简介"></a>8.1 简介</h3><p>重温一下本系列第一篇《<a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶——综述</a>》文末介绍的 Go 语言中的数据类型。Go 在构建二进制文时把项目中所有数据类型信息也打包到二进制文件中，这些数据类型信息主要为 Go 语言中的 Stack Trace、Type Reflection 和类型转换服务。Go 语言内置的标准数据类型如下：</p>
+<p><img src="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png" alt=""></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/09/02/go-binary-reverse-engineering-types/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/" itemprop="url">
+                  Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-08-28T00:00:00+08:00">
+                2020-08-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/215419">https://www.anquanke.com/post/id/215419</a></p>
+<p>书接前文，本文主要介绍 Go 二进制文件中 Meta Information 的解析，与<strong>函数符号</strong>和<strong>源码文件路径列表</strong>的提取。最后详细介绍一下 <strong>Moduledata</strong> 这个结构。</p>
+<p>传送门： <a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶(1)——综述</a></p>
+</blockquote>
+<h2 id="5-Meta-information"><a href="#5-Meta-information" class="headerlink" title="5. Meta information"></a>5. Meta information</h2><h3 id="5-1-Go-Build-ID"><a href="#5-1-Go-Build-ID" class="headerlink" title="5.1 Go Build ID"></a>5.1 Go Build ID</h3><p>每一个 Go 二进制文件内，都有一个独一无二的 Build ID，详情参考 <a href="https://golang.org/src/cmd/go/internal/work/buildid.go">src/cmd/go/internal/work/buildid.go</a> 。Go Build ID 可以用以下命令来查看：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ go tool buildid &lt;GoBinaryFilePath&gt;</div></pre></td></tr></table></figure>
+<p>对于 ELF 文件，也可以用 <strong>readelf</strong> 命令查看，不过看到的只是 Hex String：</p>
+<p><img src="/imgs/go_re/go_buildid.png" alt=""></p>
+<p>转换一下上图的 Hex String，就是 <code>$ go buildid tracker_nonstrip</code> 的显示结果了：</p>
+<p><img src="/imgs/go_re/buildid_hex2str.png" alt=""></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/08/22/go-binary-reverse-engineering-summary/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2020/08/22/go-binary-reverse-engineering-summary/" itemprop="url">
+                  Go二进制文件逆向分析从基础到进阶(1)——综述
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-08-22T00:00:00+08:00">
+                2020-08-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/08/22/go-binary-reverse-engineering-summary/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/08/22/go-binary-reverse-engineering-summary/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文首发于安全客： <a href="https://www.anquanke.com/post/id/214940">https://www.anquanke.com/post/id/214940</a></p>
+</blockquote>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>Go 语言是一个比较新的强类型静态语言，2009 年由 Google 发布，在 2012 年才发布首个稳定版。Go 语言靠 Goroutine 和 channel、wait group、select、context 以及 sync 等辅助机制实现的 CSP 并发模型，以简洁高效编写高并发程序为亮点，很快就在全球范围内吸引大量开发者使用其编写各种程序。现在 Go 已成为云原生领域的首选开发语言。</p>
+<p>由于 Go 语言上手快，编码效率高，程序运行效率也高，而且很方便跨平台交叉编译，也吸引了恶意软件开发者的注意。渐渐地，安全厂商开始捕获到越来越多的 <a href="https://unit42.paloaltonetworks.com/the-gopher-in-the-room-analysis-of-golang-malware-in-the-wild/">Go 语言编写的恶意软件</a> ，这些恶意软件横跨 Windows、Linux 和 Mac 三大平台。</p>
+<p>然而，Go 语言的编译工具链会全静态链接构建二进制文件，把标准库函数和第三方 package 全部做了静态编译，再加上 Go 二进制文件中还打包进去了 runtime 和 GC(Garbage Collection，垃圾回收) 模块代码，所以即使做了 strip 处理( <code>go build -ldflags &quot;-s -w&quot;</code> )，生成的二进制文件体积仍然很大。在反汇编工具中打开 Go 语言二进制文件，可以看到里面包含动辄几千个函数。再加上 Go 语言的独特的函数调用约定、栈结构和多返回值机制，使得对 Go 二进制文件的分析，无论是静态逆向还是动态调式分析，都比分析普通的二进制程序要困难很多。</p>
+<p>不过，好消息是安全社区还是找到了针对性的方法，让安全分析人员对 Go 语言二进制文件的逆向变得更加轻松。最开始有人尝试过针对函数库做符号 Signature 来导入反汇编工具中，还原一部分二进制文件中的函数符号。后来有人研究出 Go 语言二进制文件内包含大量的运行时所需的符号和类型信息，以及字符串在 Go 二进制文件中独特的用法，然后开发出了针对性的符号甚至类型信息恢复工具。至此，对 Go 语言二进制文件的逆向分析工作，就变得轻松异常了。</p>
+<p>本系列文章将简单介绍 Go 语言二进制文件逆向姿势的发展历史，以及几个典型的恶意程序家族。然后详细介绍基于二进制文件内置的符号、类型信息来逆向分析 Go 语言二进制文件的技术原理和工具，最后以实际的分析案例演示前面介绍的工具和方法。至于还有人研究出<a href="http://home.in.tum.de/~engelke/pubs/1709-ma.pdf">基于符号执行和形式化定理证明</a>的高深技术，来恢复 Go 语言二进制文件的符号和类型信息的姿势，不在本文讨论范围之内。<del>因为鄙人也没研究明白</del></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/08/22/go-binary-reverse-engineering-summary/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/11/26/lsdminer_dnstxt_decrypt_en/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1294,666 +1967,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/" itemprop="url">
-                  两种姿势批量解密恶意驱动中的上百条字串
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-17T00:00:00+08:00">
-                2019-03-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>在 360Netlab 的旧文 《<a href="https://mp.weixin.qq.com/s/KHa5GyCvbZwXruv0uK6weA">“双枪”木马的基础设施更新及相应传播方式的分析</a>》 中，提到了 <strong>双枪</strong> 木马传播过程中的一个恶意驱动程序 <strong>kemon.sys</strong> ，其中有经过自定义加密的 Ascii 字符串和 Unicode 字符串 100+ 条（说是 <strong>编码</strong> 也行，毕竟不是很复杂的算法，这里就不掰扯加密跟编码的区别了）：</p>
-<p><img src="/imgs/refer_content.jpg" alt=""></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="url">
-                  静态分析提取 WatchdogsMiner 木马中的矿机程序
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-24T00:00:00+08:00">
-                2019-02-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>这周末爆发的新型 Linux 挖矿木马 WatchdogsMiner，有两家厂商分析的挺详细，尤其是腾讯云鼎实验室的分析，全面而深入。看完他们的的分析很有收获，也才发现这个 WatchdogsMiner 比之前想象的复杂一些：</p>
-<ul>
-<li>腾讯云鼎： <a href="https://mp.weixin.qq.com/s/3V0HVEREZWU8SkRWLspaxg">事件分析 | Linux watchdogs 感染性隐藏挖矿病毒入侵还原录</a></li>
-<li>深信服： <a href="https://mp.weixin.qq.com/s/dwY--BLzcyeXqPUZlhb__Q">紧急预警！WatchDogsMiner挖矿蠕虫大量感染Linux服务器</a></li>
-</ul>
-<p>但是有一个参与此次木马应急响应的朋友指出：里面有个关键的挖矿模块 <code>/tmp/ksoftirqds</code> ，目前公开的分析文章中看他们并没有提到捕获的细节(当然，不是说他们没有搞定这一点，只是没在文中提及细节)。</p>
-<p>说的也是，既然是<strong>挖矿木马</strong>，个人认为分析的时候要重点关注 3 个要素：</p>
-<ol>
-<li>矿机程序(Hash 值、由什么开源矿机编译而来、版本等等）；</li>
-<li>挖矿配置（挖矿账号、矿池地址，有的还有自建挖矿代理服务器）；</li>
-<li>挖矿收益（可选，因为在某些情况下查不到）。</li>
-</ol>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/11/22/ssh-pubkey-auth/" itemprop="url">
-                  SSH 公钥登录配置详解(iTerm2 为例)
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-11-22T00:00:00+08:00">
-                2017-11-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/11/22/ssh-pubkey-auth/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2017/11/22/ssh-pubkey-auth/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
-</blockquote>
-<p>配置单个主机的 SSH 公钥登录，步骤非常简单，三步即可：</p>
-<ol>
-<li>生成密钥对</li>
-<li>拷贝公钥文件到服务器</li>
-<li>SSH 直接公钥登录服务器</li>
-</ol>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/11/22/ssh-pubkey-auth/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/30/reversing-msvcxx-exception-handling-2/" itemprop="url">
-                  (译)MSVC++ 逆向（二）—— 类、方法和 RTTI
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-04-30T00:00:00+08:00">
-                2017-04-30
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/04/30/reversing-msvcxx-exception-handling-2/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2017/04/30/reversing-msvcxx-exception-handling-2/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>原文： <a href="http://www.openrce.org/articles/full_view/23">http://www.openrce.org/articles/full_view/23</a></p>
-</blockquote>
-<p>这是本系列第二篇（第一篇 👉： <a href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/">MSVC++ 逆向(1)——异常处理</a> ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 <strong>类结构内存布局</strong>、<strong>虚函数</strong>、<strong>RTTI</strong>（<strong>Run-Time Type Information</strong>，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关基础。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/30/reversing-msvcxx-exception-handling-2/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1998,7 +2016,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-count">24</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -2020,7 +2038,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-count">34</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -2075,7 +2093,7 @@
         <div class="copyright" >
   
   &copy; 
-  <span itemprop="copyrightYear">2019</span>
+  <span itemprop="copyrightYear">2020</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

@@ -2,6 +2,34 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/</loc>
+    
+    <lastmod>2020-09-25T10:04:16.205Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/</loc>
+    
+    <lastmod>2020-09-25T09:58:52.117Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/</loc>
+    
+    <lastmod>2020-09-25T09:57:19.615Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/2020/08/22/go-binary-reverse-engineering-summary/</loc>
+    
+    <lastmod>2020-09-25T09:53:44.456Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://jiayu0x.com/2019/11/26/lsdminer_dnstxt_decrypt_en/</loc>
     
     <lastmod>2019-11-26T15:39:09.447Z</lastmod>
@@ -86,7 +114,7 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/Linux-log-and-analysis.html</loc>
+    <loc>http://jiayu0x.com/posts_bak/iptables-essential-summary.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
     
@@ -100,7 +128,7 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/iptables-essential-summary.html</loc>
+    <loc>http://jiayu0x.com/posts_bak/flume-summary.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
     
@@ -114,7 +142,14 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/hbase-notice.html</loc>
+    <loc>http://jiayu0x.com/posts_bak/Linux-log-and-analysis.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
     
@@ -128,14 +163,7 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/flume-summary.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html</loc>
+    <loc>http://jiayu0x.com/posts_bak/hbase-notice.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
     

@@ -293,6 +293,661 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/" itemprop="url">
+                  两种姿势批量解密恶意驱动中的上百条字串
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-17T00:00:00+08:00">
+                2019-03-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>在 360Netlab 的旧文 《<a href="https://mp.weixin.qq.com/s/KHa5GyCvbZwXruv0uK6weA">“双枪”木马的基础设施更新及相应传播方式的分析</a>》 中，提到了 <strong>双枪</strong> 木马传播过程中的一个恶意驱动程序 <strong>kemon.sys</strong> ，其中有经过自定义加密的 Ascii 字符串和 Unicode 字符串 100+ 条（说是 <strong>编码</strong> 也行，毕竟不是很复杂的算法，这里就不掰扯加密跟编码的区别了）：</p>
+<p><img src="/imgs/refer_content.jpg" alt=""></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/03/17/two-ways-to-decrypt-cypher-str-in-malicious-driver/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="url">
+                  静态分析提取 WatchdogsMiner 木马中的矿机程序
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-24T00:00:00+08:00">
+                2019-02-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>这周末爆发的新型 Linux 挖矿木马 WatchdogsMiner，有两家厂商分析的挺详细，尤其是腾讯云鼎实验室的分析，全面而深入。看完他们的的分析很有收获，也才发现这个 WatchdogsMiner 比之前想象的复杂一些：</p>
+<ul>
+<li>腾讯云鼎： <a href="https://mp.weixin.qq.com/s/3V0HVEREZWU8SkRWLspaxg">事件分析 | Linux watchdogs 感染性隐藏挖矿病毒入侵还原录</a></li>
+<li>深信服： <a href="https://mp.weixin.qq.com/s/dwY--BLzcyeXqPUZlhb__Q">紧急预警！WatchDogsMiner挖矿蠕虫大量感染Linux服务器</a></li>
+</ul>
+<p>但是有一个参与此次木马应急响应的朋友指出：里面有个关键的挖矿模块 <code>/tmp/ksoftirqds</code> ，目前公开的分析文章中看他们并没有提到捕获的细节(当然，不是说他们没有搞定这一点，只是没在文中提及细节)。</p>
+<p>说的也是，既然是<strong>挖矿木马</strong>，个人认为分析的时候要重点关注 3 个要素：</p>
+<ol>
+<li>矿机程序(Hash 值、由什么开源矿机编译而来、版本等等）；</li>
+<li>挖矿配置（挖矿账号、矿池地址，有的还有自建挖矿代理服务器）；</li>
+<li>挖矿收益（可选，因为在某些情况下查不到）。</li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/02/24/extract-compressed-files-by-static-analysis-in-watchdogsminer/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/11/22/ssh-pubkey-auth/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/11/22/ssh-pubkey-auth/" itemprop="url">
+                  SSH 公钥登录配置详解(iTerm2 为例)
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-11-22T00:00:00+08:00">
+                2017-11-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/system/" itemprop="url" rel="index">
+                    <span itemprop="name">system</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/11/22/ssh-pubkey-auth/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/11/22/ssh-pubkey-auth/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>SSH 服务的远程登录服务方式，通常有<strong>密码登录</strong>和<strong>公钥登录</strong>两种。公钥登录方式的好处就不赘述了，本文详解 SSH 公钥登录的配置过程，以及其中常见的坑。<br><strong>Note</strong>：本文所有实验均在 Mac 下的 iTerm2 中操作。</p>
+</blockquote>
+<p>配置单个主机的 SSH 公钥登录，步骤非常简单，三步即可：</p>
+<ol>
+<li>生成密钥对</li>
+<li>拷贝公钥文件到服务器</li>
+<li>SSH 直接公钥登录服务器</li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/11/22/ssh-pubkey-auth/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/04/30/reversing-msvcxx-exception-handling-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/04/30/reversing-msvcxx-exception-handling-2/" itemprop="url">
+                  (译)MSVC++ 逆向（二）—— 类、方法和 RTTI
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-04-30T00:00:00+08:00">
+                2017-04-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/04/30/reversing-msvcxx-exception-handling-2/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/04/30/reversing-msvcxx-exception-handling-2/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>原文： <a href="http://www.openrce.org/articles/full_view/23">http://www.openrce.org/articles/full_view/23</a></p>
+</blockquote>
+<p>这是本系列第二篇（第一篇 👉： <a href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/">MSVC++ 逆向(1)——异常处理</a> ），本篇将介绍 MSVC 中实现的 C++ 底层机制，包括逆向过程中的 <strong>类结构内存布局</strong>、<strong>虚函数</strong>、<strong>RTTI</strong>（<strong>Run-Time Type Information</strong>，运行时类型识别）。阅读本文需要有 C++ 基础知识以及汇编和逆向相关基础。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/04/30/reversing-msvcxx-exception-handling-2/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2017/04/25/reversing-msvcxx-exception-handling/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1265,659 +1920,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/24/Linux-authority-and-access-control-2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2014/12/24/Linux-authority-and-access-control-2/" itemprop="url">
-                  Linux 权限管理与访问控制详解(2)——MAC 和 SELinux
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-24T00:00:00+08:00">
-                2014-12-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2014/12/24/Linux-authority-and-access-control-2/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2014/12/24/Linux-authority-and-access-control-2/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本系列 <a href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">前一篇</a> 主要介绍了 Linux 权限管理和访问控制的相关概念与 DAC 相关的 UGO+RWX、ACL，本篇续写 MAC 相关概念与知识，主要详细介绍 SELinux。</p>
-<h2 id="1-强制访问控制-SELinux"><a href="#1-强制访问控制-SELinux" class="headerlink" title="1. 强制访问控制(SELinux)"></a>1. 强制访问控制(SELinux)</h2><p>前半部分讲解了Linux系统中实现的<strong>DAC</strong>(Discretionary Access Control,自主访问控制)机制，主要包括传统的<strong><code>UGO+RWX</code></strong>机制和 ACL 机制；下半部分开始讲解<strong>MAC(Mandatory Access Control，强制访问控制)</strong>，该部分主要讲 SELinux，因为 Linux 系统中的MAC机制，主要由 SELinux 来实现。</p>
-<h2 id="2-SELinux简介"><a href="#2-SELinux简介" class="headerlink" title="2. SELinux简介"></a>2. SELinux简介</h2><hr>
-<h3 id="2-1-起源"><a href="#2-1-起源" class="headerlink" title="2.1 起源"></a>2.1 起源</h3><p>NSA(美国国家安全局)一直非常关注计算机操作系统的安全领域，他们发现大部分操作系统的安全机制，包括Window和大部分*nix系统，都是以DAC机制为安全认证基础的。由于DAC机制的设计很不利于系统安全，NSA便一直致力于开发一套更安全的MAC操作系统安全认证机制。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2014/12/24/Linux-authority-and-access-control-2/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/23/Linux-authority-and-access-control/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2014/12/23/Linux-authority-and-access-control/" itemprop="url">
-                  Linux 权限管理与访问控制详解(1)——基本概念和 DAC
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-23T00:00:00+08:00">
-                2014-12-23
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2014/12/23/Linux-authority-and-access-control/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2014/12/23/Linux-authority-and-access-control/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>Linux系统的权限管理与访问控制，大体可以分为基础与高级两部分，基础机制即传统的UGO+RWX/ACL，高级的即为SELinux，本文将按照从基础到高级的顺序讲解，先从系统的安全模型说起。<br>另，<strong>本文中所有例子均是在 <code>CentOS7</code> 中运行的，不同系统运行结果可能有所不同。</strong></p>
-</blockquote>
-<h2 id="1-安全模型概述"><a href="#1-安全模型概述" class="headerlink" title="1. 安全模型概述"></a>1. 安全模型概述</h2><p>操作系统的权限管理与访问控制机制，遵从一定的 <strong>安全模型</strong> 或者 <strong>安全机制</strong> ，常见的安全模型有 <strong>BLP安全模型</strong>， <strong>RBAC安全模型</strong> 和 <strong>多级别安全机制</strong> 。Linux 系统也不例外，其基础的权限管理与访问控制机制和加强的 ACL 机制、SELinux，都对这些安全模型与安全机制有所实现。</p>
-<h3 id="1-1-BLP安全模型"><a href="#1-1-BLP安全模型" class="headerlink" title="1.1 BLP安全模型"></a>1.1 BLP安全模型</h3><hr>
-<p><strong>BLP</strong>(Bell &amp; Lapadula)安全模型是由David Bell 和 Leonard La Padula 在1973年模拟军事安全策略创建的计算机系统安全模型, 74年改进, 76年首次实现于 <strong>Multics</strong> 操作系统。该安全模型是一个状态机模型，有一系列错综复杂的数学证明来保证其安全性的结果；它是定义多级安全性的基础，被视作<strong>基本安全公理</strong>。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2014/12/23/Linux-authority-and-access-control/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/12/02/iptables-essential-summary/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2014/12/02/iptables-essential-summary/" itemprop="url">
-                  iptables 要点总结
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-12-02T00:00:00+08:00">
-                2014-12-02
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/system/" itemprop="url" rel="index">
-                    <span itemprop="name">system</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2014/12/02/iptables-essential-summary/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2014/12/02/iptables-essential-summary/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>本文尽量不涉及诸如iptables规则编写之类的技术细节，那些都是可以通过短暂的学习和实践掌握的。本文主要偏重在整体概念的介绍，和技术细节之外容易忽略却又很重要的点（比如过滤规则设计时需要遵从的一些“原则”），掌握不好这些点，编写一串过滤规则可能还是漏洞百出。</p>
-</blockquote>
-<h2 id="1-简述"><a href="#1-简述" class="headerlink" title="1. 简述"></a>1. 简述</h2><h3 id="1-1-Netfilter-iptables-介绍"><a href="#1-1-Netfilter-iptables-介绍" class="headerlink" title="1.1 Netfilter/iptables 介绍"></a>1.1 Netfilter/iptables 介绍</h3><hr>
-<p>防火墙系统根据其工作方式的不同，主要可以分为 <strong>包过滤防火墙</strong>(也称“网络层防火墙”) 和 <strong>应用层防火墙</strong> ，<code>netfilter/iptables</code> 包过滤系统是包过滤防火墙的代表。</p>
-<p>网络流量由 IP 信息包（或，简称 <em>信息包</em>）— 以流的形式从源系统传输到目的地系统的一些小块数据 — 组成。 这些信息包有 <strong>头</strong> ，即在每个包前面所附带的一些数据位，它们包含有关信息包的源、目的地和协议类型的信息。 防火墙根据一组规则检查这些头，以确定接受哪个信息包以及拒绝哪个信息包。该过程即为<strong>信息包过滤</strong>。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2014/12/02/iptables-essential-summary/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2014/07/22/vim-tutorial/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2014/07/22/vim-tutorial/" itemprop="url">
-                  Vim 入门教程
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2014-07-22T00:00:00+08:00">
-                2014-07-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/coding/" itemprop="url" rel="index">
-                    <span itemprop="name">coding</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2014/07/22/vim-tutorial/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2014/07/22/vim-tutorial/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p><img src="http://images.cnitblog.com/blog/379772/201306/14142737-eaf681b3f8d04c5085d0c6efdd85684f.jpg" alt=""><br>图片来自： <a href="http://www.cnblogs.com/zhangsf/archive/2013/06/13/3134409.html">http://www.cnblogs.com/zhangsf/archive/2013/06/13/3134409.html</a></p>
-<blockquote>
-<p>公司新员工学习有用到，Vim官网的手册又太大而全，而网上各方资料要么不全面，要么不够基础。在网上搜集各方资料，按照自己的框架整理一份Vim入门基础教程，分享出来。特点是偏向基础，但对入门者来说足够全面，而且结构框架清晰。<br>另外，参考资料众多，没有一一标出来，如果作者看到，请联系我确认一下是否参考了你的资料，我会在文中标注出来。</p>
-</blockquote>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2014/07/22/vim-tutorial/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1962,7 +1969,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-count">24</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1984,7 +1991,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-count">34</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -2039,7 +2046,7 @@
         <div class="copyright" >
   
   &copy; 
-  <span itemprop="copyrightYear">2019</span>
+  <span itemprop="copyrightYear">2020</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

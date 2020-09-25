@@ -1,0 +1,1031 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="security,malwr,re,golang," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文首发于安全客: https://www.anquanke.com/post/id/215820
+书接前文，本文详细介绍 Go 二进制文件中的数据类型信息，如何定位并解析所有数据类型的定义。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+
+8. types8.1 简介重温一下本系列第一篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go二进制文件逆向分析从基础到进阶(3)——数据类型">
+<meta property="og:url" content="http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本文首发于安全客: https://www.anquanke.com/post/id/215820
+书接前文，本文详细介绍 Go 二进制文件中的数据类型信息，如何定位并解析所有数据类型的定义。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+
+8. types8.1 简介重温一下本系列第一篇">
+<meta property="og:image" content="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png">
+<meta property="og:image" content="https://p3.ssl.qhimg.com/t01ec2c57eccba40a41.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/type_ext.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/struct_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/runtime_newobj_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/xrefsto_runtime_newobj.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/typeptr_as_func_arg.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/typelinks_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/rtype_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/simple_typename_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/typename_with_tag.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/typename_with_pkgpath.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/ptrtype.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/structtype.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/slicetype.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/array_type.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/interface_type.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/func_type.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/map_type.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/chan_type.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/uncommon_type.png">
+<meta property="og:updated_time" content="2020-09-25T09:57:19.615Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Go二进制文件逆向分析从基础到进阶(3)——数据类型">
+<meta name="twitter:description" content="本文首发于安全客: https://www.anquanke.com/post/id/215820
+书接前文，本文详细介绍 Go 二进制文件中的数据类型信息，如何定位并解析所有数据类型的定义。
+
+传送门：
+
+Go二进制文件逆向分析从基础到进阶(1)——综述
+Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
+
+8. types8.1 简介重温一下本系列第一篇">
+<meta name="twitter:image" content="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/"/>
+
+
+
+
+
+  <title> Go二进制文件逆向分析从基础到进阶(3)——数据类型 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Go二进制文件逆向分析从基础到进阶(3)——数据类型
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-09-02T00:00:00+08:00">
+                2020-09-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/09/02/go-binary-reverse-engineering-types/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/09/02/go-binary-reverse-engineering-types/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/215820" target="_blank" rel="external">https://www.anquanke.com/post/id/215820</a></p>
+<p>书接前文，本文详细介绍 Go 二进制文件中的数据类型信息，如何定位并解析所有数据类型的定义。</p>
+</blockquote>
+<p><strong>传送门</strong>：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(1)——综述</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表</a></li>
+</ol>
+<h2 id="8-types"><a href="#8-types" class="headerlink" title="8. types"></a>8. types</h2><h3 id="8-1-简介"><a href="#8-1-简介" class="headerlink" title="8.1 简介"></a>8.1 简介</h3><p>重温一下本系列第一篇《<a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——综述</a>》文末介绍的 Go 语言中的数据类型。Go 在构建二进制文时把项目中所有数据类型信息也打包到二进制文件中，这些数据类型信息主要为 Go 语言中的 Stack Trace、Type Reflection 和类型转换服务。Go 语言内置的标准数据类型如下：</p>
+<p><img src="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png" alt=""></p>
+<a id="more"></a>
+<p>而这些类型的底层实现，其实都基于一个底层的结构定义扩展组合而来：</p>
+<p><img src="https://p3.ssl.qhimg.com/t01ec2c57eccba40a41.png" alt=""></p>
+<p>如果只是一个没有绑定任何 Method 的 Basic Type ，那么用 <strong>rtype</strong> 的结构就可以简单表示。如果一个数据类型绑定了 Methods(这种数据类型也叫 <strong>Uncommon Type</strong>)，或者属于复杂的组合类型(Composite Type)，那么就需要用扩展组合的方式来表示了。复杂类型的扩展组合方式可以简单描述为（虚线表示可选）：</p>
+<p><img src="/imgs/go_re/type_ext.png" style="zoom:50%;"></p>
+<p>这里以一个典型的 Struct 类型的数据结构为例，源码级表示为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// structType represents a struct type.</span></div><div class="line"><span class="keyword">type</span> structType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name</div><div class="line">    fields []structField <span class="comment">// fields address, sorted by offset</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> uncommonType <span class="keyword">struct</span> &#123;</div><div class="line">    pkgPath nameOff <span class="comment">// import path; empty for built-in types like int, string</span></div><div class="line">    mcount <span class="keyword">uint16</span>   <span class="comment">// number of methods</span></div><div class="line">    xcount <span class="keyword">uint16</span>   <span class="comment">// number of exported methods</span></div><div class="line">    moff <span class="keyword">uint32</span>     <span class="comment">// offset from this uncommontype to [mcount]method</span></div><div class="line">    _ <span class="keyword">uint32</span>        <span class="comment">// unused</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">type</span> structField <span class="keyword">struct</span> &#123;</div><div class="line">    name name           <span class="comment">// name is always non-empty</span></div><div class="line">    typ *rtype          <span class="comment">// type of field</span></div><div class="line">    offsetEmbed <span class="keyword">uintptr</span> <span class="comment">// byte offset of field&lt;&lt;1 | isEmbedded</span></div><div class="line">&#125;</div><div class="line"><span class="comment">// Method on non-interface type</span></div><div class="line"><span class="keyword">type</span> method <span class="keyword">struct</span> &#123;</div><div class="line">    name nameOff <span class="comment">// name of method</span></div><div class="line">    mtyp typeOff <span class="comment">// method type (without receiver)</span></div><div class="line">    ifn textOff  <span class="comment">// fn used in interface call (one-word receiver)</span></div><div class="line">    tfn textOff  <span class="comment">// fn used for normal method call</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在 Go 二进制文件中，用 IDAPro 查看实际的数据排列顺序，也如上面源码顺序一样由“上”到“下”（地址由低到高）。以 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析的某样本中一个实际的 Struct 数据为例，可以仔细对比一下源码的定义：</p>
+<p><img src="/imgs/go_re/struct_in_ida.png" alt=""></p>
+<h3 id="8-2-types-遍历思路"><a href="#8-2-types-遍历思路" class="headerlink" title="8.2 types 遍历思路"></a>8.2 types 遍历思路</h3><h4 id="8-2-1-runtime-newobject-的交叉引用"><a href="#8-2-1-runtime-newobject-的交叉引用" class="headerlink" title="8.2.1 runtime.newobject 的交叉引用"></a>8.2.1 runtime.newobject 的交叉引用</h4><p>一个 Go 二进制文件中，被静态链接打包进去几千个函数，连带着打包进去的变量、常量加起来也数以千计，对应于数以千计的 Type 定义。上面介绍了其中一个典型的 Struct 类型数据的定义，一个问题很自然地就抛出来了：如何在 Go 二进制文件中定位到这所有的数据类型定义，并解析他们 Type 信息？</p>
+<p>如果对 Go 语言稍有了解的话，会知道 Go 底层在定义一个变量(为某类型的变量分配内存空间)时，都会调用一个函数 <code>runtime.newobject()</code> 。该函数的<a href="https://golang.org/src/runtime/malloc.go" target="_blank" rel="external">源码实现</a>如下(其中的 <code>_type</code> 其实就是上面所说的 <strong>rtype</strong>， 参考： <a href="https://golang.org/src/runtime/type.go" target="_blank" rel="external">src/runtime/type.go</a>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// implementation of new builtin</span></div><div class="line"><span class="comment">// compiler (both frontend and SSA backend) knows the signature</span></div><div class="line"><span class="comment">// of this function</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">newobject</span><span class="params">(typ *_type)</span> <span class="title">unsafe</span>.<span class="title">Pointer</span></span> &#123;</div><div class="line">	<span class="keyword">return</span> mallocgc(typ.size, typ, <span class="literal">true</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Allocate an object of size bytes.</span></div><div class="line"><span class="comment">// Small objects are allocated from the per-P cache's free lists.</span></div><div class="line"><span class="comment">// Large objects (&gt; 32 kB) are allocated straight from the heap.</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">mallocgc</span><span class="params">(size <span class="keyword">uintptr</span>, typ *_type, needzero <span class="keyword">bool</span>)</span> <span class="title">unsafe</span>.<span class="title">Pointer</span></span></div></pre></td></tr></table></figure>
+<p>在 IDAPro 中看到的调用 <code>runtime.newobject()</code> 函数的形式通常如下：</p>
+<p><img src="/imgs/go_re/runtime_newobj_in_ida.png" style="zoom:70%;"></p>
+<p>如此一来，就可以在 IDAPro 中遍历 <code>runtime.newobject()</code> 函数的交叉引用，然后在汇编指令中提取参数，就获取到了目标数据类型定义的地址。按照这个思路，就能一一定位到这些数据类型：</p>
+<p><img src="/imgs/go_re/xrefsto_runtime_newobj.png" alt=""></p>
+<p>然而，这种方式存在一些问题。可以看到上面 <code>runtime.newobject()</code> 函数的交叉引用个数为 <strong>2568</strong> ，而在前文 《<strong><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——MetaInfo、函数符号和源码文件路径列表</a></strong>》 介绍的 <strong>firstmoduledata</strong> 结构中的 <strong>typelinks</strong> 的个数为 <strong>0xA91(2705)</strong> 。说明 <code>runtime.newobject()</code> 函数的交叉引用覆盖不全。漏了哪些呢？下图所示的用法是情况之一，即把某个类型指针当作参数传入一个函数：</p>
+<p><img src="/imgs/go_re/typeptr_as_func_arg.png" style="zoom:80%;"></p>
+<h4 id="8-2-2-遍历-firstmoduledata-typelinks"><a href="#8-2-2-遍历-firstmoduledata-typelinks" class="headerlink" title="8.2.2 遍历 firstmoduledata.typelinks"></a>8.2.2 遍历 firstmoduledata.typelinks</h4><p>所以，通过遍历 <code>runtime.newobject()</code> 函数交叉引用的方式来遍历所有数据类型定义，不够完美。最好的方式，上面已经暗示了，是遍历 <strong>firstmoduledata</strong> 结构中的 <strong>typelinks</strong>。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的 <strong>typelinks</strong> 如下：</p>
+<p><img src="/imgs/go_re/typelinks_in_ida.png" alt=""></p>
+<p><strong>typelinks</strong> 中的数据，以 4-Bytes(uint32) 为单位，每个值代表一个相对于 <code>firstmoduledata.types</code> 起始地址的 <strong>Offset</strong>，即 <code>firstmoduledata.types</code> 加上这个 <strong>Offset</strong> 值，就是相应的数据类型定义信息的<strong>地址</strong>。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 会把每个计算好的地址值，以 Comment 的形式打到每个 Offset 后面，双击 Comment 中的地址值，即可跳转到对应的数据类型定义的位置。</p>
+<h3 id="8-3-rtype-解析"><a href="#8-3-rtype-解析" class="headerlink" title="8.3 rtype 解析"></a>8.3 rtype 解析</h3><p>上文已经阐述了 Go 二进制文件中所有 Type 信息如何组织、存放的，以及通过什么样的方式可以找到这些数据类型定义信息。接下来的问题就是，如何解析每一个找到的数据类型定义，从中提取有助于逆向分析的信息，并以友好的方式在 IDAPro 中展示出来。</p>
+<h4 id="8-3-1-rtype"><a href="#8-3-1-rtype" class="headerlink" title="8.3.1 rtype"></a>8.3.1 rtype</h4><p>前面提过多次 <strong>rtype</strong>，可以表示最简单的数据类型(Common Basic Types)。<strong>rtype</strong> 在源码中的定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">// Refer: https://golang.org/src/reflect/type.go</div><div class="line"></div><div class="line">type rtype struct &#123;</div><div class="line">    size       uintptr</div><div class="line">    ptrdata    uintptr  // number of bytes in the type that can contain pointers</div><div class="line">    hash       uint32   // hash of type; avoids computation in hash tables</div><div class="line">    tflag      tflag    // extra type information flags</div><div class="line">    align      uint8    // alignment of variable with this type</div><div class="line">    fieldAlign uint8    // alignment of struct field with this type</div><div class="line">    kind       uint8    // enumeration for C</div><div class="line">    alg        *typeAlg // algorithm table</div><div class="line">    gcdata     *byte    // garbage collection data</div><div class="line">    str        nameOff  // string form</div><div class="line">    ptrToThis  typeOff  // type for pointer to this type, may be zero</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>还是以前面贴过的 <code>*x509.SystemRootsError</code> 这个类型为例：</p>
+<p><img src="/imgs/go_re/rtype_in_ida.png" alt=""></p>
+<p><strong>rtype</strong> 中对逆向分析最有用的字段有以下几个：</p>
+<ul>
+<li><strong>tflag</strong>：1 Byte(uint8)，当前类型的 flag；</li>
+<li><strong>kind</strong>：1 Byte(uint8)，当前类型的底层类型代码；</li>
+<li><strong>str</strong>：4 Bytes(uint32)，当前类型 name string 的偏移(相对于 <strong>firstmoduledata.types</strong>)</li>
+<li><strong>ptrtothis</strong>：4 Bytes(uint32)，如果有另外的<strong>指针类型</strong>指向本类型，那么 <strong>ptrtothis</strong> 就是那个指针类型相对于 <strong>firstmoduledata.types</strong> 的偏移量；</li>
+</ul>
+<p><strong>tflag</strong> 可能的值有 3 个：</p>
+<ul>
+<li><strong>star prefix</strong>：即 <strong>nams string</strong> 以星号 <code>*</code> 开头，如果 <strong>tflag</strong> 值与 <strong>1</strong> 按位与的结果不为 0，则该类型的 star prefix flag 为 True；</li>
+<li><strong>named</strong>：即该类型是被显示命名的，或者是为标准类型拟了一个别名，如果 <strong>tflag</strong> 值与 <strong>2</strong> 按位与的结果不为零，则 named flag 为 True；</li>
+<li><strong>Uncommon</strong>：该类型有绑定的 Methods，如果 <strong>tflag</strong> 的值与 <strong>4</strong> 按位与的结果不为零，则该类型为 Uncommon Type。</li>
+</ul>
+<p><strong>kind</strong> 是个 uint 类型的枚举变量，在 <a href="https://golang.org/src/reflect/type.go" target="_blank" rel="external">src/reflect/type.go</a> 中的定义的如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// A Kind represents the specific kind of type that a Type represents.</span></div><div class="line"><span class="comment">// The zero Kind is not a valid kind.</span></div><div class="line"><span class="keyword">type</span> Kind <span class="keyword">uint</span></div><div class="line"></div><div class="line"><span class="keyword">const</span> (</div><div class="line">	Invalid Kind = <span class="literal">iota</span></div><div class="line">	Bool</div><div class="line">	Int</div><div class="line">	Int8</div><div class="line">	Int16</div><div class="line">	Int32</div><div class="line">	Int64</div><div class="line">	Uint</div><div class="line">	Uint8</div><div class="line">	Uint16</div><div class="line">	Uint32</div><div class="line">	Uint64</div><div class="line">	Uintptr</div><div class="line">	Float32</div><div class="line">	Float64</div><div class="line">	Complex64</div><div class="line">	Complex128</div><div class="line">	Array</div><div class="line">	Chan</div><div class="line">	Func</div><div class="line">	Interface</div><div class="line">	Map</div><div class="line">	Ptr</div><div class="line">	Slice</div><div class="line">	String</div><div class="line">	Struct</div><div class="line">	UnsafePointer</div><div class="line">)</div></pre></td></tr></table></figure>
+<p>但是 Go 二进制文件中看到的 <strong>rtype</strong> 里 <strong>kind</strong> 字段的值，并不是跟上面的枚举值对应的，而是与一个 Kind 掩码进行按位与计算之后，才能与上面的枚举值对应。Go 语言中的 Kind 掩码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">KIND_MASK           = (<span class="number">1</span> &lt;&lt; <span class="number">5</span>) - <span class="number">1</span></div></pre></td></tr></table></figure>
+<p><strong>name</strong> 是一个 uint32 类型的值，代表一个相对于 <strong>firstmoduledata.types</strong> 的<strong>偏移量</strong>，这个偏移量加上 <strong>firstmoduledata.types</strong> 得出一个<strong>地址值</strong>，这个地址就是当前 <strong>rtype</strong> 的 <strong>name</strong> 信息所在的位置。不过这个 <strong>name</strong> 既不是以 <code>0x00</code> 结尾的 C-String，也不是以 Length 指定长度的一串字符，而是另外一个专门的 <strong>type name</strong> 结构体。</p>
+<h4 id="8-3-2-type-name"><a href="#8-3-2-type-name" class="headerlink" title="8.3.2 type name"></a>8.3.2 type name</h4><p>先看一下 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个基础的 type name：</p>
+<p><img src="/imgs/go_re/simple_typename_in_ida.png" alt=""></p>
+<p>一个 type name 基础数据，包含以下字段：</p>
+<ul>
+<li><strong>flag</strong>: 1 Byte(uint8)，可以标记本 type name 是否<strong>可导出</strong>(首字母大写)，以及是否附带 <strong>tag data</strong> 或 <strong>package path</strong> ；</li>
+<li><strong>length</strong>: 2 Bytes(uint16)，2 个字节通过计算得出本 <strong>type name</strong> string 的长度</li>
+<li><strong>name string</strong>：<strong>length</strong> 个 Bytes，就是最终的 type name string。</li>
+</ul>
+<p>先介绍一下 2 Bytes 的 <strong>type name</strong> 的 Length 如何计算。<strong>type name</strong> 的源码定义中的一段注释如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">The first byte of type name is a bit field containing:</div><div class="line">    </div><div class="line">	1&lt;&lt;0 the name is exported</div><div class="line">	1&lt;&lt;1 tag data follows the name</div><div class="line">	1&lt;&lt;2 pkgPath nameOff follows the name and tag</div><div class="line">    </div><div class="line">The next two bytes are the type name string length:</div><div class="line">    </div><div class="line">    len := uint16(type_name_data[1])&lt;&lt;8 | uint16(type_name_data[2])</div><div class="line">    </div><div class="line">Bytes [3:3+l] are the string data.</div></pre></td></tr></table></figure>
+<p>Length 计算方式也一目了然，如果用 IDAPython 来表示，就是：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">len = ((idc.Byte(type_name_addr + <span class="number">1</span>) &amp; <span class="number">0xFF</span> &lt;&lt; <span class="number">8</span>) | (idc.Byte(type_name_addr + <span class="number">2</span>) &amp; <span class="number">0xFF</span>)) &amp; <span class="number">0xFFFF</span></div></pre></td></tr></table></figure>
+<p><strong>name flag</strong> 的 3 种情况，与 <strong>rtype tflag</strong> 的 3 种情况类似，计算方式也相同，都是分别与 (1, 2, 4) 进行<strong>按位与</strong>运算，依据结果来看本 <strong>type name</strong> 是否可导出，以及是否附带 <strong>tag data</strong> 或 <strong>package path</strong>。在 Go 语言的规范中，<strong>可导出</strong> 就意味着 <strong>首字母大写</strong>。</p>
+<p><strong>tag</strong> 在 Go 中也很常见，相当于给相应的 <strong>type name</strong> 又起了一个别名。最常见的用法是用 Struct 定义 Json 结构时，给 Struct 中的字段打上一个 Json 的 Tag。如果 <strong>type name</strong> 附带了 <strong>tag data</strong>，那么紧接着 <strong>type name</strong> 的 String 数据后 2 Bytes，就是 <strong>tag string</strong> 的长度，该长度值计算方式同于 <strong>type name</strong> length。2 Bytes 之后，就是指定长度的 <strong>tag string</strong> 数据。如下所示：</p>
+<p><img src="/imgs/go_re/typename_with_tag.png" alt=""></p>
+<p><strong>package path</strong> 则是在 <strong>type name</strong> 的基础数据和 <strong>tag data</strong> 之后，是一个 4 Bytes(uint32) 类型的 Offset 值，这个 Offset 是相对于 <strong>firstmoduledata.types</strong> 来说的，相加之后得出一个 <strong>type name</strong> 的 <strong>地址</strong>。这个地址，指向的是另外一个 <strong>type name</strong> 结构，这个结构就存放了 <strong>pacakge path</strong> 的信息。这个 <strong>package path</strong> 结构的解析，也就跟 <strong>type name</strong> 一样了。下图是一个标准库 <strong>sync</strong> 中的 type name，一目了然：</p>
+<p><img src="/imgs/go_re/typename_with_pkgpath.png" alt=""> </p>
+<h3 id="8-4-composite-type-解析"><a href="#8-4-composite-type-解析" class="headerlink" title="8.4 composite type 解析"></a>8.4 composite type 解析</h3><p>Go 中的 Common Basic Types 都可以用上面的 <strong>rtype</strong> 来表示，如果 <strong>rtype.kind</strong> 对应于 Composite Types 其中一个，那么完整的类型定义就需要在 <strong>rtype</strong> 的基础上加上各自独有的字段或者属性才能表示了。本小节就盘点一下这些 Composite Types 的结构，以及解析思路。</p>
+<h4 id="8-4-1-Ptr-Type"><a href="#8-4-1-Ptr-Type" class="headerlink" title="8.4.1 Ptr Type"></a>8.4.1 Ptr Type</h4><p>Ptr Type 即指针类型，它指向某一个具体的数据类型。源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> ptrType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    elem *rtype <span class="comment">// pointer element (pointed at) type</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>即在 <strong>rtype</strong> 后面又附带了一个指向 <strong>rtype</strong> 的指针(是地址，不是偏移)，对这个被指向的 <strong>rtype</strong> 的解析，参考上文即可。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个 Ptr Type 结构效果如图所示：</p>
+<p><img src="/imgs/go_re/ptrtype.png" alt=""></p>
+<h4 id="8-4-2-Struct-Type"><a href="#8-4-2-Struct-Type" class="headerlink" title="8.4.2 Struct Type"></a>8.4.2 Struct Type</h4><p>Struct Type 即 Go 语言中的结构体。不同于 C 中的 Struct，Go 中的 Struct 中的字段有的可以导出，有的只能私用，还可以匿名存在，最重要的时可以绑定方法，其实更像是面向对象概念中的 <strong>类(Class)</strong>。Struct Type 源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> structType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name          <span class="comment">// !! pointer</span></div><div class="line">    fields  []structField <span class="comment">// sorted by offset</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到 Struct Type 是在 <strong>rtype</strong> 数据后面加了一个 <strong>package path</strong> 和一组 <strong>structField</strong>。<strong>pkgPath</strong> 其实是相对于 <strong>firstmoduledata.types</strong> 的一个偏移，指向一个 <strong>type name</strong> 结构，解析方式参考上文。<strong>fields</strong> ，顾名思义，就是 Struct 中的字段定义信息。</p>
+<p><strong>structField</strong> 在源码中的定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> structField <span class="keyword">struct</span> &#123;</div><div class="line">    name        name    <span class="comment">// name is always non-empty</span></div><div class="line">    typ         *rtype  <span class="comment">// type of field</span></div><div class="line">    offsetEmbed <span class="keyword">uintptr</span> <span class="comment">// byte offset of field&lt;&lt;1 | isEmbedded</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><strong>structField</strong> 前两个成员对逆向分析最有帮助：</p>
+<ol>
+<li>指向一个 <strong>type name</strong> 结构的地址，表示本 <strong>structField</strong> 的 <strong>field name</strong>；</li>
+<li>指向一个 <strong>type</strong> 的地址，表示本 <strong>structField</strong> 的数据类型。</li>
+</ol>
+<p>综合起来，一个完整的 Struct 结构，经过  <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 的解析，在 IDAPro 中展示如下：</p>
+<p><img src="/imgs/go_re/structtype.png" alt=""></p>
+<h4 id="8-4-3-Slice-Type"><a href="#8-4-3-Slice-Type" class="headerlink" title="8.4.3 Slice Type"></a>8.4.3 Slice Type</h4><p>Slice 即<strong>切片</strong>。Go 数组的长度不可改变，在特定场景中这样的集合就不太适用，所以 Go 就以 “动态数组” 的概念提供了一个类似数组，但可灵活伸缩的数据结构——切片。Slice 的源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> sliceType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    elem *rtype <span class="comment">// slice element type</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>结构类似 Ptr Type，在 <strong>rtype</strong> 数据后面加上一个指向 <strong>element type</strong> 的地址。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个典型的 Slice 类型如下：</p>
+<p><img src="/imgs/go_re/slicetype.png" alt=""></p>
+<h4 id="8-4-4-Array-Type"><a href="#8-4-4-Array-Type" class="headerlink" title="8.4.4 Array Type"></a>8.4.4 Array Type</h4><p>数组类型源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> arrayType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    elem  *rtype <span class="comment">// array element type</span></div><div class="line">    slice *rtype <span class="comment">// slice type</span></div><div class="line">    <span class="built_in">len</span>   <span class="keyword">uintptr</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>Array Type 是在 <strong>rtype</strong> 数据后面附上 Array element type 的地址、对应的 Slice 类型的地址和本 Array Type 的长度。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个 Array Type 在 IDAPro 中展示如下：</p>
+<p><img src="/imgs/go_re/array_type.png" alt=""></p>
+<h4 id="8-4-5-Interface-Type"><a href="#8-4-5-Interface-Type" class="headerlink" title="8.4.5 Interface Type"></a>8.4.5 Interface Type</h4><p>Go 中的 Interface 类型，指的是定义一组行为/方法的数据类型。任何其他实现了这一组方法的类型，都可以说<strong>实现了这个接口</strong>。 Interface Type 的源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> interfaceType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name      <span class="comment">// import path</span></div><div class="line">    methods []imethod <span class="comment">// sorted by hash</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>即在 <strong>rtype</strong> 的数据后面加上了一个 <strong>pkgPath</strong> 和一组 <strong>imethod</strong>。<strong>pkgPath</strong> 是一个指向 <strong>type name</strong> 结构的地址。<strong>imethod</strong> 就是 Interface 中定义的、必须实现的方法，其源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> imethod <span class="keyword">struct</span> &#123;</div><div class="line">    name nameOff <span class="comment">// name of method</span></div><div class="line">    typ  typeOff <span class="comment">// .(*FuncType) underneath</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>两个成员都是相对于 <strong>firstmoduledata.types</strong> 的 <strong>偏移量</strong>，第一个成员 <strong>name</strong> 即当前 Method 的名字，计算得出的地址，指向一个 <strong>type name</strong> 结构；第二个 <strong>typ</strong> 即当前 Method 的类型，其实就是方法的声明信息，计算得出的地址，指向一个 <strong>func type</strong> 的结构。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个完整的 Interface Type 如下：</p>
+<p><img src="/imgs/go_re/interface_type.png" alt=""></p>
+<h4 id="8-4-6-Func-Type"><a href="#8-4-6-Func-Type" class="headerlink" title="8.4.6 Func Type"></a>8.4.6 Func Type</h4><p>Func Type，顾名思义，就是函数或者方法的类型。源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> funcType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    inCount  <span class="keyword">uint16</span></div><div class="line">    outCount <span class="keyword">uint16</span> <span class="comment">// top bit is set if last input parameter is ...</span></div><div class="line"></div><div class="line">    padding  <span class="keyword">uint32</span> <span class="comment">// ! only on some architectures (e.g. x64)</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>即在 <strong>rtype</strong> 数据后面放置了 3 个成员，对逆向分析最有用的是 <strong>inCount</strong> 和 <strong>outCount</strong>。<strong>inCount</strong> 其实就是参数的个数；<strong>outCount</strong> 是返回值个数。紧随其后的就是每个参数类型定义的地址、每个返回值类型定义的地址。 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个 Func Type 如下：</p>
+<p><img src="/imgs/go_re/func_type.png" alt=""></p>
+<h4 id="8-4-7-Map-Type"><a href="#8-4-7-Map-Type" class="headerlink" title="8.4.7 Map Type"></a>8.4.7 Map Type</h4><p>Map Type 就是映射或者字典类型，由 Key 和 Value 构成。Map Type 的源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> mapType <span class="keyword">struct</span> &#123;</div><div class="line">	rtype</div><div class="line">	key    *rtype <span class="comment">// map key type</span></div><div class="line">	elem   *rtype <span class="comment">// map element (value) type</span></div><div class="line">	bucket *rtype <span class="comment">// internal bucket structure</span></div><div class="line">	<span class="comment">// function for hashing keys (ptr to key, seed) -&gt; hash</span></div><div class="line">	hasher     <span class="function"><span class="keyword">func</span><span class="params">(unsafe.Pointer, <span class="keyword">uintptr</span>)</span> <span class="title">uintptr</span></span></div><div class="line">	<span class="title">keysize</span>    <span class="title">uint8</span>  // <span class="title">size</span> <span class="title">of</span> <span class="title">key</span> <span class="title">slot</span></div><div class="line">	<span class="title">valuesize</span>  <span class="title">uint8</span>  // <span class="title">size</span> <span class="title">of</span> <span class="title">value</span> <span class="title">slot</span></div><div class="line">	<span class="title">bucketsize</span> <span class="title">uint16</span> // <span class="title">size</span> <span class="title">of</span> <span class="title">bucket</span></div><div class="line">	<span class="title">flags</span>      <span class="title">uint32</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可见 Map Struct 比较复杂，在 <strong>rtype</strong> 数据后附加了比较多的字段，而其中对逆向分析比较有帮助的只有 2 个：<strong>key</strong> 和 <strong>elem</strong>，顾名思义，就是 <strong>key</strong> 指向的类型定义数据和 <strong>element(value)</strong> 的数据类型定义数据。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个 Map Type 如下：</p>
+<p><img src="/imgs/go_re/map_type.png" alt=""></p>
+<blockquote>
+<p><strong>NOTE</strong>:</p>
+<p>如果 Go 版本 &lt;1.14，Map Type 里是没有 <strong><code>hasher</code></strong> 这个字段的。</p>
+</blockquote>
+<h4 id="8-4-8-Chan-Type"><a href="#8-4-8-Chan-Type" class="headerlink" title="8.4.8 Chan Type"></a>8.4.8 Chan Type</h4><p>Chan Type，即<strong>Channel(通道)</strong>类型，是 Go 中一个比较特殊的数据类型。这个类型主要是用来在 Goroutine 之间传递消息、同步数据，是 Go 原生高并发特性的支撑要素之一。Chan Type 的源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> chanType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    elem *rtype  <span class="comment">// channel element type</span></div><div class="line">    dir  <span class="keyword">uintptr</span> <span class="comment">// channel direction (ChanDir)</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>一个 Channel 在使用时，只能传输一种类型的数据，在声明或者创建时，要指定一个可传输的数据类型，比如创建一个可传输 int 类型值的 channel：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ch := make(chan int)</div></pre></td></tr></table></figure>
+<p>另外，Go 中的 Channel 是有方向的。虽然 Channel 默认既可以发送数据，也可以接收数据，但也可以通过指定方向让它做到只能发送或只能接收数据。</p>
+<p>所以，上面可以看到 Chan Type 的源码定义中，在 <strong>rtype</strong> 数据后附加了两个字段：指向一个可发送的数据类型的定义的地址 <strong>elem</strong>，和一个代表 Channel 方向（单向接收为 1；单向发送为 2，双向收发为 3）的值。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的一个 Chan Type 如下：</p>
+<p><img src="/imgs/go_re/chan_type.png" alt=""></p>
+<h4 id="8-4-9-Ucommon-Type"><a href="#8-4-9-Ucommon-Type" class="headerlink" title="8.4.9 Ucommon Type"></a>8.4.9 Ucommon Type</h4><p>前面提了多次可以绑定 Methods 的 <strong>Uncommon Type</strong>，具体是什么样的呢？源码定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// uncommonType is present only for defined types or types with methods</span></div><div class="line"><span class="comment">// (if T is a defined type, the uncommonTypes for T and *T have methods).</span></div><div class="line"><span class="comment">// Using a pointer to this struct reduces the overall size required</span></div><div class="line"><span class="comment">// to describe a non-defined type with no methods</span></div><div class="line"><span class="keyword">type</span> uncommonType <span class="keyword">struct</span> &#123;</div><div class="line">    pkgPath nameOff <span class="comment">// import path; empty for built-in types like int, string</span></div><div class="line">    mcount  <span class="keyword">uint16</span>  <span class="comment">// number of methods</span></div><div class="line">    xcount  <span class="keyword">uint16</span>  <span class="comment">// number of exported methods</span></div><div class="line">    moff    <span class="keyword">uint32</span>  <span class="comment">// offset from this uncommontype to [mcount]method</span></div><div class="line">    _       <span class="keyword">uint32</span>  <span class="comment">// unused</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>任何一个 Type，无论是 Basic Type 还是 Composite Type，都可以是 Uncommon Type。如果一个 Type 的 <strong>tflag</strong> 字段标记该 Type 时 <strong>Uncommon Type</strong>，那么在该 Type 前面所有的字段之后，就是 <strong>Uncommon Type</strong> 的信息了。</p>
+<p>第一个字段是 <strong>pkgPath</strong>，这个字段的用法与 <strong>Interface Type</strong> 中的 <strong>pkgPath</strong> 相同。</p>
+<p>第二个字段是 <strong>mcount</strong>，即所有绑定的 Methods 的数量；第三个字段 <strong>xcount</strong> 则是可导出的 Methods 的数量，即 Method name 首字母大写。第 4 个字段，是 Methods 列表到 <strong>Uncommon Type</strong> 信息起始地址的 <strong>偏移</strong>。</p>
+<p>Uncommon Type 这里绑定的 Method，与 Interface 那里声明的 <strong>Interface Method</strong> 定义还不一样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> method <span class="keyword">struct</span> &#123;</div><div class="line">    name nameOff <span class="comment">// name of method</span></div><div class="line">    mtyp typeOff <span class="comment">// method type (without receiver) // offset to an *rtype</span></div><div class="line">    ifn  textOff <span class="comment">// fn used in interface call (one-word receiver) // offset from top of text section</span></div><div class="line">    tfn  textOff <span class="comment">// fn used for normal method call // offset from top of text section</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li><strong>name</strong> 是相对于 <strong>firstmoduledata.types</strong> 的一个偏移，两者相加之后得出的地址指向一个 <strong>type name</strong> 结构，解析出来就是 Method name；</li>
+<li><strong>mtyp</strong> 也是对于 <strong>firstmoduledata.types</strong> 的一个便宜，两者相加之后得出的地址，指向一个 Type 定义信息，其实就是 Method 的声明信息；</li>
+<li>后面的 <strong>ifn/tfn</strong> 通常指向这个 Method 实际的函数实现，不过一个是面向 Interface 的，一个就是普通的实现。</li>
+</ul>
+<p>综合起来，一个简单的 Uncommon Type 由<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的效果如下：</p>
+<p><img src="/imgs/go_re/uncommon_type.png" alt=""></p>
+<h3 id="8-5-总结"><a href="#8-5-总结" class="headerlink" title="8.5 总结"></a>8.5 总结</h3><p>至此，本文阐述了如何遍历找到 Go 二进制文件中每一个 Type 的定义信息，以及每一个 Type 源码级的定义和解析方式。之后就可以基于这些知识完成对 Go 二进制文件中 Types 信息的解析了。</p>
+<h2 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h2><ol>
+<li><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">https://github.com/0xjiayu/go_parser</a></li>
+<li><a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">https://www.anquanke.com/post/id/214940</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">https://www.anquanke.com/post/id/215419</a></li>
+<li><a href="https://golang.org/src/runtime/type.go" target="_blank" rel="external">https://golang.org/src/runtime/type.go</a></li>
+<li><a href="https://golang.org/src/runtime/malloc.go" target="_blank" rel="external">https://golang.org/src/runtime/malloc.go</a></li>
+<li><a href="https://www.pnfsoftware.com/blog/analyzing-golang-executables/" target="_blank" rel="external">https://www.pnfsoftware.com/blog/analyzing-golang-executables/</a></li>
+<li><a href="http://home.in.tum.de/~engelke/pubs/1709-ma.pdf" target="_blank" rel="external">http://home.in.tum.de/~engelke/pubs/1709-ma.pdf</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+<!--
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+ -->
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/" title="Go二进制文件逆向分析从基础到进阶(3)——数据类型">http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/malwr/" rel="tag"># malwr</a>
+          
+            <a href="/tags/re/" rel="tag"># re</a>
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/" rel="next" title="Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表">
+                <i class="fa fa-chevron-left"></i> Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/09/25/go-binary-reverse-engineering-itab-and-strings/" rel="prev" title="Go二进制文件逆向分析从基础到进阶(4)——itab与strings">
+                Go二进制文件逆向分析从基础到进阶(4)——itab与strings <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">24</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">34</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#8-types"><span class="nav-number">1.</span> <span class="nav-text">8. types</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-简介"><span class="nav-number">1.1.</span> <span class="nav-text">8.1 简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-types-遍历思路"><span class="nav-number">1.2.</span> <span class="nav-text">8.2 types 遍历思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#8-2-1-runtime-newobject-的交叉引用"><span class="nav-number">1.2.1.</span> <span class="nav-text">8.2.1 runtime.newobject 的交叉引用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-2-2-遍历-firstmoduledata-typelinks"><span class="nav-number">1.2.2.</span> <span class="nav-text">8.2.2 遍历 firstmoduledata.typelinks</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-3-rtype-解析"><span class="nav-number">1.3.</span> <span class="nav-text">8.3 rtype 解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#8-3-1-rtype"><span class="nav-number">1.3.1.</span> <span class="nav-text">8.3.1 rtype</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-3-2-type-name"><span class="nav-number">1.3.2.</span> <span class="nav-text">8.3.2 type name</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-4-composite-type-解析"><span class="nav-number">1.4.</span> <span class="nav-text">8.4 composite type 解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-1-Ptr-Type"><span class="nav-number">1.4.1.</span> <span class="nav-text">8.4.1 Ptr Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-2-Struct-Type"><span class="nav-number">1.4.2.</span> <span class="nav-text">8.4.2 Struct Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-3-Slice-Type"><span class="nav-number">1.4.3.</span> <span class="nav-text">8.4.3 Slice Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-4-Array-Type"><span class="nav-number">1.4.4.</span> <span class="nav-text">8.4.4 Array Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-5-Interface-Type"><span class="nav-number">1.4.5.</span> <span class="nav-text">8.4.5 Interface Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-6-Func-Type"><span class="nav-number">1.4.6.</span> <span class="nav-text">8.4.6 Func Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-7-Map-Type"><span class="nav-number">1.4.7.</span> <span class="nav-text">8.4.7 Map Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-8-Chan-Type"><span class="nav-number">1.4.8.</span> <span class="nav-text">8.4.8 Chan Type</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-4-9-Ucommon-Type"><span class="nav-number">1.4.9.</span> <span class="nav-text">8.4.9 Ucommon Type</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-5-总结"><span class="nav-number">1.5.</span> <span class="nav-text">8.5 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料："><span class="nav-number">2.</span> <span class="nav-text">参考资料：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/';
+          this.page.identifier = '2020/09/02/go-binary-reverse-engineering-types/';
+          this.page.title = 'Go二进制文件逆向分析从基础到进阶(3)——数据类型';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>

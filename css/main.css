@@ -180,7 +180,7 @@ th {
   padding: 0;
 }
 ::selection {
-  background: #262a30;
+  background: #0669fa;
   color: #fff;
 }
 body {
@@ -277,13 +277,13 @@ p {
   margin: 0 0 25px 0;
 }
 a {
-  color: #555;
+  color: #3f77c9;
   text-decoration: none;
   border-bottom: 1px solid #999;
   word-wrap: break-word;
 }
 a:hover {
-  color: #222;
+  color: #0669fa;
   border-bottom-color: #222;
 }
 blockquote {
@@ -1064,6 +1064,7 @@ pre .javascript .function {
   }
 }
 .menu .menu-item a {
+  color: #555;
   display: block;
   font-size: 13px;
   line-height: inherit;
@@ -1419,7 +1420,7 @@ pre .javascript .function {
   margin-top: 50px;
 }
 .post-button .btn {
-  color: #555;
+  color: #3f77c9;
   font-size: 16px;
   background: transparent;
   border-radius: 0;
@@ -1460,11 +1461,11 @@ pre .javascript .function {
   display: block;
   line-height: 25px;
   font-size: 16px;
-  color: #555;
+  color: #3f77c9;
   border-bottom: none;
 }
 .post-nav-item a:hover {
-  color: #222;
+  color: #0669fa;
   border-bottom: none;
 }
 .post-nav-item a:active {
@@ -1688,7 +1689,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #8798c8;
+  background: #6e34ff;
 }
 .links-of-blogroll {
   font-size: 13px;

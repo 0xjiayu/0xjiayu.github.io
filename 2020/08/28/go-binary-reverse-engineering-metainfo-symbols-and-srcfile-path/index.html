@@ -1,0 +1,1012 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="qBZOdQGNufiwjuoePxh48OOtXbE2OcD2yxZE6tLxrsM" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="http://apps.bdimg.com/libs/webfont/1.3.0/webfont_debug.js/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="security,malwr,re,golang," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="JiaYu's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文首发于安全客: https://www.anquanke.com/post/id/215419
+书接前文，本文主要介绍 Go 二进制文件中 Meta Information 的解析，与函数符号和源码文件路径列表的提取。最后详细介绍一下 Moduledata 这个结构。
+传送门： Go二进制文件逆向分析从基础到进阶(1)——综述
+
+5. Meta information5.1 Go Build">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表">
+<meta property="og:url" content="http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/index.html">
+<meta property="og:site_name" content="JiaYu's Blog">
+<meta property="og:description" content="本文首发于安全客: https://www.anquanke.com/post/id/215419
+书接前文，本文主要介绍 Go 二进制文件中 Meta Information 的解析，与函数符号和源码文件路径列表的提取。最后详细介绍一下 Moduledata 这个结构。
+传送门： Go二进制文件逆向分析从基础到进阶(1)——综述
+
+5. Meta information5.1 Go Build">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/go_buildid.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/buildid_hex2str.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/gnu_buildid.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/go_version.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/go_ver_cmd.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/runtime_GOROOT.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/runtime_GOROOT_srccode.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/pclntab_st.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/pclntab_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/func_st_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/func_st_in_src.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/duff_device.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/srcfiletab_offset.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/srcfiletab_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/singe_srcfile_path.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/srcfile_list_output.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/firstmoduledata_in_ida.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/pie_change_log.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/multi_bin_sect_comp.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/moduledata_diff.png">
+<meta property="og:updated_time" content="2020-09-25T10:04:16.205Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表">
+<meta name="twitter:description" content="本文首发于安全客: https://www.anquanke.com/post/id/215419
+书接前文，本文主要介绍 Go 二进制文件中 Meta Information 的解析，与函数符号和源码文件路径列表的提取。最后详细介绍一下 Moduledata 这个结构。
+传送门： Go二进制文件逆向分析从基础到进阶(1)——综述
+
+5. Meta information5.1 Go Build">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/go_re/go_buildid.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","d#isplay":"post","display":"hide","offset":12,"offset_float":0,"b2t":true,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/"/>
+
+
+
+
+
+  <title> Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表 | JiaYu's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-96776353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?48422440cafd0d34da02c8973715c008";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JiaYu's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">浪人</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-08-28T00:00:00+08:00">
+                2020-08-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">https://www.anquanke.com/post/id/215419</a></p>
+<p>书接前文，本文主要介绍 Go 二进制文件中 Meta Information 的解析，与<strong>函数符号</strong>和<strong>源码文件路径列表</strong>的提取。最后详细介绍一下 <strong>Moduledata</strong> 这个结构。</p>
+<p>传送门： <a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(1)——综述</a></p>
+</blockquote>
+<h2 id="5-Meta-information"><a href="#5-Meta-information" class="headerlink" title="5. Meta information"></a>5. Meta information</h2><h3 id="5-1-Go-Build-ID"><a href="#5-1-Go-Build-ID" class="headerlink" title="5.1 Go Build ID"></a>5.1 Go Build ID</h3><p>每一个 Go 二进制文件内，都有一个独一无二的 Build ID，详情参考 <a href="https://golang.org/src/cmd/go/internal/work/buildid.go" target="_blank" rel="external">src/cmd/go/internal/work/buildid.go</a> 。Go Build ID 可以用以下命令来查看：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ go tool buildid &lt;GoBinaryFilePath&gt;</div></pre></td></tr></table></figure>
+<p>对于 ELF 文件，也可以用 <strong>readelf</strong> 命令查看，不过看到的只是 Hex String：</p>
+<p><img src="/imgs/go_re/go_buildid.png" alt=""></p>
+<p>转换一下上图的 Hex String，就是 <code>$ go buildid tracker_nonstrip</code> 的显示结果了：</p>
+<p><img src="/imgs/go_re/buildid_hex2str.png" alt=""></p>
+<a id="more"></a>
+<p>另外，如果是用 <strong>gccgo</strong> 编译的 ELF 文件，用 <strong>file</strong> 命令 或者 <strong>readelf</strong> 命令还能看到 <strong><a href="https://fedoraproject.org/wiki/Releases/FeatureBuildId" target="_blank" rel="external">GNU Build ID</a></strong> ，注意区分一下：</p>
+<p><img src="/imgs/go_re/gnu_buildid.png" alt=""></p>
+<p>Build ID 是 Go 二进制文件中的元信息之一，但是对逆向分析二进制文件并没有什么实际帮助，本文只做简单介绍。</p>
+<h3 id="5-2-Go-Version"><a href="#5-2-Go-Version" class="headerlink" title="5.2 Go Version"></a>5.2 Go Version</h3><p>Go 二进制文件中，还会把构建本文件的 Go 语言版本号打包进去。查看方式有以下 2 种：</p>
+<ol>
+<li><p>通过 IDAPro 中的 strings 检索：</p>
+<p><img src="/imgs/go_re/go_version.png" alt=""></p>
+</li>
+<li><p>通过 Go 语言官方命令 <code>$ go version [FILE]</code> ，该命令不指定文件则打印本地安装的 Go 语言版本，指定文件则打印目标文件对应的 Go 语言版本：</p>
+<p><img src="/imgs/go_re/go_ver_cmd.png" style="zoom:70%;"></p>
+</li>
+</ol>
+<h3 id="5-3-GOROOT"><a href="#5-3-GOROOT" class="headerlink" title="5.3 GOROOT"></a>5.3 GOROOT</h3><p><strong>GOROOT</strong> 是 Go 语言的安装路径，里面有 Go 的标准库和自带的命令行工具。一般来说，Go 的二进制文件中都会把 <strong>GOROOT</strong> 打包进去，并在 <code>runtime.GOROOT()</code> 函数中会用到这个值。比如某 Go 样本中打包的 <code>runtime.GOROOT()</code> 函数，可以看到构建该样本所在主机的 <strong>GOROOT</strong> 路径是 <code>/usr/lib/go</code> ：</p>
+<p><img src="/imgs/go_re/runtime_GOROOT.png" style="zoom:60%;"></p>
+<p>看 Go 标准库中 <code>runtime.GOROOT()</code> 函数的<a href="https://golang.org/src/runtime/extern.go" target="_blank" rel="external">源码</a> ，会发现这个路径其实叫 <strong>sys.DefaultGoroot</strong> ：</p>
+<p><img src="/imgs/go_re/runtime_GOROOT_srccode.png" style="zoom:50%;"></p>
+<p>至于如何提取这个字符串，就需要在 IDAPro 中先把函数名符号恢复出来，然后根据函数名找到 <code>runtime.GOROOT()</code> 这个函数，最后在这个函数中提取出 <strong>sys.DefaultGoroot</strong> 的值。提取方法可能有多种，<strong><a href="https://github.com/0xjiayu/go_parser/blob/master/common.py#L80" target="_blank" rel="external">go_parser for IDAPro 中的方法</a></strong> 是先解析该函数的 <strong>FlowChart</strong> ，找到最后带 return 的 FlowChart，然后再找出该值的地址。</p>
+<p>那么知道了这个信息，对逆向分析有什么用处？后文描述如何提取、过滤 Go 二进制文件中的源码路径列表时会用到。</p>
+<h2 id="6-pclntab"><a href="#6-pclntab" class="headerlink" title="6. pclntab"></a>6. pclntab</h2><h3 id="6-1-pclntab-介绍"><a href="#6-1-pclntab-介绍" class="headerlink" title="6.1 pclntab 介绍"></a>6.1 pclntab 介绍</h3><p><strong>pclntab</strong> 全名是 <strong>Program Counter Line Table</strong>，可直译为 <strong>程序计数器行数映射表</strong>， 在 Go 中也叫  <strong>Runtime Symbol Table</strong>， 所以我把它里面包含的信息叫做 <strong>RTSI(Runtime Symbol Information)</strong>。2013 年由 <strong>Russ Cox</strong> (Go 语言创始团队成员，核心开发者)从 <strong>Plan9</strong> 移植到 <strong>Go 1.2</strong> 上，至今没有太大变化。至于 PC(Program Counter)，是给 Go 语言的 runtime 来操作的，可以粗浅理解为 runtime 当前执行的程序代码(或指令)。</p>
+<p>按 Russ Cox 在《<strong><a href="http://golang.org/s/go12symtab" target="_blank" rel="external">Go 1.2 Runtime Symbol Information</a></strong>》中的说法，引入 <strong>pcnlntab</strong> 这个结构的最初动机，是为 <strong>Stack Trace</strong> 服务的。参考前文《<strong><a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——综述</a></strong>》中 <strong>redress</strong> 工具的报错信息，当程序运行出错要 <strong>panic</strong> 的时候，runtime 需要知道当前的位置，层级关系如 pkg-&gt;src file-&gt;function or method-&gt;line number，每一层的信息 runtime 都要知道。Go 就把这些信息结构化地打包到了编译出的二进制文件中。除此之外，<strong>pcnlntab</strong> 中还包含了栈的动态管理用到的栈帧信息、垃圾回收用到的栈变量的生命周期信息以及二进制文件涉及的所有源码文件路径信息。</p>
+<p><strong>pclntab</strong> 的概要结构如下（其中的 <strong>strings</strong> 指的是 Function name string、Source File Path string，并不是整个程序中用到的所有 strings）：</p>
+<blockquote>
+<p><strong>pclntab</strong>:</p>
+<ul>
+<li>func table</li>
+<li>_func structs</li>
+<li>pcsp</li>
+<li>psfile</li>
+<li>pcline</li>
+<li>pcdata</li>
+<li>strings</li>
+<li>file table</li>
+</ul>
+</blockquote>
+<p>而我们最关心的信息，其实主要是 2 个：<strong>函数表(func table)</strong> 和 <strong>源码文件路径列表(file table)</strong>。针对性的 <strong>pclntab</strong> 结构如下：</p>
+<p><img src="/imgs/go_re/pclntab_st.png" style="zoom:70%;"></p>
+<p>简单解释一下：</p>
+<ul>
+<li><strong>pclntab</strong> 开头 4-Bytes 是从 Go1.2 至今不变的 <strong>Magic Number</strong>： <strong>0xFFFFFFFB</strong> ；</li>
+<li>第 5、6个字节为 0x00，暂无实际用途；</li>
+<li>第 7 个字节代表 <strong>instruction size quantum</strong>， <strong>1</strong> 为 x86, 4 为 ARM；</li>
+<li>第 8 个字节为地址的大小，32bit 的为 4，64 bit 的为 8，至此的前 8 个字节可以看作是 <strong>pclntab</strong> 的 Header；</li>
+<li>第 9 个字节开始是 <strong>function table</strong> 的起始位置，第一个 uintptr 元素为函数(pc, Program Counter) 的个数；</li>
+<li>第 2 个 uintptr 元素为第 1 个函数(pc0) 的地址，第 3 个 uintptr 元素为第 1 个函数结构定义相对于 <strong>pclntab</strong> 的偏移，后面的函数信息就以此类推；</li>
+<li>直到 function table 结束，下面就是 Source file table。Source file table 以 4 字节(<strong>int32</strong>)为单位，前 4 个字节代表 Source File 的数量，后面每一个 <strong>int32</strong> 都代表一个 Source File Path String 相对于 <strong>pclntab</strong> 的偏移；</li>
+<li><strong>uintptr</strong> 代表一个指针类型，在 32bit 二进制文件中，等价于 <strong>uint32</strong>，在 64bit 二进制文件中，等价于 <strong>uint64</strong> 。</li>
+</ul>
+<p><strong>pclntab</strong> 在源码中是<a href="https://golang.org/src/debug/gosym/pclntab.go" target="_blank" rel="external">如此定义</a>的，构建二进制文件时，<strong>RTSI</strong> 也是在二进制文件中按上面顺序排列的。所以，在 IDAPro 中解析 <strong>pclntab</strong>，就按照如上说明来解析即可。<strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 在 IDAPro 中解析好的 <strong>pclntab</strong> 开头部分如下：</p>
+<p><img src="/imgs/go_re/pclntab_in_ida.png" alt=""></p>
+<p>关于如何查找、定位到 <strong>pclntab</strong>，下文详述。</p>
+<h3 id="6-2-函数表"><a href="#6-2-函数表" class="headerlink" title="6.2 函数表"></a>6.2 函数表</h3><p>函数表(func table)的起始地址，为 <code>(pclntab_addr + 8)</code>，第一个元素( uintptr <strong>N</strong>) 代表函数的个数，如上图中的 <strong>0x1C3A</strong>。</p>
+<p>解析来就是每两个 uintptr 元素为一组，即 <code>(func_addr, func_struct_offset)</code>，每组第一个元素为函数的地址，第二个元素为函数结构体定义相对于 <strong>pclntab</strong> 起始地址的偏移。即：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">func_struct_addr = pclntab_addr + func_struct_offset</div><div class="line"></div><div class="line"># 以上图第一个函数 internal_cpu_Initialize() 为例，pclntab 的地址为 0x8FBFA0，它的 func_struct_offset 为 0x1C3C0</div><div class="line"># 那么它的 func struct address 为：</div><div class="line">0x8FBFA0 + 0x1C3C0 = 0x918360</div></pre></td></tr></table></figure>
+<p>地址 0x918360 处的 Function Struct 是什么模样？下图为 <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 在 IDAPro 中解析好的结果：</p>
+<p><img src="/imgs/go_re/func_st_in_ida.png" alt=""></p>
+<p>Function Struct 在 Russ Cox 的《<strong><a href="http://golang.org/s/go12symtab" target="_blank" rel="external">Go 1.2 Runtime Symbol Information</a></strong>》有介绍：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> Func</div><div class="line">&#123;</div><div class="line">    uintptr      entry;     <span class="comment">// start pc</span></div><div class="line">    int32        name;      <span class="comment">// name (offset to C string)</span></div><div class="line">    int32        args;      <span class="comment">// size of arguments passed to function</span></div><div class="line">    int32        frame;     <span class="comment">// size of function frame, including saved caller PC</span></div><div class="line">    int32        pcsp;      <span class="comment">// pcsp table (offset to pcvalue table)</span></div><div class="line">    int32        pcfile;    <span class="comment">// pcfile table (offset to pcvalue table)</span></div><div class="line">    int32        pcln;      <span class="comment">// pcln table (offset to pcvalue table)</span></div><div class="line">    int32        nfuncdata; <span class="comment">// number of entries in funcdata list</span></div><div class="line">    int32        npcdata;   <span class="comment">// number of entries in pcdata list</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>对于逆向分析来说，这里最有用的信息，就是<strong>函数名</strong>了。如上图所示，函数名是一个以 <code>0x00</code> 结尾的 C-String。在 Function Struct 中，第二个元素只是 int32 类型的偏移值，而函数名字符串的地址，则用以下方式计算得出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">func_name_addr = pclntab_addr + Dword(func_stuct_addr + sizeof(uintptr))</div><div class="line"></div><div class="line"># 比如上面函数 internal_cpu_Initialize() 的 func_struct_addr 为 0x918360，</div><div class="line"># 它的 Func Name String Offset 为 0x1C408，那么它的 Func Name String Address 就是</div><div class="line">0x8FBFA0(pclntab_addr) + 0x1C408 = 0x9183A8</div></pre></td></tr></table></figure>
+<p>如此一来，就从 Go 二进制文件中恢复出了一个函数的名字。用这种方式遍历 Function Table，便可以<strong>恢复所有函数名</strong>。</p>
+<p>有的师傅可能还会问，Function Struct 中第 3 个元素 <strong>args</strong> ，有没有对逆向分析有用的信息？如果知道函数的参数、返回值信息，岂不更爽。这个……曾经有，现在，真没有了。在 Go 标准库源码 <strong><a href="https://golang.org/src/debug/gosym/symtab.go" target="_blank" rel="external">src/debug/gosym/symtab.go</a></strong> 中解析这个 Function Struct 的一个类型定义中，有两条注释，说 Go 1.3 之后就没这种信息了：</p>
+<p><img src="/imgs/go_re/func_st_in_src.png" style="zoom:50%;"></p>
+<p>另外，还有一些函数用上面的方式无法解析，是编译器做<strong>循环展开</strong>时自动生成的匿名函数，也叫 <strong><a href="[https://en.wikipedia.org/wiki/Duff%27s_device](https://en.wikipedia.org/wiki/Duff&#39;s_device">Duff’s Device</a>)</strong>，函数体型如下图：</p>
+<p><img src="/imgs/go_re/duff_device.png" style="zoom:70%;"></p>
+<p>这样的函数知道它是用来连续操作内存(拷贝、清零等等)的就可以。</p>
+<h3 id="6-3-源码文件路径"><a href="#6-3-源码文件路径" class="headerlink" title="6.3 源码文件路径"></a>6.3 源码文件路径</h3><p>在 <strong>pclntab</strong> 中，函数表下面隔一个 uintptr 的位置，就是源码文件表(Srouce File Table) 的 <strong>偏移</strong>，长度为 4-Bytes：</p>
+<p><img src="/imgs/go_re/srcfiletab_offset.png" alt=""></p>
+<p>这个偏移，是相对 <strong>pclntab</strong> 的起始地址来说的。接着上面的例子，<strong>pclntab</strong> 的地址为 0x8FBFA0，此处偏移量为 0x22FDD0 ，那么源码文件路径列表的地址就是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">srcfiletab_addr = pclntab_addr + srcfiletab_offset</div><div class="line">0x8FBFA0 + 0x22FDD0 = 0xB2BD70</div></pre></td></tr></table></figure>
+<p>在 IDAPro 中，0xB2BD70 处  <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 解析好的效果如下：</p>
+<p><img src="/imgs/go_re/srcfiletab_in_ida.png" alt=""></p>
+<p>Source File Table 中的元素全都以 4-Bytes(uint32) 为单位，第一个元素(0x2CF)是本二进制文件涉及的所有源码文件的个数，包括标准库的源码文件、第三方 Pacakge 的源码文件以及当前项目的源码文件。后续每个 uint32 元素代表一个相对于 <strong>pclntab</strong> 的偏移量，该偏移量加上 <strong>pclntab</strong> 的起始地址，即为相应源码文件路径字符串的起始地址。每个源码文件路径名都是以 <code>0x00</code> 结尾的 C-String。</p>
+<p> <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 对此的处理，是计算出每个偏移量对应的地址，然后创建字符串，并为当前偏移所在的地址创建 data reference，在 IDAPro 中双击 data reference 即可跳转到相应的字符串地址。比如，第一个源码文件的偏移量为 0x239134，那么它对应的实际地址为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">0x8FBFA0(pclntab_addr) + 0x239134 = 0xB350D4</div></pre></td></tr></table></figure>
+<p>查看地址 0xB350D4 处的字符串即可印证：</p>
+<p><img src="/imgs/go_re/singe_srcfile_path.png" alt=""></p>
+<p>另外， <strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 如果成功定位到 <strong>runtime.GOROOT()</strong> 函数，并解析出 <strong>sys.DefaultGoroot</strong> 的值，还会根据这个值过滤掉所有标准库源码文件路径和第三方 Package 源码文件路径，在 IDAPro 的 Console 中只打印本项目相关的所有源码文件路径；如果没能提取出 <strong>sys.DefaultGoroot</strong> ，则会打印所有源码文件路径。DDG 样本中的源码文件路径列表如下所示(IDAPro Console)：</p>
+<p><img src="/imgs/go_re/srcfile_list_output.png" style="zoom:80%;"></p>
+<h2 id="7-moduledata"><a href="#7-moduledata" class="headerlink" title="7. moduledata"></a>7. moduledata</h2><h3 id="7-1-moduledata-介绍"><a href="#7-1-moduledata-介绍" class="headerlink" title="7.1 moduledata 介绍"></a>7.1 moduledata 介绍</h3><p>在 Go 语言的体系中，Module 是比 Package 更高层次的概念，具体表现在一个 Module 中可以包含多个不同的 Package，而每个 Package 中可以包含多个目录和很多的源码文件。</p>
+<blockquote>
+<p><strong>“A module is a collection of related Go packages that are versioned together as a single unit.”*</strong><br><em>— Go Module Docs</em></p>
+</blockquote>
+<p>详情参考：《<strong><a href="https://medium.com/@ckeyes88/go-modules-in-real-life-87a21fb4d8aa" target="_blank" rel="external">Go Modules in Real Life</a></strong>》</p>
+<p>相应地，<strong>Moduledata</strong> 在 Go 二进制文件中也是一个更高层次的数据结构，它包含很多其他结构的索引信息，可以看作是 Go 二进制文件中 RTSI(Runtime Symbol Information) 和 RTTI(Runtime Type Information) 的 <strong>地图</strong>。<strong>Moduledata</strong> <a href="https://golang.org/src/runtime/symtab.go" target="_blank" rel="external">源码定义</a>如下(关键字段看注释)：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> moduledata <span class="keyword">struct</span> &#123;</div><div class="line">    pclntable    []<span class="keyword">byte</span>    <span class="comment">// pclntab address</span></div><div class="line">    ftab         []functab <span class="comment">// function table address</span></div><div class="line">    filetab      []<span class="keyword">uint32</span>  <span class="comment">// source file table address</span></div><div class="line">    findfunctab  <span class="keyword">uintptr</span></div><div class="line">    minpc, maxpc <span class="keyword">uintptr</span>   <span class="comment">// minpc: first pc(function) address</span></div><div class="line"></div><div class="line">    text, etext           <span class="keyword">uintptr</span>  <span class="comment">// [.text] section start/end address</span></div><div class="line">    noptrdata, enoptrdata <span class="keyword">uintptr</span></div><div class="line">    data, edata           <span class="keyword">uintptr</span>  <span class="comment">// [.data] section start/end address</span></div><div class="line">    bss, ebss             <span class="keyword">uintptr</span>  <span class="comment">// [.bss] section start/end address</span></div><div class="line">    noptrbss, enoptrbss   <span class="keyword">uintptr</span>  <span class="comment">// [.noptrbss] section start/end address</span></div><div class="line">    end, gcdata, gcbss    <span class="keyword">uintptr</span></div><div class="line">    types, etypes         <span class="keyword">uintptr</span>  <span class="comment">// types data start/end address</span></div><div class="line"></div><div class="line">    textsectmap []textsect</div><div class="line">    typelinks   []<span class="keyword">int32</span>    <span class="comment">// offset table for types</span></div><div class="line">    itablinks   []*itab    <span class="comment">// interface table</span></div><div class="line"></div><div class="line">    ptab []ptabEntry</div><div class="line"></div><div class="line">    pluginpath <span class="keyword">string</span></div><div class="line">    pkghashes  []modulehash</div><div class="line"></div><div class="line">    modulename   <span class="keyword">string</span></div><div class="line">    modulehashes []modulehash</div><div class="line"></div><div class="line">    hasmain <span class="keyword">uint8</span> <span class="comment">// 1 if module contains the main function, 0 otherwise</span></div><div class="line"></div><div class="line">    gcdatamask, gcbssmask bitvector</div><div class="line"></div><div class="line">    typemap <span class="keyword">map</span>[typeOff]*_type <span class="comment">// offset to *_rtype in previous module</span></div><div class="line"></div><div class="line">    bad <span class="keyword">bool</span> <span class="comment">// module failed to load and should be ignored</span></div><div class="line"></div><div class="line">    next *moduledata</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>根据 <strong>Moduledata</strong> 的定义，Moduledata 是可以串成链表的形式的，而一个完整的可执行 Go 二进制文件中，只有一个 <strong>firstmoduledata</strong> 包含如上完整的字段。简单介绍一下关键字段：</p>
+<ul>
+<li>第 1 个字段 <strong>pclntable</strong>，即为 <strong>pclntab</strong> 的地址；</li>
+<li>第 2 个字段 <strong>ftab</strong>，为 <strong>pclntab</strong> 中 Function Table 的地址(=pclntab_addr + 8)；</li>
+<li>第 3 个字段 <strong>filetab</strong>，为 <strong>pclntab</strong> 中 Source File Table 的地址；</li>
+<li>第 5 个字段 <strong>minpc</strong>，为 <strong>pclntab</strong> 中第一个函数的起始地址；</li>
+<li>第 7 个字段 <strong>text</strong>，在普通二进制文件中，对应于 [.text] section 的起始地址；在 PIE 二进制文件中则没有这个要求；</li>
+<li>字段 <strong>types</strong>，为存放程序中所有数据类型定义信息数据的起始地址，一般对应于 [.rodata] section 的地址；</li>
+<li>字段 <strong>typelinks</strong>，为每个数据类型相对于 <strong>types</strong> 地址的偏移表，该字段与 <strong>types</strong> 字段在后文解析 RTTI 时要用到；</li>
+<li>字段 <strong>itablinks</strong>，则是 Interface Table 的起始地址，该字段解析 Interface Table 时要用到。</li>
+</ul>
+<p><strong><a href="https://github.com/0xjiayu/go_parser" target="_blank" rel="external">go_parser</a></strong> 在 IDAPro 中对 <strong>firstmoduledata</strong> 的解析结果示例如下：</p>
+<p><img src="/imgs/go_re/firstmoduledata_in_ida.png" alt=""></p>
+<p>需要注意的是，Go 语言中，一个 Slice 类型数据的底层定义要用到 3 个元素：(Data Address, Length, Capacity)。所以在 IDAPro 中看某个 Slice 类型的字段，要一次看 3 个 uintptr 元素。</p>
+<h3 id="7-2-firstmoduledata-定位"><a href="#7-2-firstmoduledata-定位" class="headerlink" title="7.2 firstmoduledata 定位"></a>7.2 firstmoduledata 定位</h3><p>通过上面的介绍可以知道，如果在 Go 二进制文件中事先找到 <strong>firstmoduledata</strong> 这个结构，然后在这个结构中就可以按图索骥找到其他我们感兴趣的信息。那么如何在一个 Go 二进制文件中精准定位到 <strong>firstmoduledata</strong> 呢？</p>
+<p>很直观就想到 <strong>pclntab</strong>，原因有两点：一是它对应于 <strong>firstmoduledata</strong> 结构的第一个字段；最主要的是 <strong>pclntab</strong> 包含的信息丰富，起始位置还有独特的 4-Bytes 的 Magic Number。一旦找到了 <strong>pclntab</strong> ，就可以定位到 <strong>firstmoduledata</strong>。</p>
+<h4 id="7-2-1-定位-pclntab"><a href="#7-2-1-定位-pclntab" class="headerlink" title="7.2.1 定位 pclntab"></a>7.2.1 定位 pclntab</h4><p>定位 <strong>pclntab</strong> 的方法，公开的相关工具里用的最多的，是根据二进制文件中的 Section Name 来定位。因为平常见到的 Go 二进制文件，PE 文件和 ELF 文件中 <code>.gopclntab</code> Section 就对应于 <strong>pclntab</strong> 结构，MachO 文件中 <code>__gopclntab</code> Section 对应于 <strong>pclntab</strong> 结构。</p>
+<p>然而<strong>这种方法并不靠谱</strong>。</p>
+<p>最主要的原因，是 <strong>PIE</strong> 二进制文件。PIE 全称为 <strong>Position Independent Executable</strong>，意思是<strong>地址无关的可执行文件</strong>，这个类型的二进制文件结合 ASLR 技术可以加强 Go 二进制文件自身安全性。这对 Go 自身的内存安全机制来说，是个锦上添花的特性。Go 的 <strong>build/install</strong> 命令在构建二进制文件时，有几个 <strong>buildmode</strong> 选项：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line">➜ go help buildmode</div><div class="line">The &apos;go build&apos; and &apos;go install&apos; commands take a -buildmode argument which</div><div class="line">indicates which kind of object file is to be built. Currently supported values</div><div class="line">are:</div><div class="line"></div><div class="line">        -buildmode=archive</div><div class="line">                Build the listed non-main packages into .a files. Packages named</div><div class="line">                main are ignored.</div><div class="line"></div><div class="line">        -buildmode=c-archive</div><div class="line">                Build the listed main package, plus all packages it imports,</div><div class="line">                into a C archive file. The only callable symbols will be those</div><div class="line">                functions exported using a cgo //export comment. Requires</div><div class="line">                exactly one main package to be listed.</div><div class="line"></div><div class="line">        -buildmode=c-shared</div><div class="line">                Build the listed main package, plus all packages it imports,</div><div class="line">                into a C shared library. The only callable symbols will</div><div class="line">                be those functions exported using a cgo //export comment.</div><div class="line">                Requires exactly one main package to be listed.</div><div class="line"></div><div class="line">        -buildmode=default</div><div class="line">                Listed main packages are built into executables and listed</div><div class="line">                non-main packages are built into .a files (the default</div><div class="line">                behavior).</div><div class="line"></div><div class="line">        -buildmode=shared</div><div class="line">                Combine all the listed non-main packages into a single shared</div><div class="line">                library that will be used when building with the -linkshared</div><div class="line">                option. Packages named main are ignored.</div><div class="line"></div><div class="line">        -buildmode=exe</div><div class="line">                Build the listed main packages and everything they import into</div><div class="line">                executables. Packages not named main are ignored.</div><div class="line"></div><div class="line">        -buildmode=pie</div><div class="line">                Build the listed main packages and everything they import into</div><div class="line">                position independent executables (PIE). Packages not named</div><div class="line">                main are ignored.</div><div class="line"></div><div class="line">        -buildmode=plugin</div><div class="line">                Build the listed main packages, plus all packages that they</div><div class="line">                import, into a Go plugin. Packages not named main are ignored.</div></pre></td></tr></table></figure>
+<p>Go 在构建可执行 ELF 文件时，目前还是默认使用 <code>-buildmode=exe</code>，而从 2019 年 4 月底 Go 语言官方 <strong><a href="https://go-review.googlesource.com/c/go/+/203606/" target="_blank" rel="external">Change Log 203606</a></strong> 开始，在 Windows 上构建可执行 PE 文件时，则会默认使用 <code>-buildmode=pie</code>：</p>
+<p><img src="/imgs/go_re/pie_change_log.png" alt=""></p>
+<p>下图是同一个项目，用 3 种不同的编译方式生成的可执行 ELF 文件 Section Headers 对比，从左至右编译方式依次为：</p>
+<ol>
+<li>go build</li>
+<li>go build -ldflags “-s -w”</li>
+<li>go build -buildmode=pie -ldflags “-s -w”</li>
+</ol>
+<p><img src="/imgs/go_re/multi_bin_sect_comp.png" alt=""></p>
+<p>可以看到，第三种编译方式生成的 PIE 文件，是没有 <code>.gopclntab</code> 这个 Section 的，而是多了一些重定向相关的 Section。这也是前文《<a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——综述</a>》中 <strong>redress</strong> 工具报错的原因：它根据 Section Name 查找 <strong>pclntabl</strong> 的思路，对 PIE 文件无效。</p>
+<p>既然靠 Section Name 来定位 <strong>pclntab</strong> 的方式不靠谱，其他能用的方式就只剩暴力搜索 <strong>pclntab</strong> 的 Magic Number 了。通过研究发现，无论是否 PIE ，ELF 文件中的<strong>firstmoduledata</strong> 总是在 <code>.noptrdata</code> 这个 Section 里，PE 文件中可能会在 <code>.data</code> 或 <code>.noptrdata</code> Section，而 MachO 文件中的 <strong>firstmoduledata</strong> 会在 <code>__noptrdata</code> Section 中。如此一来，就可以按 uintptr 为单元遍历目标 Section，检查每个 uintptr 指向的地址前 4 字节是否为 <strong>pclntab</strong> 的 Magic Number <strong>0xFFFFFFFB</strong>，找到这个位置，就差不多了。伪码可表示为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Dword(uintptr(possible_firstmoduledata_addr)) &amp; 0xFFFFFFFF == MagicNumber</div></pre></td></tr></table></figure>
+<p>之所以说 <strong>差不多</strong>，是因为二进制文件中可能还有别的值为 <strong>0xFFFFFFFB</strong>，并不是所有这个值的位置都是 <strong>pclntab</strong>。找到这个值，还要精准验证它是不是 <strong>pclntab</strong>，以及上级数据结构是不是 <strong>firstmoduledata</strong> 。</p>
+<h4 id="7-2-2-验证-firstmoduledata"><a href="#7-2-2-验证-firstmoduledata" class="headerlink" title="7.2.2 验证 firstmoduledata"></a>7.2.2 验证 firstmoduledata</h4><p>按照上述思路，找到一个<strong>可能的</strong> firstmoduledata 起始地址，其第一个 uintptr 元素指向的位置，前 4 字节为 <strong>pclntab</strong> 的 Magic Number。如果是真实的 <strong>firstmoduledata</strong>，它内部是有几个字段可以跟 <strong>pclntab</strong> 中的数据进行交叉验证的，比如：</p>
+<ul>
+<li>firstmoduledata.ftab == pclntab_addr + 8</li>
+<li>firstmoduledata.filetab == firstmoduledata.ftab + pclntab.functab_size + sizeof(uintptr)</li>
+<li>firstmoduledata.minpc == firstmoduledata.text_addr == uintptr(pclntbl_addr + 8 + ADDR_SZ) == first function of pclntab.functab</li>
+</ul>
+<p>当然，不一定要验证上面所有条件，验证其中一部分甚至一个关键条件，就可以确认当前地址是否为真正的 <strong>firstmoduledata</strong>。</p>
+<p>另外，随着 Go 的持续迭代， <strong>pclntab</strong> 和 <strong>moduledata</strong> 的结构定义也会发生变化。《<a href="http://home.in.tum.de/~engelke/pubs/1709-ma.pdf" target="_blank" rel="external">Reconstructing Program Semantics from Go Binaries</a>》 中对比过几个版本的 <strong>moduledata</strong> 之间的区别：</p>
+<p><img src="/imgs/go_re/moduledata_diff.png" alt=""></p>
+<p>我们对此结构的解析，也要随着 Go 语言的迭代而进行相应调整，否则可能 Go 语言发了一个新版，里面改动了关键数据结构，我们按照旧的结构去解析，就会出错。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+<!--
+  <div style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px">
+    <IMG alt="" src="https://avatars3.githubusercontent.com/u/4980416?v=3&s=140" width=120 height=120>
+  </div>
+ -->
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>Post author:</strong>
+      <a href="mailto:jiayu0x@gmail.com"> 0xjiayu </a>
+    </li>
+    <li class="post-copyright-link">
+      <strong>Post link:</strong>
+      <a href="http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/" title="Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表">http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>Copyright Notice: </strong>
+      All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/security/" rel="tag"># security</a>
+          
+            <a href="/tags/malwr/" rel="tag"># malwr</a>
+          
+            <a href="/tags/re/" rel="tag"># re</a>
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/22/go-binary-reverse-engineering-summary/" rel="next" title="Go二进制文件逆向分析从基础到进阶(1)——综述">
+                <i class="fa fa-chevron-left"></i> Go二进制文件逆向分析从基础到进阶(1)——综述
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/09/02/go-binary-reverse-engineering-types/" rel="prev" title="Go二进制文件逆向分析从基础到进阶(3)——数据类型">
+                Go二进制文件逆向分析从基础到进阶(3)——数据类型 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="0xjiayu" />
+          <p class="site-author-name" itemprop="name">0xjiayu</p>
+           
+              <p class="site-description motion-element" itemprop="description">About Security/Coding…… and life.</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">24</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">34</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Meta-information"><span class="nav-number">1.</span> <span class="nav-text">5. Meta information</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-Go-Build-ID"><span class="nav-number">1.1.</span> <span class="nav-text">5.1 Go Build ID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-Go-Version"><span class="nav-number">1.2.</span> <span class="nav-text">5.2 Go Version</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-GOROOT"><span class="nav-number">1.3.</span> <span class="nav-text">5.3 GOROOT</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-pclntab"><span class="nav-number">2.</span> <span class="nav-text">6. pclntab</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-pclntab-介绍"><span class="nav-number">2.1.</span> <span class="nav-text">6.1 pclntab 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-函数表"><span class="nav-number">2.2.</span> <span class="nav-text">6.2 函数表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-源码文件路径"><span class="nav-number">2.3.</span> <span class="nav-text">6.3 源码文件路径</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-moduledata"><span class="nav-number">3.</span> <span class="nav-text">7. moduledata</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-moduledata-介绍"><span class="nav-number">3.1.</span> <span class="nav-text">7.1 moduledata 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-firstmoduledata-定位"><span class="nav-number">3.2.</span> <span class="nav-text">7.2 firstmoduledata 定位</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-2-1-定位-pclntab"><span class="nav-number">3.2.1.</span> <span class="nav-text">7.2.1 定位 pclntab</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-2-2-验证-firstmoduledata"><span class="nav-number">3.2.2.</span> <span class="nav-text">7.2.2 验证 firstmoduledata</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">0xjiayu</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://jiayu0x.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://jiayu0x.com/2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/';
+          this.page.identifier = '2020/08/28/go-binary-reverse-engineering-metainfo-symbols-and-srcfile-path/';
+          this.page.title = 'Go二进制文件逆向分析从基础到进阶(1)——MetaInfo、函数符号和源码文件路径列表';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://jiayu0x.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+
+</body>
+</html>
