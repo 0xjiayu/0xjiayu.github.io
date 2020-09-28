@@ -293,6 +293,177 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/28/go-binary-reverse-engineering-tips-and-example/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="0xjiayu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JiaYu's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2020/09/28/go-binary-reverse-engineering-tips-and-example/" itemprop="url">
+                  Go二进制文件逆向分析从基础到进阶(完结篇)——Tips与实战案例
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-09-28T00:00:00+08:00">
+                2020-09-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/security/" itemprop="url" rel="index">
+                    <span itemprop="name">security</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/09/28/go-binary-reverse-engineering-tips-and-example/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2020/09/28/go-binary-reverse-engineering-tips-and-example/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/218674">https://www.anquanke.com/post/id/218674</a></p>
+<p>书接前文，本文介绍 Go 语言二进制文件逆向的几个 Tips，最后用实际案例演示一个 Go 二进制文件逆向分析的进阶玩法——还原复杂数据结构的 Go 语言定义。</p>
+</blockquote>
+<p><strong>传送门</strong>：</p>
+<ol>
+<li><a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶——综述</a></li>
+<li><a href="https://www.anquanke.com/post/id/215419">Go二进制文件逆向分析从基础到进阶——MetaInfo、函数符号和源码文件路径列表</a></li>
+<li><a href="https://www.anquanke.com/post/id/215820">Go二进制文件逆向分析从基础到进阶——数据类型</a></li>
+<li><a href="https://www.anquanke.com/post/id/218377">Go二进制文件逆向分析从基础到进阶——itab和strings</a></li>
+</ol>
+<h2 id="11-逆向分析-Tips"><a href="#11-逆向分析-Tips" class="headerlink" title="11. 逆向分析 Tips"></a>11. 逆向分析 Tips</h2><h3 id="11-1-函数的参数与返回值"><a href="#11-1-函数的参数与返回值" class="headerlink" title="11.1 函数的参数与返回值"></a>11.1 函数的参数与返回值</h3><p>本系列第一篇《<a href="https://www.anquanke.com/post/id/214940">Go二进制文件逆向分析从基础到进阶——综述</a>》中提到过，Go 语言有自己独特的调用约定和栈管理机制，使 C/C++ 二进制文件逆向分析的经验在这里力不从心：Go 语言用的是 <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/03.5.html">continue stack 栈管理机制</a> ，并且 Go 语言函数中 callee 的栈空间由上层调用函数 caller 来维护，callee 的参数、返回值都由 caller 在栈中预留空间，<strong>传入参数和返回值都是通过栈空间里的内存</strong>，就难以直观看出哪个是参数、哪个是返回值。详见 <a href="https://dr-knz.net/go-calling-convention-x86-64.html">The Go low-level calling convention on x86-64</a> 。Go 中函数内存空间布局如下：</p>
+<p><img src="https://p4.ssl.qhimg.com/t0142b0c3faed3a5c78.png" alt=""></p>
+<p>那么，在 IDAPro 中打开某个函数的反汇编代码看一看，函数头部一堆 <strong>args</strong> 中哪些是传入的参数，哪些又是返回的值呢？</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/09/28/go-binary-reverse-engineering-tips-and-example/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1808,165 +1979,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://jiayu0x.com/2019/03/27/patch-bash5.0-for-deobfuscation/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="0xjiayu">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="JiaYu's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2019/03/27/patch-bash5.0-for-deobfuscation/" itemprop="url">
-                  Patch Bash5.0，让 -x 只打印而不执行，静态解混淆 Shell 脚本
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-27T00:00:00+08:00">
-                2019-03-27
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/security/" itemprop="url" rel="index">
-                    <span itemprop="name">security</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2019/03/27/patch-bash5.0-for-deobfuscation/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="2019/03/27/patch-bash5.0-for-deobfuscation/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="缘由"><a href="#缘由" class="headerlink" title="缘由"></a>缘由</h2><p>攻防对抗中，JavaScript 和 Powershell 脚本的混淆见得很多，但经过混淆的 Shell 脚本见得相对少一些。其实，Shell 作为一种简易而灵活的编程语言，其脚本也完全可以做到像 JS/Powershell 那样的混淆。混淆一般是为了逃过自动化检测，也可以给人工分析增加难度。比如，针对 <code>cat /etc/passwd</code> 这一条命令就可以用下面 3 种轻度混淆的方式来编写：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">cat /et$<span class="string">'c/pa\u0000/notexist/path'</span>sswd</div><div class="line"></div><div class="line"><span class="built_in">test</span>=/ehhh/hmtc/pahhh/hmsswd</div><div class="line">cat <span class="variable">$&#123;test//hh??hm/&#125;</span></div><div class="line"></div><div class="line">tmp_str=saudoihfnssoirtgn</div><div class="line">cat $(<span class="built_in">echo</span> /e)tc$(<span class="built_in">echo</span> /pa)<span class="variable">$&#123;tmp_str:9:2&#125;</span>wd</div></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/03/27/patch-bash5.0-for-deobfuscation/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -2016,7 +2028,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">24</span>
+                <span class="site-state-item-count">25</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
