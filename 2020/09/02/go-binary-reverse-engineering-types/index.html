@@ -113,8 +113,8 @@ Go二进制文件逆向分析从基础到进阶(1)——综述
 Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
 
 8. types8.1 简介重温一下本系列第一篇">
-<meta property="og:image" content="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png">
-<meta property="og:image" content="https://p3.ssl.qhimg.com/t01ec2c57eccba40a41.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/go_types.png">
+<meta property="og:image" content="http://jiayu0x.com/imgs/go_re/go_rtype.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/type_ext.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/struct_in_ida.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/runtime_newobj_in_ida.png">
@@ -134,7 +134,7 @@ Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号�
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/map_type.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/chan_type.png">
 <meta property="og:image" content="http://jiayu0x.com/imgs/go_re/uncommon_type.png">
-<meta property="og:updated_time" content="2020-09-25T09:57:19.615Z">
+<meta property="og:updated_time" content="2020-10-13T02:14:19.167Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Go二进制文件逆向分析从基础到进阶(3)——数据类型">
 <meta name="twitter:description" content="本文首发于安全客: https://www.anquanke.com/post/id/215820
@@ -146,7 +146,7 @@ Go二进制文件逆向分析从基础到进阶(1)——综述
 Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表
 
 8. types8.1 简介重温一下本系列第一篇">
-<meta name="twitter:image" content="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png">
+<meta name="twitter:image" content="http://jiayu0x.com/imgs/go_re/go_types.png">
 
 
 
@@ -453,10 +453,10 @@ Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号�
 <li><a href="https://www.anquanke.com/post/id/215419" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号和源码文件路径列表</a></li>
 </ol>
 <h2 id="8-types"><a href="#8-types" class="headerlink" title="8. types"></a>8. types</h2><h3 id="8-1-简介"><a href="#8-1-简介" class="headerlink" title="8.1 简介"></a>8.1 简介</h3><p>重温一下本系列第一篇《<a href="https://www.anquanke.com/post/id/214940" target="_blank" rel="external">Go二进制文件逆向分析从基础到进阶——综述</a>》文末介绍的 Go 语言中的数据类型。Go 在构建二进制文时把项目中所有数据类型信息也打包到二进制文件中，这些数据类型信息主要为 Go 语言中的 Stack Trace、Type Reflection 和类型转换服务。Go 语言内置的标准数据类型如下：</p>
-<p><img src="https://p3.ssl.qhimg.com/t010f01af0e76e97c60.png" alt=""></p>
+<p><img src="/imgs/go_re/go_types.png" alt=""></p>
 <a id="more"></a>
 <p>而这些类型的底层实现，其实都基于一个底层的结构定义扩展组合而来：</p>
-<p><img src="https://p3.ssl.qhimg.com/t01ec2c57eccba40a41.png" alt=""></p>
+<p><img src="/imgs/go_re/go_rtype.png" alt=""></p>
 <p>如果只是一个没有绑定任何 Method 的 Basic Type ，那么用 <strong>rtype</strong> 的结构就可以简单表示。如果一个数据类型绑定了 Methods(这种数据类型也叫 <strong>Uncommon Type</strong>)，或者属于复杂的组合类型(Composite Type)，那么就需要用扩展组合的方式来表示了。复杂类型的扩展组合方式可以简单描述为（虚线表示可选）：</p>
 <p><img src="/imgs/go_re/type_ext.png" style="zoom:50%;"></p>
 <p>这里以一个典型的 Struct 类型的数据结构为例，源码级表示为：</p>
@@ -522,7 +522,7 @@ Go二进制文件逆向分析从基础到进阶(2)——MetaInfo、函数符号�
 <p><img src="/imgs/go_re/ptrtype.png" alt=""></p>
 <h4 id="8-4-2-Struct-Type"><a href="#8-4-2-Struct-Type" class="headerlink" title="8.4.2 Struct Type"></a>8.4.2 Struct Type</h4><p>Struct Type 即 Go 语言中的结构体。不同于 C 中的 Struct，Go 中的 Struct 中的字段有的可以导出，有的只能私用，还可以匿名存在，最重要的时可以绑定方法，其实更像是面向对象概念中的 <strong>类(Class)</strong>。Struct Type 源码定义如下：</p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> structType <span class="keyword">struct</span> &#123;</div><div class="line">    rtype</div><div class="line">    pkgPath name          <span class="comment">// !! pointer</span></div><div class="line">    fields  []structField <span class="comment">// sorted by offset</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>可以看到 Struct Type 是在 <strong>rtype</strong> 数据后面加了一个 <strong>package path</strong> 和一组 <strong>structField</strong>。<strong>pkgPath</strong> 其实是相对于 <strong>firstmoduledata.types</strong> 的一个偏移，指向一个 <strong>type name</strong> 结构，解析方式参考上文。<strong>fields</strong> ，顾名思义，就是 Struct 中的字段定义信息。</p>
+<p>可以看到 Struct Type 是在 <strong>rtype</strong> 数据后面加了一个 <strong>package path</strong> 和一组 <strong>structField</strong>。<strong>pkgPath</strong> 是一个地址，指向一个 <strong>type name</strong> 结构，解析方式参考上文。<strong>fields</strong> ，顾名思义，就是 Struct 中的字段定义信息。</p>
 <p><strong>structField</strong> 在源码中的定义如下：</p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> structField <span class="keyword">struct</span> &#123;</div><div class="line">    name        name    <span class="comment">// name is always non-empty</span></div><div class="line">    typ         *rtype  <span class="comment">// type of field</span></div><div class="line">    offsetEmbed <span class="keyword">uintptr</span> <span class="comment">// byte offset of field&lt;&lt;1 | isEmbedded</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p><strong>structField</strong> 前两个成员对逆向分析最有帮助：</p>

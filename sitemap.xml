@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/</loc>
+    
+    <lastmod>2020-10-13T02:14:19.167Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://jiayu0x.com/2020/09/28/go-binary-reverse-engineering-tips-and-example/</loc>
     
     <lastmod>2020-09-28T05:57:08.913Z</lastmod>
@@ -19,13 +26,6 @@
     <loc>http://jiayu0x.com/2020/09/25/go-binary-reverse-engineering-itab-and-strings/</loc>
     
     <lastmod>2020-09-25T09:58:52.117Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/2020/09/02/go-binary-reverse-engineering-types/</loc>
-    
-    <lastmod>2020-09-25T09:57:19.615Z</lastmod>
     
   </url>
   
@@ -121,6 +121,41 @@
   </url>
   
   <url>
+    <loc>http://jiayu0x.com/posts_bak/Cuckoo-install-config.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/posts_bak/iptables-essential-summary.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/posts_bak/Linux-log-and-analysis.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/posts_bak/hbase-notice.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html</loc>
+    
+    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://jiayu0x.com/posts_bak/vim-tutorial.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
@@ -135,41 +170,6 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/hbase-notice.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/posts_bak/iptables-essential-summary.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/posts_bak/flume-summary.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/posts_bak/Linux-log-and-analysis.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://jiayu0x.com/posts_bak/DHCP-protocol-and-offensive-and-defensive.html</loc>
-    
-    <lastmod>2017-04-25T14:02:40.000Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://jiayu0x.com/posts_bak/Linux-authority-and-access-control.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
@@ -177,7 +177,7 @@
   </url>
   
   <url>
-    <loc>http://jiayu0x.com/posts_bak/Cuckoo-install-config.html</loc>
+    <loc>http://jiayu0x.com/posts_bak/flume-summary.html</loc>
     
     <lastmod>2017-04-25T14:02:40.000Z</lastmod>
     
